@@ -6,6 +6,7 @@ import { SkillManager } from './skills/SkillManager';
 import { MCPClientService } from './mcp/MCPClientService';
 import { permissionManager } from './security/PermissionManager';
 import { configStore } from '../config/ConfigStore';
+import { notificationService } from '../services/NotificationService';
 import os from 'os';
 
 
@@ -144,12 +145,38 @@ export class AgentRuntime {
             if (err.status === 500 && (err.message?.includes('sensitive') || JSON.stringify(error).includes('1027'))) {
                 this.broadcast('agent:error', 'AI Provider Error: The generated content was flagged as sensitive and blocked by the provider.');
             } else {
-                this.broadcast('agent:error', err.message || 'An unknown error occurred');
+                const errorMessage = err.message || 'An unknown error occurred';
+                this.broadcast('agent:error', errorMessage);
+                notificationService.sendErrorNotification(errorMessage);
             }
         } finally {
             this.isProcessing = false;
             this.abortController = null;
             this.notifyUpdate();
+            
+            // Send work complete notification
+            if (this.history.length > 0) {
+                const lastUserMessage = this.history.find(msg => msg.role === 'user');
+                if (lastUserMessage) {
+                    let taskType = '任务';
+                    const content = typeof lastUserMessage.content === 'string' ? lastUserMessage.content : '';
+                    
+                    // Determine task type based on content
+                    if (content.includes('标题')) {
+                        taskType = '标题生成';
+                    } else if (content.includes('写作') || content.includes('写')) {
+                        taskType = '文章写作';
+                    } else if (content.includes('排版')) {
+                        taskType = '文章排版';
+                    } else if (content.includes('选题')) {
+                        taskType = '热门选题';
+                    } else if (content.includes('数据')) {
+                        taskType = '数据分析';
+                    }
+                    
+                    notificationService.sendWorkCompleteNotification(taskType);
+                }
+            }
         }
     }
 
@@ -436,11 +463,28 @@ ${skillInfo.instructions}
             return true;
         }
 
+        // Send notification about permission request
+        notificationService.sendInfoNotification(
+            '牛马需要权限',
+            `需要您确认${this.getPermissionDescription(tool)}权限才能继续工作`
+        );
+
         const id = `confirm-${Date.now()}-${Math.random().toString(36).substring(7)}`;
         return new Promise((resolve) => {
             this.pendingConfirmations.set(id, { resolve });
             this.broadcast('agent:confirm-request', { id, tool, description, args });
         });
+    }
+
+    // Helper method to get permission description
+    private getPermissionDescription(tool: string): string {
+        const descriptions: Record<string, string> = {
+            'write_file': '写入文件',
+            'run_command': '执行命令',
+            'read_file': '读取文件',
+            'list_dir': '查看目录'
+        };
+        return descriptions[tool] || tool;
     }
 
     public handleConfirmResponseWithRemember(id: string, approved: boolean, remember: boolean): void {

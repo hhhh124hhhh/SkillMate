@@ -13,6 +13,12 @@ interface Config {
     authorizedFolders: string[];
     networkAccess: boolean;
     shortcut: string;
+    notifications: boolean;
+    notificationTypes: {
+        workComplete: boolean;
+        error: boolean;
+        info: boolean;
+    };
 }
 
 interface ToolPermission {
@@ -25,11 +31,17 @@ export function SettingsView({ onClose }: SettingsViewProps) {
     const [config, setConfig] = useState<Config>({
         apiKey: '',
         doubaoApiKey: '',
-        apiUrl: 'https://open.bigmodel.cn/api/coding/paas/v4',
+        apiUrl: 'https://open.bigmodel.cn/api/anthropic',
         model: 'GLM-4.7',
         authorizedFolders: [],
         networkAccess: false,
-        shortcut: 'Alt+Space'
+        shortcut: 'Alt+Space',
+        notifications: true,
+        notificationTypes: {
+            workComplete: true,
+            error: true,
+            info: true
+        }
     });
     const [saved, setSaved] = useState(false);
     const [activeTab, setActiveTab] = useState<'api' | 'folders' | 'advanced'>('api');
@@ -62,11 +74,17 @@ export function SettingsView({ onClose }: SettingsViewProps) {
                 const safeConfig = {
                     apiKey: loadedConfig.apiKey || '',
                     doubaoApiKey: loadedConfig.doubaoApiKey || '',
-                    apiUrl: loadedConfig.apiUrl || 'https://open.bigmodel.cn/api/coding/paas/v4',
+                    apiUrl: loadedConfig.apiUrl || 'https://open.bigmodel.cn/api/anthropic',
                     model: loadedConfig.model || 'GLM-4.7',
                     authorizedFolders: loadedConfig.authorizedFolders || [],
                     networkAccess: loadedConfig.networkAccess ?? false,
-                    shortcut: loadedConfig.shortcut || 'Alt+Space'
+                    shortcut: loadedConfig.shortcut || 'Alt+Space',
+                    notifications: loadedConfig.notifications ?? true,
+                    notificationTypes: {
+                        workComplete: loadedConfig.notificationTypes?.workComplete ?? true,
+                        error: loadedConfig.notificationTypes?.error ?? true,
+                        info: loadedConfig.notificationTypes?.info ?? true
+                    }
                 };
                 setConfig(safeConfig);
             }
@@ -184,50 +202,50 @@ export function SettingsView({ onClose }: SettingsViewProps) {
                         {activeTab === 'api' && (
                             <>
                                 <div>
-                                    <label className="block text-xs font-medium text-slate-500 mb-1.5 uppercase tracking-wider">API Key</label>
+                                    <label className="block text-xs font-medium text-slate-700 mb-1.5 uppercase tracking-wider">API Key</label>
                                     <input
                                         type="password"
                                         value={config.apiKey}
                                         onChange={(e) => setConfig({ ...config, apiKey: e.target.value })}
                                         placeholder="sk-..."
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-mono"
+                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-base text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-slate-500 mb-1.5 uppercase tracking-wider">豆包生图 API Key</label>
+                                    <label className="block text-xs font-medium text-slate-700 mb-1.5 uppercase tracking-wider">豆包生图 API Key</label>
                                     <input
                                         type="password"
                                         value={config.doubaoApiKey || ''}
                                         onChange={(e) => setConfig({ ...config, doubaoApiKey: e.target.value })}
                                         placeholder="输入豆包生图 API Key"
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-mono"
+                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-base text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                                     />
-                                    <p className="text-xs text-slate-400 mt-2">
+                                    <p className="text-xs text-slate-600 mt-2">
                                         用于生图技能的 API Key,将自动注入到 Skill 执行环境
                                     </p>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-slate-500 mb-1.5 uppercase tracking-wider">API URL</label>
+                                    <label className="block text-xs font-medium text-slate-700 mb-1.5 uppercase tracking-wider">API URL</label>
                                     <input
                                         type="text"
                                         value={config.apiUrl}
                                         onChange={(e) => setConfig({ ...config, apiUrl: e.target.value })}
                                         placeholder="https://api.anthropic.com"
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-base text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-slate-500 mb-1.5 uppercase tracking-wider">模型名称</label>
+                                    <label className="block text-xs font-medium text-slate-700 mb-1.5 uppercase tracking-wider">模型名称</label>
                                     <input
                                         type="text"
                                         value={config.model}
                                         onChange={(e) => setConfig({ ...config, model: e.target.value })}
                                         placeholder="glm-4.7"
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-base text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                                     />
-                                    <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
+                                    <p className="text-xs text-slate-600 mt-2 flex items-center gap-1">
                                         <Server size={12} />
-                                        输入模型名称，如 MiniMax-M2.1
+                                        当前使用模型：GLM-4.7（固定）
                                     </p>
                                 </div>
                                 
@@ -332,8 +350,64 @@ export function SettingsView({ onClose }: SettingsViewProps) {
                                     )}
                                 </div>
 
+                                {/* Notifications Settings */}
+                                <div className="space-y-3">
+                                    <p className="text-sm font-medium text-stone-700">通知设置</p>
+                                    <div className="flex items-center justify-between p-3 bg-white border border-stone-200 rounded-lg">
+                                        <div>
+                                            <p className="text-sm text-stone-700">启用桌面通知</p>
+                                            <p className="text-xs text-stone-400">牛马工作完成时会通知您</p>
+                                        </div>
+                                        <div className="relative inline-block w-10 h-5 transition duration-200 ease-in-out">
+                                            <input
+                                                type="checkbox"
+                                                checked={config.notifications}
+                                                onChange={(e) => setConfig({ ...config, notifications: e.target.checked })}
+                                                className="sr-only"
+                                            />
+                                            <span className={`block h-5 rounded-full transition duration-200 ease-in-out ${config.notifications ? 'bg-blue-600' : 'bg-stone-200'}`}>
+                                                <span className={`absolute left-0.5 top-0.5 w-4 h-4 transform rounded-full bg-white transition-transform duration-200 ease-in-out ${config.notifications ? 'translate-x-5' : ''}`}></span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    {config.notifications && (
+                                        <div className="space-y-2 pl-2">
+                                            <p className="text-xs font-medium text-stone-600">通知类型</p>
+                                            {[
+                                                { key: 'workComplete' as const, label: '工作完成通知', description: '牛马完成工作时通知' },
+                                                { key: 'error' as const, label: '错误通知', description: '发生错误时通知' },
+                                                { key: 'info' as const, label: '信息通知', description: '其他信息通知' }
+                                            ].map((type) => (
+                                                <div key={type.key} className="flex items-center justify-between p-2 bg-stone-50 rounded-lg">
+                                                    <div>
+                                                        <p className="text-sm text-stone-700">{type.label}</p>
+                                                        <p className="text-xs text-stone-400">{type.description}</p>
+                                                    </div>
+                                                    <div className="relative inline-block w-8 h-4 transition duration-200 ease-in-out">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={config.notificationTypes[type.key]}
+                                                            onChange={(e) => setConfig({
+                                                                ...config,
+                                                                notificationTypes: {
+                                                                    ...config.notificationTypes,
+                                                                    [type.key]: e.target.checked
+                                                                }
+                                                            })}
+                                                            className="sr-only"
+                                                        />
+                                                        <span className={`block h-4 rounded-full transition duration-200 ease-in-out ${config.notificationTypes[type.key] ? 'bg-blue-500' : 'bg-stone-200'}`}>
+                                                            <span className={`absolute left-0.5 top-0.5 w-3 h-3 transform rounded-full bg-white transition-transform duration-200 ease-in-out ${config.notificationTypes[type.key] ? 'translate-x-4' : ''}`}></span>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
                                 {/* Permissions Management */}
-                                <div className="space-y-2">
+                                <div className="space-y-2 mt-6">
                                     <p className="text-sm font-medium text-stone-700">已授权的权限</p>
                                     {(permissions || []).length === 0 ? (
                                         <p className="text-xs text-stone-400 p-3 bg-stone-50 rounded-lg">暂无已保存的权限</p>

@@ -27,6 +27,9 @@ release
 build
 .opencowork
 
+# Python Runtime (自动下载，不提交到 git)
+python-runtime/
+
 # Environment files
 .env
 

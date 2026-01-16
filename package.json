@@ -19,8 +19,9 @@
   "type": "module",
   "scripts": {
     "dev": "chcp 65001 && vite",
+    "setup-python": "node scripts/setup-python.js",
     "generate-icons": "node scripts/generate-icons.js",
-    "prebuild": "npm run generate-icons",
+    "prebuild": "npm run setup-python && npm run generate-icons",
     "build": "tsc && vite build && electron-builder",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives",
     "preview": "vite preview"
@@ -71,5 +72,46 @@
     "vite-plugin-electron": "^0.28.6",
     "vite-plugin-electron-renderer": "^0.14.5"
   },
-  "main": "dist-electron/main.js"
+  "main": "dist-electron/main.js",
+  "build": {
+    "appId": "com.wechatflowwork.app",
+    "productName": "WeChat_Flowwork",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist-electron/**/*",
+      "dist/**/*",
+      "resources/skills/**/*",
+      "node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "python-runtime",
+        "to": "python-runtime",
+        "filter": [
+          "**/*",
+          "!*.zip",
+          "!get-pip.py",
+          "!requirements.txt",
+          "!**/__pycache__/**",
+          "!**/*.pyc",
+          "!**/*.dist-info/**",
+          "!**/*.egg-info/**"
+        ]
+      },
+      {
+        "from": "resources/skills",
+        "to": "resources/skills"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    }
+  }
 }

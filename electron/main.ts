@@ -5,8 +5,10 @@ import os from 'node:os'
 import fs from 'node:fs'
 import dotenv from 'dotenv'
 import { AgentRuntime } from './agent/AgentRuntime'
+import { pythonRuntime } from './agent/PythonRuntime'
 import { configStore } from './config/ConfigStore'
 import { sessionStore } from './config/SessionStore'
+import { notificationService } from './services/NotificationService'
 import Anthropic from '@anthropic-ai/sdk'
 
 // Extend App type to include isQuitting property
@@ -70,7 +72,7 @@ app.on('activate', () => {
   }
 })
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   // Set App User Model ID for Windows notifications
   app.setAppUserModelId('com.wechatflowwork.app')
 
@@ -79,6 +81,19 @@ app.whenReady().then(() => {
     app.setAsDefaultProtocolClient('wechatflowwork')
   } else {
     console.log('Skipping protocol registration in Dev mode.')
+  }
+
+  // 0. Initialize Python runtime FIRST
+  console.log('[Main] Initializing Python runtime...')
+  const pythonReady = await pythonRuntime.initialize();
+
+  if (!pythonReady) {
+    console.warn('[Main] ⚠ Python runtime not available, AI skills will not work');
+    if (!app.isPackaged) {
+      console.error('[Main] Please run "npm run setup-python" first to use AI skills!');
+    }
+  } else {
+    console.log('[Main] ✓ Python runtime ready');
   }
 
   // 1. Setup IPC handlers FIRST
@@ -457,6 +472,36 @@ ipcMain.handle('skills:save', async () => {
 ipcMain.handle('skills:delete', async () => {
   // [Security] Skills deletion disabled for stability
   return { success: false, error: '技能删除功能已禁用 (Skills Locked)' };
+});
+
+// Notification handlers
+ipcMain.handle('notification:send', (_, options) => {
+  return notificationService.sendNotification(options);
+});
+
+ipcMain.handle('notification:send-work-complete', (_, taskType, result) => {
+  return notificationService.sendWorkCompleteNotification(taskType, result);
+});
+
+ipcMain.handle('notification:send-error', (_, error) => {
+  return notificationService.sendErrorNotification(error);
+});
+
+ipcMain.handle('notification:send-info', (_, title, message) => {
+  return notificationService.sendInfoNotification(title, message);
+});
+
+ipcMain.handle('notification:set-enabled', (_, enabled) => {
+  notificationService.setEnabled(enabled);
+  return { success: true };
+});
+
+ipcMain.handle('notification:get-enabled', () => {
+  return { enabled: notificationService.isEnabled() };
+});
+
+ipcMain.handle('notification:has-permission', () => {
+  return { hasPermission: notificationService.hasPermission() };
 });
 
 

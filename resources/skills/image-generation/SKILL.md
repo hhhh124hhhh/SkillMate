@@ -368,6 +368,103 @@ api_key = "your_api_key"  # 不推荐生产环境
 - 使用tinypng.com或ImageMagick压缩
 - 生成时选择较小尺寸
 
+## 🔄 API 失败时的备选方案
+
+当豆包 API 不可用时，您可以使用以下备选方案：
+
+### 方案 1：使用 cover-generator（推荐 ⭐）
+
+**适用场景**：需要生成公众号封面、分享卡片
+
+**优势**：
+- ✅ 支持纯色和渐变背景（无需 API）
+- ✅ 内置 5 种预设风格（tech、fresh、minimal、warm、business）
+- ✅ 自动生成文字标题
+- ✅ 智能裁剪和分享卡片同步
+
+**使用方式**：
+```
+生成封面：AI技术趋势，使用专业科技风格
+```
+
+### 方案 2：在线设计工具
+
+**Canva（可画）** - https://www.canva.cn
+- ✅ 免费使用大量模板
+- ✅ 支持公众号封面尺寸（900×383）
+- ✅ 在线编辑，无需下载
+- ✅ 中文界面，操作简单
+
+**稿定设计** - https://www.gaoding.com
+- ✅ 专业的公众号封面模板
+- ✅ 支持团队协作
+- ✅ 提供设计元素库
+
+**创客贴** - https://www.chuangkit.com
+- ✅ 海量免费模板
+- ✅ 快速编辑和导出
+- ✅ 支持多种设计场景
+
+### 方案 3：使用本地图片工具
+
+**Pillow（Python）**
+```python
+from PIL import Image, ImageDraw, ImageFont
+
+# 创建渐变背景
+img = Image.new('RGB', (1792, 1024), color='#4A90E2')
+draw = ImageDraw.Draw(img)
+
+# 添加标题
+font = ImageFont.truetype('arial.ttf', 80)
+draw.text((100, 400), "AI技术趋势", fill='white', font=font)
+
+img.save('cover.png')
+```
+
+**Figma / Sketch**
+- ✅ 专业设计工具
+- ✅ 精确控制布局
+- ✅ 可复用模板
+
+### 方案 4：使用其他 AI 生图服务
+
+**Midjourney**
+- ✅ 艺术效果好
+- ✅ 社区支持活跃
+- ❌ 需要付费订阅
+
+**Stable Diffusion**
+- ✅ 开源免费
+- ✅ 可本地部署
+- ❌ 配置复杂
+
+**DALL-E 3**
+- ✅ 文字渲染能力强
+- ✅ ChatGPT 集成
+- ❌ 需要付费
+
+### 方案选择建议
+
+| 场景 | 推荐方案 | 原因 |
+|------|---------|------|
+| 公众号封面 | cover-generator | 无需 API，内置风格 |
+| 营销海报 | Canva | 模板丰富，操作简单 |
+| 技术图表 | Figma | 精确控制，专业输出 |
+| 快速原型 | Pillow | 代码生成，可定制 |
+| 艺术创作 | Midjourney | 效果最好 |
+
+### 如何判断 API 是否可用
+
+运行以下测试：
+```bash
+python .claude/skills/image-generation/scripts/doubao_image_gen.py \
+  --prompt "测试" \
+  --output test.png
+```
+
+如果看到 "生成失败" 或 API 错误，建议使用备选方案。
+
 ---
 
 **最后更新**：2026-01-11

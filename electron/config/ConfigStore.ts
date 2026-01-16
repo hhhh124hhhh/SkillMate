@@ -16,18 +16,30 @@ export interface AppConfig {
     networkAccess: boolean;
     shortcut: string;
     allowedPermissions: ToolPermission[];
+    notifications: boolean;
+    notificationTypes: {
+        workComplete: boolean;
+        error: boolean;
+        info: boolean;
+    };
 }
 
 const defaults: AppConfig = {
     apiKey: '',
     doubaoApiKey: '', // Default empty
     zhipuApiKey: '', // Default empty
-    apiUrl: 'https://open.bigmodel.cn/api/coding/paas',
+    apiUrl: 'https://open.bigmodel.cn/api/anthropic',
     model: 'GLM-4.7',
     authorizedFolders: [],
     networkAccess: true, // "Open and use" implies network should be on
     shortcut: 'Alt+Space',
-    allowedPermissions: []
+    allowedPermissions: [],
+    notifications: true,
+    notificationTypes: {
+        workComplete: true,
+        error: true,
+        info: true
+    }
 };
 
 class ConfigStore {

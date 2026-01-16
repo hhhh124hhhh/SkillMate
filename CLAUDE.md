@@ -175,8 +175,19 @@ App.tsx
 
 ### TypeScript 配置
 - 严格模式启用
+- **未使用变量检查**: `noUnusedLocals` 和 `noUnusedParameters` 启用
 - ES 模块导入（`import/export`），不使用 CommonJS（`require`）
 - Vite 构建时排除某些 Node.js 模块（`rollupOptions.external`）
+
+### 构建配置
+- **代码混淆**: 生产环境使用 javascript-obfuscator 混淆主进程和预加载脚本
+  - 字符串数组化 (stringArrayThreshold: 0.5)
+  - 对象键转换 (transformObjectKeys: true)
+  - 保留 console 输出便于调试
+- **外部依赖**: Vite 构建时排除以下模块(不打包):
+  - sqlite3, sequelize, better-sqlite3, @modelcontextprotocol/sdk
+  - 添加此类依赖时需更新 `rollupOptions.external`
+- **图标生成**: 构建前自动运行 `npm run generate-icons` 生成应用图标
 
 ### 开发模式特殊处理
 - **userData 路径**: 开发模式使用 `.vscode/electron-userdata` 避免权限问题

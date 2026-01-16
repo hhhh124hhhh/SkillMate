@@ -2,6 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { pythonRuntime } from '../PythonRuntime';
 
 const execAsync = promisify(exec);
 
@@ -93,12 +94,34 @@ export class FileSystemTools {
         const timeout = 60000; // 60 second timeout
 
         try {
-            console.log(`[FileSystemTools] Executing command: ${args.command} in ${workingDir}`);
-            const { stdout, stderr } = await execAsync(args.command, {
+            let command = args.command;
+            const env = { ...process.env };
+
+            // 检测是否是 Python 命令
+            if (this.isPythonCommand(command)) {
+                if (!pythonRuntime.isAvailable()) {
+                    return 'Error: Python runtime is not available. Please run "npm run setup-python" first.';
+                }
+
+                // 替换为内置 Python
+                const bundledPython = pythonRuntime.getPythonExecutable();
+                if (bundledPython) {
+                    command = this.replacePythonCommand(command, bundledPython);
+
+                    // 添加 PYTHONPATH 环境变量
+                    Object.assign(env, pythonRuntime.getEnvironment());
+
+                    console.log(`[FileSystemTools] Using bundled Python: ${bundledPython}`);
+                }
+            }
+
+            console.log(`[FileSystemTools] Executing command: ${command} in ${workingDir}`);
+            const { stdout, stderr } = await execAsync(command, {
                 cwd: workingDir,
                 timeout: timeout,
                 maxBuffer: 1024 * 1024 * 10, // 10MB buffer
                 encoding: 'utf-8',
+                env: env, // 传递环境变量
                 shell: process.platform === 'win32' ? 'powershell.exe' : '/bin/bash'
             });
 
@@ -114,5 +137,42 @@ export class FileSystemTools {
             errorMsg += `Error: ${err.message || String(error)}`;
             return errorMsg;
         }
+    }
+
+    /**
+     * 检测是否是 Python 命令
+     *
+     * @param command - 要执行的命令
+     * @returns 如果是 Python 命令返回 true
+     */
+    private isPythonCommand(command: string): boolean {
+        const cmd = command.trim().toLowerCase();
+        return cmd.startsWith('python ') || cmd.startsWith('python3 ') || cmd.endsWith('.py');
+    }
+
+    /**
+     * 替换 Python 命令为内置运行时
+     *
+     * @param command - 原始命令
+     * @param bundledPython - 内置 Python 可执行文件路径
+     * @returns 替换后的命令
+     */
+    private replacePythonCommand(command: string, bundledPython: string): string {
+        const cmd = command.trim();
+
+        // python script.py -> "bundled/python.exe" script.py
+        if (cmd.startsWith('python ')) {
+            return `"${bundledPython}" ${cmd.substring(7)}`;
+        }
+        // python3 script.py -> "bundled/python.exe" script.py
+        else if (cmd.startsWith('python3 ')) {
+            return `"${bundledPython}" ${cmd.substring(8)}`;
+        }
+        // 直接调用 .py 文件 -> "bundled/python.exe" script.py
+        else if (cmd.endsWith('.py')) {
+            return `"${bundledPython}" ${cmd}`;
+        }
+
+        return command;
     }
 }

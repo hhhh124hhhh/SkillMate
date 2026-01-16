@@ -6,33 +6,33 @@
 
 @layer base {
   :root {
-    /* Light/Cream Theme */
-    --background: 40 20% 98%;
-    --foreground: 24 10% 10%;
+    /* Professional Theme */
+    --background: 210 20% 98%;
+    --foreground: 220 13% 9%;
 
     --card: 0 0% 100%;
-    --card-foreground: 24 10% 10%;
+    --card-foreground: 220 13% 9%;
 
-    --primary: 24 95% 53%;
+    --primary: 220 70% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 30 20% 94%;
-    --secondary-foreground: 24 10% 20%;
+    --secondary: 210 15% 94%;
+    --secondary-foreground: 220 13% 15%;
 
-    --muted: 30 15% 90%;
-    --muted-foreground: 24 5% 45%;
+    --muted: 210 15% 90%;
+    --muted-foreground: 220 8% 45%;
 
-    --accent: 30 20% 94%;
-    --accent-foreground: 24 10% 20%;
+    --accent: 210 15% 94%;
+    --accent-foreground: 220 13% 15%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 30 15% 88%;
-    --input: 30 15% 88%;
-    --ring: 24 95% 53%;
+    --border: 210 15% 88%;
+    --input: 210 15% 88%;
+    --ring: 220 70% 50%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
   }
 
   .dark {

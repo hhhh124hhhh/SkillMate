@@ -425,9 +425,11 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                     )}
 
                     {isProcessing && !streamingText && (
-                        <div className="flex items-center gap-2 text-slate-400 text-sm animate-pulse">
-                            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" />
-                            <span>Thinking...</span>
+                        <div className="flex items-center gap-2 text-slate-400 text-sm animate-pulse bg-white p-3 rounded-xl border border-slate-100">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" />
+                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
+                            <span>正在干活中，请稍候...</span>
                         </div>
                     )}
                 </div>
@@ -483,7 +485,7 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 onPaste={handlePaste}
-                                placeholder={mode === 'chat' ? "输入消息... (Ctrl+L 聚焦)" : workingDir ? "【】热门选题 (Ctrl+L 聚焦)" : "请先选择工作目录"}
+                                placeholder={mode === 'chat' ? "输入消息... (Ctrl+L 聚焦)" : workingDir ? "开始干活：找热门选题、批量生成标题、快速写作、文章排版... (Ctrl+L 聚焦)" : "请先选择工作目录"}
                                 className="flex-1 bg-transparent text-slate-800 placeholder:text-slate-400 py-3 text-sm focus:outline-none"
                                 disabled={isProcessing}
                             />
@@ -684,28 +686,28 @@ function EmptyState({ onAction }: { mode: Mode, workingDir: string | null, onAct
             </div>
             <div className="space-y-3 max-w-md">
                 <h2 className="text-2xl font-bold text-slate-800 tracking-tight">
-                    公众号AI助手
+                    公众号运营牛马
                 </h2>
                 <p className="text-slate-500 text-sm leading-relaxed">
-                    嗨，我是你的公众号创作小助手！从找选题、想标题到写文章、做排版，我都能陪你一起搞定～
+                    嗨，我是你的私人运营牛马！不止是聊天，更是真正能帮你干活的运营助手，开始干活吧，从选题到发布全流程搞定～
                 </p>
             </div>
             <div className="grid grid-cols-2 gap-3 w-full max-w-lg px-4">
                 {[
-                    { icon: Search, label: '寻找选题', action: '帮我找一些热门选题', color: 'text-teal-500', bg: 'bg-teal-50', border: 'border-teal-100' },
-                    { icon: Type, label: '定标题', action: '帮我生成吸引人的标题', color: 'text-purple-500', bg: 'bg-purple-50', border: 'border-purple-100' },
-                    { icon: PenTool, label: '开始写作', action: '帮我写一篇文章', color: 'text-blue-500', bg: 'bg-blue-50', border: 'border-blue-100' },
-                    { icon: Layout, label: '文章排版', action: '帮我排版这篇文章', color: 'text-slate-500', bg: 'bg-slate-50', border: 'border-slate-100' }
+                    { icon: Search, label: '找热门选题', action: '帮我找一些热门选题', color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-200' },
+                    { icon: Type, label: '批量标题', action: '帮我生成10个吸引人的标题', color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-200' },
+                    { icon: PenTool, label: '快速写作', action: '帮我快速写一篇运营文章', color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-200' },
+                    { icon: Layout, label: '文章排版', action: '帮我排版这篇文章', color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-200' }
                 ].map((item, i) => (
                     <button
                         key={i}
                         onClick={() => onAction(item.action)}
-                        className={`flex items-center gap-3 p-4 bg-white border ${item.border} rounded-xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group text-left`}
+                        className="flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group text-left hover:border-slate-300"
                     >
-                        <div className={`p-2.5 rounded-lg ${item.bg} ${item.color} group-hover:scale-110 transition-transform`}>
+                        <div className="p-2.5 rounded-lg bg-slate-50 text-slate-700 group-hover:bg-slate-100 transition-all">
                             <item.icon size={18} />
                         </div>
-                        <span className="text-sm font-medium text-slate-600 group-hover:text-slate-900">{item.label}</span>
+                        <span className="text-sm font-medium text-slate-700 group-hover:text-slate-900 transition-colors">{item.label}</span>
                     </button>
                 ))}
             </div>

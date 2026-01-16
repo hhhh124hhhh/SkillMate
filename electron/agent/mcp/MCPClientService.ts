@@ -152,12 +152,36 @@ export class MCPClientService {
         const client = this.clients.get(serverName);
         if (!client) throw new Error(`MCP Server ${serverName} not found`);
 
+        // Auto-inject current date for aisearch-mcp-server to ensure time accuracy
+        let modifiedArgs = { ...args };
+        if (serverName === 'aisearch-mcp-server' && toolName === 'chatCompletions') {
+            const currentDate = this.getCurrentDate();
+            const prompt = args.prompt as string || '';
+
+            // Inject current date into prompt if not already present
+            if (!prompt.includes('202') && !prompt.includes('当前日期')) {
+                modifiedArgs = {
+                    ...args,
+                    prompt: `【当前日期：${currentDate}】\n\n${prompt}`
+                };
+                console.log(`[MCPClientService] Auto-injected current date: ${currentDate}`);
+            }
+        }
+
         const result = await client.callTool({
             name: toolName,
-            arguments: args
+            arguments: modifiedArgs
         });
 
         // Convert MCP result to Anthropic ToolResult
         return JSON.stringify(result);
+    }
+
+    private getCurrentDate(): string {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        return `${year}年${month}月${day}日`;
     }
 }
