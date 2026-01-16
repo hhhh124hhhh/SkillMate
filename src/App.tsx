@@ -60,36 +60,36 @@ function App() {
 
   // Main App - Narrow vertical layout
   return (
-    <div className="h-screen w-full bg-[#FAF8F5] flex flex-col overflow-hidden font-sans">
+    <div className="h-screen w-full bg-slate-50 flex flex-col overflow-hidden font-sans">
       {/* Custom Titlebar */}
       <header
-        className="h-10 border-b border-stone-200/80 flex items-center justify-between px-3 bg-white/80 backdrop-blur-sm shrink-0"
+        className="h-10 border-b border-slate-200 bg-white/90 backdrop-blur-sm shrink-0 flex items-center justify-between px-3"
         style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
       >
         <div className="flex items-center gap-2" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-          <img src="/icon.png" alt="Logo" className="w-6 h-6 rounded-md object-cover" />
-          <span className="font-medium text-stone-700 text-sm">OpenCowork</span>
+          <img src="/logo_new.svg" alt="Logo" className="w-6 h-6 object-contain" />
+          <span className="font-semibold text-slate-700 text-sm tracking-tight">公众号助手</span>
         </div>
 
         <div className="flex items-center gap-1" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
           {/* Window Controls */}
           <button
             onClick={() => window.ipcRenderer.invoke('window:minimize')}
-            className="p-1.5 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded transition-colors"
+            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors"
             title="Minimize"
           >
             <Minus size={14} />
           </button>
           <button
             onClick={() => window.ipcRenderer.invoke('window:maximize')}
-            className="p-1.5 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded transition-colors"
+            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors"
             title="Maximize"
           >
             <Square size={12} />
           </button>
           <button
             onClick={() => window.ipcRenderer.invoke('window:close')}
-            className="p-1.5 text-stone-400 hover:text-stone-600 hover:bg-red-100 hover:text-red-500 rounded transition-colors"
+            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-red-100 hover:text-red-500 rounded-md transition-colors"
             title="Close"
           >
             <X size={14} />

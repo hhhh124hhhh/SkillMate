@@ -1,7 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
 import yaml from 'js-yaml';
-import os from 'os';
 import { app } from 'electron';
 
 export interface SkillDefinition {
@@ -16,66 +15,27 @@ export class SkillManager {
     private skills: Map<string, SkillDefinition> = new Map();
 
     constructor() {
-        this.skillsDir = path.join(os.homedir(), '.opencowork', 'skills');
+        // [Security] Default to dev path, will be updated in initializeDefaults for production
+        // We no longer use the user's home directory to prevent modification
+        this.skillsDir = path.join(process.cwd(), 'resources', 'skills');
     }
 
     async initializeDefaults() {
-        try {
-            // Determine source directory for default skills
-            let sourceDir = path.join(process.cwd(), 'resources', 'skills');
-            if (app.isPackaged) {
-                // In production, resources are typically in process.resourcesPath
-                // Checking 'resources/skills' inside resourcesPath (common mapping)
-                const possiblePath = path.join(process.resourcesPath, 'resources', 'skills');
-                // Fallback to just 'skills' if flattened
-                const fallbackPath = path.join(process.resourcesPath, 'skills');
-
-                // Using async exists check helper or try/catch
-                try {
-                    await fs.access(possiblePath);
-                    sourceDir = possiblePath;
-                } catch {
-                    sourceDir = fallbackPath;
-                }
-            }
-
-            // Check if source exists
+        // [Security] Locate the read-only resources directory
+        if (app.isPackaged) {
+            const possiblePath = path.join(process.resourcesPath, 'resources', 'skills');
+            const fallbackPath = path.join(process.resourcesPath, 'skills');
+            
             try {
-                await fs.access(sourceDir);
+                await fs.access(possiblePath);
+                this.skillsDir = possiblePath;
             } catch {
-                console.log('Default skills source not found at:', sourceDir);
-                return;
+                this.skillsDir = fallbackPath;
             }
-
-            // Ensure target directory exists
-            try {
-                await fs.access(this.skillsDir);
-            } catch {
-                await fs.mkdir(this.skillsDir, { recursive: true });
-            }
-
-            // Copy files
-            const files = await fs.readdir(sourceDir);
-            for (const file of files) {
-                // Must be a directory (skills are folders now)
-                try {
-                    const stats = await fs.stat(path.join(sourceDir, file));
-                    if (!stats.isDirectory()) continue;
-                } catch { continue; }
-
-                const targetPath = path.join(this.skillsDir, file);
-                try {
-                    // Always copy/overwrite to ensure latest version
-                    // force: true is default for cp, preventing error on exist unless errorOnExist is set
-                    await fs.cp(path.join(sourceDir, file), targetPath, { recursive: true, force: true });
-                    console.log(`Installed/Updated default skill: ${file}`);
-                } catch (e) {
-                    console.error(`Failed to install skill ${file}:`, e);
-                }
-            }
-        } catch (e) {
-            console.error('Failed to initialize default skills:', e);
         }
+        
+        console.log(`[SkillManager] Skills locked to read-only directory: ${this.skillsDir}`);
+        // [Security] Copy logic removed to ensure stability
     }
 
     async loadSkills() {

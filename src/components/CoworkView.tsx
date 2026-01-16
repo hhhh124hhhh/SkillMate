@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Square, ArrowUp, ChevronDown, ChevronUp, Download, FolderOpen, MessageCircle, Zap, AlertTriangle, Check, X, Settings, History, Plus, Trash2 } from 'lucide-react';
-import { useI18n } from '../i18n/I18nContext';
+import { Square, ArrowUp, ChevronDown, ChevronUp, Download, FolderOpen, MessageCircle, Zap, AlertTriangle, Check, X, Settings, History, Plus, Trash2, PenTool, Search, Layout, Type } from 'lucide-react';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import Anthropic from '@anthropic-ai/sdk';
 
@@ -200,27 +199,27 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
     const relevantHistory = history.filter(m => (m.role as string) !== 'system');
 
     return (
-        <div className="flex flex-col h-full bg-[#FAF8F5] relative">
+        <div className="flex flex-col h-full bg-slate-50 relative">
             {/* Permission Dialog Overlay */}
             {permissionRequest && (
-                <div className="absolute inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl animate-in fade-in zoom-in-95 duration-200">
+                <div className="absolute inset-0 bg-slate-900/20 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-200">
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
-                                <AlertTriangle size={24} className="text-amber-600" />
+                            <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center">
+                                <AlertTriangle size={24} className="text-blue-600" />
                             </div>
                             <div>
-                                <h3 className="font-semibold text-stone-800 text-lg">操作确认</h3>
-                                <p className="text-sm text-stone-500">{permissionRequest.tool}</p>
+                                <h3 className="font-semibold text-slate-800 text-lg">操作确认</h3>
+                                <p className="text-sm text-slate-500">{permissionRequest.tool}</p>
                             </div>
                         </div>
 
-                        <p className="text-stone-600 mb-4">{permissionRequest.description}</p>
+                        <p className="text-slate-600 mb-4">{permissionRequest.description}</p>
 
                         {/* Show details if write_file */}
                         {typeof permissionRequest.args?.path === 'string' && (
-                            <div className="bg-stone-50 rounded-lg p-3 mb-4 font-mono text-xs text-stone-600">
-                                <span className="text-stone-400">路径: </span>
+                            <div className="bg-slate-50 rounded-lg p-3 mb-4 font-mono text-xs text-slate-600 border border-slate-200">
+                                <span className="text-slate-400">路径: </span>
                                 {permissionRequest.args.path as string}
                             </div>
                         )}
@@ -228,14 +227,14 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                         <div className="flex gap-3">
                             <button
                                 onClick={() => handlePermissionResponse(false)}
-                                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-stone-600 bg-stone-100 hover:bg-stone-200 rounded-xl transition-colors"
+                                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
                             >
                                 <X size={16} />
                                 拒绝
                             </button>
                             <button
                                 onClick={() => handlePermissionResponse(true)}
-                                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-colors"
+                                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors shadow-sm shadow-blue-200"
                             >
                                 <Check size={16} />
                                 允许
@@ -266,13 +265,13 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
             )}
 
             {/* Top Bar with Mode Tabs and Settings */}
-            <div className="border-b border-stone-200 bg-white px-6 py-2.5 flex items-center justify-between shrink-0">
+            <div className="border-b border-slate-200 bg-white/90 backdrop-blur-sm px-6 py-2.5 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
                     {/* Mode Tabs */}
-                    <div className="flex items-center gap-0.5 bg-stone-100 rounded-lg p-0.5">
+                    <div className="flex items-center gap-0.5 bg-slate-100/80 p-0.5 rounded-lg">
                         <button
                             onClick={() => setMode('chat')}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${mode === 'chat' ? 'bg-white text-stone-800 shadow-sm' : 'text-stone-500 hover:text-stone-700'
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${mode === 'chat' ? 'bg-white text-blue-600 shadow-sm ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700'
                                 }`}
                         >
                             <MessageCircle size={14} />
@@ -280,7 +279,7 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                         </button>
                         <button
                             onClick={() => setMode('work')}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${mode === 'work' ? 'bg-white text-stone-800 shadow-sm' : 'text-stone-500 hover:text-stone-700'
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${mode === 'work' ? 'bg-white text-blue-600 shadow-sm ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700'
                                 }`}
                         >
                             <Zap size={14} />
@@ -292,21 +291,21 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                 {/* History + Settings */}
                 <div className="flex items-center gap-2">
                     {workingDir && (
-                        <span className="text-xs text-stone-400 truncate max-w-32">
+                        <span className="text-xs text-slate-400 font-mono truncate max-w-32 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">
                             📂 {workingDir.split(/[\\/]/).pop()}
                         </span>
                     )}
                     <div className="flex items-center gap-1">
                         <button
                             onClick={() => window.ipcRenderer.invoke('agent:new-session')}
-                            className="p-1.5 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-lg transition-colors"
+                            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                             title="新会话"
                         >
                             <Plus size={16} />
                         </button>
                         <button
                             onClick={() => setShowHistory(!showHistory)}
-                            className={`p-1.5 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-lg transition-colors ${showHistory ? 'bg-stone-100 text-stone-600' : ''}`}
+                            className={`p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors ${showHistory ? 'bg-blue-50 text-blue-600' : ''}`}
                             title="历史记录"
                         >
                             <History size={16} />
@@ -314,7 +313,7 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                     </div>
                     <button
                         onClick={onOpenSettings}
-                        className="p-1.5 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-lg transition-colors"
+                        className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
                         title="Settings"
                     >
                         <Settings size={16} />
@@ -324,15 +323,15 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
 
             {/* History Panel - Floating Popover */}
             {showHistory && (
-                <div className="absolute top-12 right-6 z-20 w-80 bg-white rounded-xl shadow-xl border border-stone-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-stone-100 bg-stone-50/50">
+                <div className="absolute top-12 right-6 z-20 w-80 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200 ring-1 ring-black/5">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/50">
                         <div className="flex items-center gap-2">
-                            <History size={14} className="text-orange-500" />
-                            <span className="text-sm font-semibold text-stone-700">历史任务</span>
+                            <History size={14} className="text-blue-500" />
+                            <span className="text-sm font-semibold text-slate-700">历史任务</span>
                         </div>
                         <button
                             onClick={() => setShowHistory(false)}
-                            className="p-1 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-lg transition-colors"
+                            className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
                         >
                             <X size={14} />
                         </button>
@@ -393,7 +392,14 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
             <div className="flex-1 overflow-y-auto px-4 py-6" ref={scrollRef}>
                 <div className="max-w-xl mx-auto space-y-5">
                     {relevantHistory.length === 0 && !streamingText ? (
-                        <EmptyState mode={mode} workingDir={workingDir} />
+                        <EmptyState 
+                            mode={mode} 
+                            workingDir={workingDir} 
+                            onAction={(text) => {
+                                setInput(text);
+                                inputRef.current?.focus();
+                            }}
+                        />
                     ) : (
                         <>
                             {relevantHistory.map((msg, idx) => (
@@ -409,9 +415,9 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
 
                             {streamingText && (
                                 <div className="animate-in fade-in duration-200">
-                                    <div className="text-stone-700 text-[15px] leading-7 max-w-none">
+                                    <div className="text-slate-700 text-[15px] leading-7 max-w-none">
                                         <MarkdownRenderer content={streamingText} />
-                                        <span className="inline-block w-2 h-5 bg-orange-500 ml-0.5 animate-pulse" />
+                                        <span className="inline-block w-2 h-5 bg-blue-500 ml-0.5 animate-pulse" />
                                     </div>
                                 </div>
                             )}
@@ -419,8 +425,8 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                     )}
 
                     {isProcessing && !streamingText && (
-                        <div className="flex items-center gap-2 text-stone-400 text-sm animate-pulse">
-                            <div className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-bounce" />
+                        <div className="flex items-center gap-2 text-slate-400 text-sm animate-pulse">
+                            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" />
                             <span>Thinking...</span>
                         </div>
                     )}
@@ -428,13 +434,13 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
             </div>
 
             {/* Bottom Input */}
-            <div className="border-t border-stone-200 bg-white p-4 shadow-lg shadow-stone-200/50">
+            <div className="border-t border-slate-200 bg-white p-4 shadow-lg shadow-slate-200/50">
                 <div className="max-w-xl mx-auto">
                     {/* Image Preview Area */}
                     {images.length > 0 && (
                         <div className="flex gap-2 mb-2 overflow-x-auto pb-1">
                             {images.map((img, idx) => (
-                                <div key={idx} className="relative w-16 h-16 rounded-lg border border-stone-200 overflow-hidden shrink-0 group">
+                                <div key={idx} className="relative w-16 h-16 rounded-lg border border-slate-200 overflow-hidden shrink-0 group">
                                     <img src={img} alt="Preview" className="w-full h-full object-cover" />
                                     <button
                                         onClick={() => removeImage(idx)}
@@ -449,7 +455,7 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
 
                     <form onSubmit={handleSubmit}>
                         <div className="input-bar">
-                            <button type="button" onClick={handleSelectFolder} className="p-3 text-stone-400 hover:text-stone-600 transition-colors" title="选择工作目录">
+                            <button type="button" onClick={handleSelectFolder} className="p-3 text-slate-400 hover:text-slate-600 transition-colors" title="选择工作目录">
                                 <FolderOpen size={18} />
                             </button>
 
@@ -457,7 +463,7 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                             <button
                                 type="button"
                                 onClick={() => fileInputRef.current?.click()}
-                                className="p-3 text-stone-400 hover:text-stone-600 transition-colors"
+                                className="p-3 text-slate-400 hover:text-slate-600 transition-colors"
                                 title="上传图片"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></svg>
@@ -477,13 +483,13 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 onPaste={handlePaste}
-                                placeholder={mode === 'chat' ? "输入消息... (Ctrl+L 聚焦)" : workingDir ? "描述任务... (Ctrl+L 聚焦)" : "请先选择工作目录"}
-                                className="flex-1 bg-transparent text-stone-800 placeholder:text-stone-400 py-3 text-sm focus:outline-none"
+                                placeholder={mode === 'chat' ? "输入消息... (Ctrl+L 聚焦)" : workingDir ? "【】热门选题 (Ctrl+L 聚焦)" : "请先选择工作目录"}
+                                className="flex-1 bg-transparent text-slate-800 placeholder:text-slate-400 py-3 text-sm focus:outline-none"
                                 disabled={isProcessing}
                             />
 
                             {/* Model Selector */}
-                            <div className="flex items-center gap-1.5 px-3 text-xs text-stone-500 border-l border-stone-100">
+                            <div className="flex items-center gap-1.5 px-3 text-xs text-slate-500 border-l border-slate-100">
                                 <span className="font-medium max-w-20 truncate">{modelName}</span>
                                 <ChevronDown size={12} />
                             </div>
@@ -502,8 +508,8 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                                         type="submit"
                                         disabled={!input.trim() && images.length === 0}
                                         className={`p-2.5 rounded-lg transition-all ${input.trim() || images.length > 0
-                                            ? 'bg-orange-500 text-white shadow-md hover:bg-orange-600'
-                                            : 'bg-stone-100 text-stone-300'
+                                            ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700 shadow-blue-200'
+                                            : 'bg-slate-100 text-slate-300'
                                             }`}
                                     >
                                         <ArrowUp size={16} />
@@ -513,7 +519,7 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                         </div>
                     </form>
 
-                    <p className="text-[11px] text-stone-400 text-center mt-3">
+                    <p className="text-[11px] text-slate-400 text-center mt-3">
                         AI 可能会出错，请仔细核查重要信息
                     </p>
                 </div>
@@ -599,7 +605,7 @@ function MessageItem({ message, expandedBlocks, toggleBlock, showTools, onImageC
             {groupedBlocks.map((block, i: number) => {
                 if (block.type === 'text' && block.text) {
                     return (
-                        <div key={i} className="text-stone-700 text-[15px] leading-7 max-w-none">
+                        <div key={i} className="prose prose-slate prose-sm max-w-none bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
                             <MarkdownRenderer content={block.text} />
                         </div>
                     );
@@ -627,28 +633,28 @@ function MessageItem({ message, expandedBlocks, toggleBlock, showTools, onImageC
                                             onClick={() => toggleBlock(blockId)}
                                         >
                                             <div className="flex items-center gap-2.5">
-                                                <span className="text-stone-400 text-sm">⌘</span>
-                                                <span className="text-sm text-stone-600 font-medium">{tool.name || 'Running command'}</span>
+                                                <span className="text-slate-400 text-sm">⌘</span>
+                                                <span className="text-sm text-slate-600 font-medium">{tool.name || 'Running command'}</span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 {tool.name === 'write_file' && (
-                                                    <Download size={14} className="text-stone-400" />
+                                                    <Download size={14} className="text-slate-400" />
                                                 )}
                                                 <ChevronDown
                                                     size={16}
-                                                    className={`text-stone-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                                                    className={`text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                                                 />
                                             </div>
                                         </div>
                                         {isExpanded && (
-                                            <div className="p-3 bg-stone-50 border-t border-stone-100">
+                                            <div className="p-3 bg-slate-50 border-t border-slate-100">
                                                 {/* For Context Skills (empty input), show a friendly message */}
                                                 {Object.keys(tool.input || {}).length === 0 ? (
                                                     <div className="text-xs text-emerald-600 font-medium">
                                                         ✓ Skill loaded into context
                                                     </div>
                                                 ) : (
-                                                    <pre className="text-xs font-mono text-stone-500 whitespace-pre-wrap overflow-x-auto">
+                                                    <pre className="text-xs font-mono text-slate-500 whitespace-pre-wrap overflow-x-auto">
                                                         {JSON.stringify(tool.input, null, 2)}
                                                     </pre>
                                                 )}
@@ -667,26 +673,41 @@ function MessageItem({ message, expandedBlocks, toggleBlock, showTools, onImageC
     );
 }
 
-function EmptyState({ mode, workingDir }: { mode: Mode, workingDir: string | null }) {
-    const { t } = useI18n();
-
+function EmptyState({ onAction }: { mode: Mode, workingDir: string | null, onAction: (text: string) => void }) {
     return (
-        <div className="flex flex-col items-center justify-center h-full text-center space-y-4 py-20">
-            <div className="w-16 h-16 rounded-2xl bg-white shadow-lg flex items-center justify-center rotate-3 border border-stone-100 overflow-hidden">
-                <img src="/icon.png" alt="Logo" className="w-full h-full object-cover" />
+        <div className="flex flex-col items-center justify-center h-full text-center space-y-8 py-10 animate-in fade-in duration-500">
+            <div className="relative group">
+                <div className="absolute -inset-4 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-full blur-xl opacity-60 group-hover:opacity-80 transition-opacity duration-500"></div>
+                <div className="w-24 h-24 bg-white rounded-3xl shadow-xl flex items-center justify-center relative border border-white/50 ring-1 ring-black/5 transform group-hover:scale-105 transition-transform duration-300">
+                    <img src="/logo_new.svg" alt="Logo" className="w-14 h-14 object-contain" />
+                </div>
             </div>
-            <div className="space-y-2">
-                <h2 className="text-xl font-semibold text-stone-800">
-                    {mode === 'chat' ? 'OpenCowork Chat' : 'OpenCowork Work'}
+            <div className="space-y-3 max-w-md">
+                <h2 className="text-2xl font-bold text-slate-800 tracking-tight">
+                    公众号AI助手
                 </h2>
-                <p className="text-stone-500 text-sm max-w-xs">
-                    {mode === 'work' && !workingDir
-                        ? '请先选择一个工作目录来开始任务'
-                        : mode === 'work' && workingDir
-                            ? `工作目录: ${workingDir.split(/[\\/]/).pop()}`
-                            : t('startByDescribing')
-                    }
+                <p className="text-slate-500 text-sm leading-relaxed">
+                    嗨，我是你的公众号创作小助手！从找选题、想标题到写文章、做排版，我都能陪你一起搞定～
                 </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 w-full max-w-lg px-4">
+                {[
+                    { icon: Search, label: '寻找选题', action: '帮我找一些热门选题', color: 'text-teal-500', bg: 'bg-teal-50', border: 'border-teal-100' },
+                    { icon: Type, label: '定标题', action: '帮我生成吸引人的标题', color: 'text-purple-500', bg: 'bg-purple-50', border: 'border-purple-100' },
+                    { icon: PenTool, label: '开始写作', action: '帮我写一篇文章', color: 'text-blue-500', bg: 'bg-blue-50', border: 'border-blue-100' },
+                    { icon: Layout, label: '文章排版', action: '帮我排版这篇文章', color: 'text-slate-500', bg: 'bg-slate-50', border: 'border-slate-100' }
+                ].map((item, i) => (
+                    <button
+                        key={i}
+                        onClick={() => onAction(item.action)}
+                        className={`flex items-center gap-3 p-4 bg-white border ${item.border} rounded-xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group text-left`}
+                    >
+                        <div className={`p-2.5 rounded-lg ${item.bg} ${item.color} group-hover:scale-110 transition-transform`}>
+                            <item.icon size={18} />
+                        </div>
+                        <span className="text-sm font-medium text-slate-600 group-hover:text-slate-900">{item.label}</span>
+                    </button>
+                ))}
             </div>
         </div>
     );

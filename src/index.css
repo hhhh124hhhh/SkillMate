@@ -87,24 +87,24 @@
 
 @layer components {
   .user-bubble {
-    @apply bg-[#E8E4DF] text-stone-800 rounded-2xl px-5 py-4 leading-relaxed;
+    @apply bg-blue-50 text-slate-800 rounded-2xl px-5 py-4 leading-relaxed border border-blue-100 shadow-sm;
   }
 
   .command-block {
-    @apply bg-white border border-stone-200 rounded-xl overflow-hidden shadow-sm;
+    @apply bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm;
   }
 
   .command-block-header {
-    @apply flex items-center justify-between px-4 py-3 hover:bg-stone-50 transition-colors cursor-pointer;
+    @apply flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors cursor-pointer;
   }
 
   .steps-indicator {
-    @apply flex items-center gap-2 text-sm text-stone-400 pl-4 border-l-2 border-stone-200 ml-1;
+    @apply flex items-center gap-2 text-sm text-slate-400 pl-4 border-l-2 border-slate-200 ml-1;
   }
 
   .input-bar {
-    @apply bg-white border border-stone-200 rounded-xl flex items-center shadow-sm transition-all;
-    @apply focus-within:border-stone-300 focus-within:ring-2 focus-within:ring-orange-100;
+    @apply bg-white border border-slate-200 rounded-2xl flex items-center shadow-sm transition-all;
+    @apply focus-within:border-blue-300 focus-within:ring-4 focus-within:ring-blue-50;
   }
 
   .input-bar-dark {

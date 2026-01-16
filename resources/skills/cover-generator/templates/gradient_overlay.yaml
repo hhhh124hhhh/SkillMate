@@ -1,0 +1,111 @@
+template:
+  name: "渐变叠加"
+  id: "gradient_overlay"
+  description: "AI背景图上叠加半透明渐变层，增强文字可读性"
+  category: "creative"
+  version: "1.0.0"
+
+  background:
+    type: "ai_generate"
+    style: "tech"
+    size: "3072x1306"
+
+  overlay:
+    enabled: true
+    type: "gradient"
+    gradient:
+      from: "rgba(0,0,0,0.7)"    # 顶部深色
+      to: "rgba(0,0,0,0.3)"      # 底部浅色
+      direction: "vertical"
+
+  elements:
+    - type: "text"
+      id: "main_title"
+      content: "{{title}}"
+
+      position:
+        type: "absolute"
+        x: "50%"
+        y: "40%"        # 上半部分
+        anchor: "middle"
+
+      font:
+        family: ["SimHei", "Microsoft YaHei", "sans-serif"]
+        size: 125
+        weight: "bold"
+        color: "#FFFFFF"
+        spacing: 0
+
+      effects:
+        shadow:
+          enabled: true
+          color: "rgba(0,0,0,0.6)"
+          offset_x: 5
+          offset_y: 5
+          blur: 0
+        stroke:
+          enabled: false
+
+      wrap:
+        enabled: true
+        max_width: "90%"
+        max_lines: 2
+        line_height: 1.25
+        align: "center"
+
+    - type: "optional"
+      id: "subtitle"
+      content: "{{subtitle}}"
+      required: false
+
+      position:
+        type: "absolute"
+        x: "50%"
+        y: "75%"        # 下半部分
+        anchor: "middle"
+
+      font:
+        family: ["Microsoft YaHei", "sans-serif"]
+        size: 60
+        weight: "normal"
+        color: "#FFFFFF"
+        spacing: 0
+
+      effects:
+        shadow:
+          enabled: true
+          color: "rgba(0,0,0,0.6)"
+          offset_x: 3
+          offset_y: 3
+          blur: 0
+
+      wrap:
+        enabled: true
+        max_width: "85%"
+        max_lines: 2
+        line_height: 1.4
+        align: "center"
+
+  variants:
+    - name: "深色叠加"
+      overlay:
+        type: "gradient"
+        gradient:
+          from: "rgba(0,0,0,0.8)"
+          to: "rgba(0,0,0,0.4)"
+          direction: "vertical"
+
+    - name: "渐变叠加蓝"
+      overlay:
+        type: "gradient"
+        gradient:
+          from: "rgba(30,58,138,0.7)"
+          to: "rgba(124,58,237,0.4)"
+          direction: "diagonal"
+
+    - name: "底部遮罩"
+      overlay:
+        type: "solid"
+        color: "rgba(0,0,0,0.5)"
+        position: "bottom"  # 只在底部叠加
+        height: "40%"

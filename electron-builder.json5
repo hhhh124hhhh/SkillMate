@@ -1,27 +1,38 @@
 // @see - https://www.electron.build/configuration/configuration
 {
   "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
-  "appId": "com.opencowork.app",
+  "appId": "com.wechatflowwork.app",
   "asar": true,
-  "productName": "OpenCowork",
+  "productName": "WeChat_Flowwork",
 
   "directories": {
-    "output": "release/${version}"
+    "output": "release/${version}",
+    "buildResources": "build"
   },
   "publish": {
     "provider": "github",
-    "owner": "Safphere",
-    "repo": "opencowork",
+    "owner": "hhhh124hhhh",
+    "repo": "wechat-flowwork",
     "releaseType": "release"
   },
   "files": [
     "dist",
     "dist-electron"
   ],
+
+  "extraResources": [
+    {
+      "from": "electron/agent/mcp/builtin-mcp-config.json",
+      "to": "builtin-mcp-config.json"
+    }
+  ],
+
+  "icon": "build/icon.ico",
   "mac": {
     "target": [
       "dmg"
     ],
+    "icon": "build/icon.icns",
     "artifactName": "${productName}-Mac-${version}-Installer.${ext}"
   },
   "win": {
@@ -33,6 +44,7 @@
         ]
       }
     ],
+    "icon": "build/icon.ico",
     "artifactName": "${productName}-Windows-${version}-Setup.${ext}"
   },
   "nsis": {
@@ -46,7 +58,8 @@
       "AppImage",
       "deb"
     ],
-    "maintainer": "Safphere <a976466014@gmail.com>",
+    "icon": "build/icons",
+    "maintainer": "WeChat_Flowwork Team <support@wechatflowwork.com>",
     "category": "Utility",
     "artifactName": "${productName}-Linux-${version}.${ext}"
   }

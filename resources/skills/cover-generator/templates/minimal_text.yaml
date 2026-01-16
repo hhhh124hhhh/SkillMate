@@ -1,0 +1,111 @@
+template:
+  name: "极简文字"
+  id: "minimal_text"
+  description: "极简主义，大量留白，专注文字内容"
+  category: "minimal"
+  version: "1.0.0"
+
+  background:
+    type: "solid"      # 纯色背景
+    color: "#FAFAFA"   # 极浅的灰白色
+    size: "3072x1306"
+
+  elements:
+    - type: "text"
+      id: "main_title"
+      content: "{{title}}"
+
+      position:
+        type: "center"
+        x: "50%"
+        y: "50%"
+        anchor: "middle"
+
+      font:
+        family: ["Noto Sans SC", "Microsoft YaHei", "sans-serif"]
+        size: 115
+        weight: "bold"   # 粗体
+        color: "#1A1A1A" # 近乎黑色
+        spacing: 5       # 轻微字间距
+
+      effects:
+        shadow:
+          enabled: false
+        stroke:
+          enabled: false
+
+      wrap:
+        enabled: true
+        max_width: "75%"  # 限制宽度，保持极简
+        max_lines: 3
+        line_height: 1.35
+        align: "center"
+
+    - type: "optional"
+      id: "subtitle"
+      content: "{{subtitle}}"
+      required: false
+
+      position:
+        type: "absolute"
+        x: "50%"
+        y: "80%"        # 靠下位置
+        anchor: "middle"
+
+      font:
+        family: ["Noto Sans SC", "Microsoft YaHei", "sans-serif"]
+        size: 45
+        weight: "normal"
+        color: "#666666" # 灰色
+        spacing: 2
+
+      effects:
+        shadow:
+          enabled: false
+
+      wrap:
+        enabled: true
+        max_width: "70%"
+        max_lines: 1      # 副标题只显示一行
+        line_height: 1.4
+        align: "center"
+
+  variants:
+    - name: "纯白背景"
+      background:
+        type: "solid"
+        color: "#FFFFFF"
+      elements:
+        - id: "main_title"
+          font:
+            color: "#000000"
+
+    - name: "浅灰背景"
+      background:
+        type: "solid"
+        color: "#FAFAFA"
+      elements:
+        - id: "main_title"
+          font:
+            color: "#1A1A1A"
+
+    - name: "米色背景"
+      background:
+        type: "solid"
+        color: "#F5F5DC"
+      elements:
+        - id: "main_title"
+          font:
+            color: "#2C2C2C"
+
+    - name: "极深黑背景"
+      background:
+        type: "solid"
+        color: "#0A0A0A"
+      elements:
+        - id: "main_title"
+          font:
+            color: "#FFFFFF"
+        - id: "subtitle"
+          font:
+            color: "#CCCCCC"

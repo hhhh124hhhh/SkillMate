@@ -178,8 +178,8 @@ export class AgentRuntime {
                 ? `\n\nWORKING DIRECTORY:\n- Primary: ${authorizedFolders[0]}\n- All authorized: ${authorizedFolders.join(', ')}\n\nYou should primarily work within these directories. Always use absolute paths.`
                 : '\n\nNote: No working directory has been selected yet. Ask the user to select a folder first.';
 
-            const skillsDir = os.homedir() + '/.opencowork/skills';
-            const systemPrompt = `You are OpenCowork, an advanced AI agent capable of managing files, executing complex tasks, and assisting the user.
+            const skillsDir = os.homedir() + '/.wechatflowwork/skills';
+            const systemPrompt = `You are WeChat_Flowwork, an advanced AI agent capable of managing files, executing complex tasks, and assisting the user.
             
             TOOL USAGE:
             - Use 'read_file', 'write_file', and 'list_dir' for file operations.

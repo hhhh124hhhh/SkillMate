@@ -469,7 +469,7 @@ export function FloatingBallPage() {
 
             {/* Header */}
             <div className="flex items-center justify-between px-3 py-2 border-b border-stone-100 shrink-0">
-                <span className="text-sm font-medium text-stone-700">OpenCowork</span>
+                <span className="text-sm font-medium text-stone-700">WeChat_Flowwork</span>
                 <div className="flex items-center gap-1">
                     <button
                         onClick={() => {

@@ -1,0 +1,129 @@
+template:
+  name: "双栏布局"
+  id: "two_column"
+  description: "左右分栏，适合主副标题或双语标题"
+  category: "structured"
+  version: "1.0.0"
+
+  background:
+    type: "gradient"
+    gradient:
+      from: "#4338ca"     # 深蓝紫色
+      to: "#6366f1"       # 亮蓝色
+      direction: "horizontal"
+    size: "3072x1306"
+
+  elements:
+    - type: "text"
+      id: "main_title"
+      content: "{{title}}"
+
+      position:
+        type: "absolute"
+        x: "25%"          # 左侧栏
+        y: "50%"
+        anchor: "middle"
+
+      font:
+        family: ["SimHei", "Microsoft YaHei", "sans-serif"]
+        size: 110
+        weight: "bold"
+        color: "#FFFFFF"
+        spacing: 0
+
+      effects:
+        shadow:
+          enabled: true
+          color: "rgba(0,0,0,0.3)"
+          offset_x: 4
+          offset_y: 4
+          blur: 0
+
+      wrap:
+        enabled: true
+        max_width: "40%"  # 左侧占40%
+        max_lines: 3
+        line_height: 1.3
+        align: "center"
+
+    - type: "decoration"
+      id: "vertical_divider"
+      content: ""
+
+      position:
+        type: "absolute"
+        x: "50%"          # 中央分隔线
+        y: "50%"
+        anchor: "middle"
+
+      style:
+        type: "line"
+        width: 3
+        height: 600       # 竖线长度
+        color: "rgba(255,255,255,0.3)"
+
+    - type: "optional"
+      id: "subtitle"
+      content: "{{subtitle}}"
+      required: false
+
+      position:
+        type: "absolute"
+        x: "75%"          # 右侧栏
+        y: "50%"
+        anchor: "middle"
+
+      font:
+        family: ["Microsoft YaHei", "sans-serif"]
+        size: 65
+        weight: "normal"
+        color: "#E0E7FF"
+        spacing: 0
+
+      effects:
+        shadow:
+          enabled: true
+          color: "rgba(0,0,0,0.3)"
+          offset_x: 3
+          offset_y: 3
+          blur: 0
+
+      wrap:
+        enabled: true
+        max_width: "40%"  # 右侧占40%
+        max_lines: 4
+        line_height: 1.4
+        align: "center"
+
+  variants:
+    - name: "蓝紫渐变"
+      background:
+        type: "gradient"
+        gradient:
+          from: "#4338ca"
+          to: "#6366f1"
+          direction: "horizontal"
+
+    - name: "橙粉渐变"
+      background:
+        type: "gradient"
+        gradient:
+          from: "#f97316"
+          to: "#ec4899"
+          direction: "horizontal"
+
+    - name: "青绿渐变"
+      background:
+        type: "gradient"
+        gradient:
+          from: "#059669"
+          to: "#10b981"
+          direction: "horizontal"
+
+    - name: "深灰渐变"
+      background:
+        type: "gradient"
+        gradient:
+          from: "#374151"
+          to: "#6b7280"
+          direction: "horizontal"

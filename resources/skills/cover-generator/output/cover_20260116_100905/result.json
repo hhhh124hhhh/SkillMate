@@ -1,0 +1,15 @@
+{
+  "timestamp": "20260116_100905",
+  "prompt": "WeChat official account cover image.\n\nMain title: GPT-5.2 写了300万行代码\n- Large, bold text\n- HORIZONTALLY AND VERTICALLY CENTERED\n- Each line MAXIMUM 10 Chinese characters\n- Break into multiple lines if text is long\n- Line spacing: comfortable, not cramped\n- Color: white\n\nSubtitle: 造浏览器 程序员要慌吗\n- Smaller text, centered below main title\n- Color: white\n\nBackground:\n- dark blue to purple gradient\n- Simple and clean\n- NO patterns, NO symbols, NO decorations\n\nCRITICAL LAYOUT RULES:\n1. ALL text must be in the exact CENTER of the image\n2. Leave at least 30% empty space on ALL sides (top, bottom, left, right)\n3. Do NOT place anything near the edges\n4. Keep the background simple - no decorative elements\n5. Each line MAXIMUM 10 characters for 1:1 crop compatibility\n\nThe final image will be cropped from the center.\nEnsure all text remains fully visible in both 2.35:1 and 1:1 formats.",
+  "style": "tech",
+  "crop_mode": "center",
+  "files": {
+    "raw": "output\\cover_20260116_100905\\raw_image.jpg",
+    "preview": "output\\cover_20260116_100905\\preview_grid.jpg"
+  },
+  "variants": {
+    "wechat-cover": {
+      "center": "output\\cover_20260116_100905\\cover_wechat-cover_center.jpg"
+    }
+  }
+}

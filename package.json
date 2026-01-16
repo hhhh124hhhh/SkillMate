@@ -1,24 +1,26 @@
 {
-  "name": "opencowork",
+  "name": "wechat-flowwork",
   "private": true,
   "version": "1.0.0",
-  "description": "open cowork - 你的数字同事",
+  "description": "WeChat_Flowwork - 激发人性的公众号创作AI助手 · 内置16个创作技能，下载即用，开箱即用",
   "author": {
-    "name": "Safphere",
-    "email": "a976466014@gmail.com"
+    "name": "WeChat_Flowwork Team",
+    "email": "support@wechatflowwork.com"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Safphere/opencowork.git"
+    "url": "git+https://github.com/hhhh124hhhh/wechat-flowwork.git"
   },
-  "homepage": "https://github.com/Safphere/opencowork#readme",
+  "homepage": "https://github.com/hhhh124hhhh/wechat-flowwork#readme",
   "bugs": {
-    "url": "https://github.com/Safphere/opencowork/issues"
+    "url": "https://github.com/hhhh124hhhh/wechat-flowwork/issues"
   },
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
     "dev": "chcp 65001 && vite",
+    "generate-icons": "node scripts/generate-icons.js",
+    "prebuild": "npm run generate-icons",
     "build": "tsc && vite build && electron-builder",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives",
     "preview": "vite preview"
@@ -30,6 +32,7 @@
     "clsx": "^2.1.1",
     "dotenv": "^17.2.3",
     "electron-store": "^11.0.2",
+    "fetcher-mcp": "^0.3.9",
     "js-yaml": "^4.1.1",
     "lucide-react": "^0.562.0",
     "mermaid": "^11.12.2",
@@ -57,7 +60,11 @@
     "eslint": "^8.57.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
+    "javascript-obfuscator": "^5.1.0",
+    "png-to-ico": "^3.0.1",
     "postcss": "^8.5.6",
+    "rollup-plugin-javascript-obfuscator": "^1.0.4",
+    "sharp": "^0.34.5",
     "tailwindcss": "^3.4.13",
     "typescript": "^5.2.2",
     "vite": "^5.1.6",

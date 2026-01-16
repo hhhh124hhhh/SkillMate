@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Settings, FolderOpen, Server, Check, Plus, Trash2, Edit2, Zap, Eye } from 'lucide-react';
-import { SkillEditor } from './SkillEditor';
+import { X, Settings, FolderOpen, Server, Check, Plus } from 'lucide-react';
 
 interface SettingsViewProps {
     onClose: () => void;
@@ -8,18 +7,12 @@ interface SettingsViewProps {
 
 interface Config {
     apiKey: string;
+    doubaoApiKey?: string;
     apiUrl: string;
     model: string;
     authorizedFolders: string[];
     networkAccess: boolean;
     shortcut: string;
-}
-
-interface SkillInfo {
-    id: string;
-    name: string;
-    path: string;
-    isBuiltin: boolean;
 }
 
 interface ToolPermission {
@@ -31,25 +24,16 @@ interface ToolPermission {
 export function SettingsView({ onClose }: SettingsViewProps) {
     const [config, setConfig] = useState<Config>({
         apiKey: '',
-        apiUrl: 'https://api.minimaxi.com/anthropic',
-        model: 'MiniMax-M2.1',
+        doubaoApiKey: '',
+        apiUrl: 'https://open.bigmodel.cn/api/coding/paas/v4',
+        model: 'GLM-4.7',
         authorizedFolders: [],
         networkAccess: false,
         shortcut: 'Alt+Space'
     });
     const [saved, setSaved] = useState(false);
-    const [activeTab, setActiveTab] = useState<'api' | 'folders' | 'mcp' | 'skills' | 'advanced'>('api');
+    const [activeTab, setActiveTab] = useState<'api' | 'folders' | 'advanced'>('api');
     const [isRecordingShortcut, setIsRecordingShortcut] = useState(false);
-
-    // MCP State
-    const [mcpConfig, setMcpConfig] = useState('');
-    const [mcpSaved, setMcpSaved] = useState(false);
-
-    // Skills State
-    const [skills, setSkills] = useState<SkillInfo[]>([]);
-    const [editingSkill, setEditingSkill] = useState<string | null>(null);
-    const [viewingSkill, setViewingSkill] = useState<boolean>(false); // New state for read-only mode
-    const [showSkillEditor, setShowSkillEditor] = useState(false);
 
     // Permissions State
     const [permissions, setPermissions] = useState<ToolPermission[]>([]);
@@ -72,16 +56,25 @@ export function SettingsView({ onClose }: SettingsViewProps) {
 
     useEffect(() => {
         window.ipcRenderer.invoke('config:get-all').then((cfg) => {
-            if (cfg) setConfig(cfg as Config);
+            if (cfg) {
+                const loadedConfig = cfg as Config;
+                // Ensure all properties are initialized to avoid uncontrolled input warning
+                const safeConfig = {
+                    apiKey: loadedConfig.apiKey || '',
+                    doubaoApiKey: loadedConfig.doubaoApiKey || '',
+                    apiUrl: loadedConfig.apiUrl || 'https://open.bigmodel.cn/api/coding/paas/v4',
+                    model: loadedConfig.model || 'GLM-4.7',
+                    authorizedFolders: loadedConfig.authorizedFolders || [],
+                    networkAccess: loadedConfig.networkAccess ?? false,
+                    shortcut: loadedConfig.shortcut || 'Alt+Space'
+                };
+                setConfig(safeConfig);
+            }
         });
     }, []);
 
     useEffect(() => {
-        if (activeTab === 'mcp') {
-            window.ipcRenderer.invoke('mcp:get-config').then(cfg => setMcpConfig(cfg as string));
-        } else if (activeTab === 'skills') {
-            refreshSkills();
-        } else if (activeTab === 'advanced') {
+        if (activeTab === 'advanced') {
             loadPermissions();
         }
     }, [activeTab]);
@@ -116,11 +109,11 @@ export function SettingsView({ onClose }: SettingsViewProps) {
         }
     };
 
-    const refreshSkills = () => {
-        window.ipcRenderer.invoke('skills:list').then(list => setSkills(list as SkillInfo[]));
-    };
-
     const handleSave = async () => {
+        console.log('[SettingsView.handleSave] Saving config:', {
+            authorizedFolders: config.authorizedFolders,
+            authorizedFoldersCount: config.authorizedFolders?.length
+        });
         await window.ipcRenderer.invoke('config:set-all', config);
         setSaved(true);
         setTimeout(() => {
@@ -129,80 +122,54 @@ export function SettingsView({ onClose }: SettingsViewProps) {
         }, 800);
     };
 
-    const saveMcpConfig = async () => {
-        try {
-            // Validate JSON
-            JSON.parse(mcpConfig);
-            await window.ipcRenderer.invoke('mcp:save-config', mcpConfig);
-            setMcpSaved(true);
-            setTimeout(() => setMcpSaved(false), 2000);
-        } catch (e) {
-            alert('Invalid JSON configuration');
-        }
-    };
-
-    const deleteSkill = async (filename: string) => {
-        if (confirm(`确定要删除技能 "${filename}" 吗？`)) {
-            await window.ipcRenderer.invoke('skills:delete', filename);
-            refreshSkills();
-        }
-    };
-
     const addFolder = async () => {
         const result = await window.ipcRenderer.invoke('dialog:select-folder') as string | null;
-        if (result && !config.authorizedFolders.includes(result)) {
-            setConfig({ ...config, authorizedFolders: [...config.authorizedFolders, result] });
+        console.log('[SettingsView.addFolder] Selected folder:', result);
+        const currentFolders = config.authorizedFolders || [];
+        if (result && !currentFolders.includes(result)) {
+            const newFolders = [...currentFolders, result];
+            console.log('[SettingsView.addFolder] New folders:', newFolders);
+            setConfig({ ...config, authorizedFolders: newFolders });
         }
     };
 
     const removeFolder = (folder: string) => {
-        setConfig({ ...config, authorizedFolders: config.authorizedFolders.filter(f => f !== folder) });
+        const currentFolders = config.authorizedFolders || [];
+        setConfig({ ...config, authorizedFolders: currentFolders.filter(f => f !== folder) });
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl w-full max-w-2xl h-[85vh] shadow-2xl flex flex-col overflow-hidden border border-slate-100 ring-1 ring-black/5 animate-in zoom-in-95 duration-200">
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b border-stone-100 shrink-0">
-                    <h2 className="text-lg font-semibold text-stone-800">设置</h2>
+                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
                     <div className="flex items-center gap-2">
-                        {activeTab === 'api' || activeTab === 'folders' || activeTab === 'advanced' ? (
-                            <button
-                                onClick={handleSave}
-                                disabled={saved}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${saved
-                                    ? 'bg-green-100 text-green-600'
-                                    : 'bg-orange-500 text-white hover:bg-orange-600'
-                                    }`}
-                            >
-                                {saved ? <Check size={14} /> : null}
-                                {saved ? '已保存' : '保存'}
-                            </button>
-                        ) : null}
-                        <button
-                            onClick={onClose}
-                            className="p-1.5 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-lg transition-colors"
-                        >
-                            <X size={18} />
-                        </button>
+                        <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
+                            <Settings size={20} />
+                        </div>
+                        <h2 className="text-lg font-bold text-slate-800">设置</h2>
                     </div>
+                    <button
+                        onClick={onClose}
+                        className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                    >
+                        <X size={20} />
+                    </button>
                 </div>
 
                 {/* Tabs */}
-                <div className="flex border-b border-stone-100 overflow-x-auto shrink-0">
+                <div className="flex border-b border-slate-100 overflow-x-auto shrink-0 bg-white px-2">
                     {[
                         { id: 'api' as const, label: '通用', icon: <Settings size={14} /> },
                         { id: 'folders' as const, label: '权限', icon: <FolderOpen size={14} /> },
-                        { id: 'mcp' as const, label: 'MCP', icon: <Server size={14} /> },
-                        { id: 'skills' as const, label: 'Skills', icon: <Zap size={14} /> },
                         { id: 'advanced' as const, label: '高级', icon: <Settings size={14} /> },
                     ].map(tab => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap ${activeTab === tab.id
-                                ? 'text-orange-500 border-b-2 border-orange-500 bg-orange-50/50'
-                                : 'text-stone-500 hover:text-stone-700 hover:bg-stone-50'
+                            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap border-b-2 ${activeTab === tab.id
+                                ? 'text-blue-600 border-blue-600 bg-blue-50/50'
+                                : 'text-slate-500 border-transparent hover:text-slate-700 hover:bg-slate-50'
                                 }`}
                         >
                             {/*tab.icon*/}
@@ -212,40 +179,70 @@ export function SettingsView({ onClose }: SettingsViewProps) {
                 </div>
 
                 {/* Content */}
-                <div className="p-0 overflow-y-auto flex-1 bg-stone-50/30">
-                    <div className="p-5 space-y-5">
+                <div className="p-0 overflow-y-auto flex-1 bg-white">
+                    <div className="p-6 space-y-6">
                         {activeTab === 'api' && (
                             <>
                                 <div>
-                                    <label className="block text-xs font-medium text-stone-500 mb-1.5">API Key</label>
+                                    <label className="block text-xs font-medium text-slate-500 mb-1.5 uppercase tracking-wider">API Key</label>
                                     <input
                                         type="password"
                                         value={config.apiKey}
                                         onChange={(e) => setConfig({ ...config, apiKey: e.target.value })}
                                         placeholder="sk-..."
-                                        className="w-full bg-white border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-mono"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-stone-500 mb-1.5">API URL</label>
+                                    <label className="block text-xs font-medium text-slate-500 mb-1.5 uppercase tracking-wider">豆包生图 API Key</label>
+                                    <input
+                                        type="password"
+                                        value={config.doubaoApiKey || ''}
+                                        onChange={(e) => setConfig({ ...config, doubaoApiKey: e.target.value })}
+                                        placeholder="输入豆包生图 API Key"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-mono"
+                                    />
+                                    <p className="text-xs text-slate-400 mt-2">
+                                        用于生图技能的 API Key,将自动注入到 Skill 执行环境
+                                    </p>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-500 mb-1.5 uppercase tracking-wider">API URL</label>
                                     <input
                                         type="text"
                                         value={config.apiUrl}
                                         onChange={(e) => setConfig({ ...config, apiUrl: e.target.value })}
                                         placeholder="https://api.anthropic.com"
-                                        className="w-full bg-white border border-stone-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-stone-500 mb-1.5">模型名称</label>
+                                    <label className="block text-xs font-medium text-slate-500 mb-1.5 uppercase tracking-wider">模型名称</label>
                                     <input
                                         type="text"
                                         value={config.model}
                                         onChange={(e) => setConfig({ ...config, model: e.target.value })}
                                         placeholder="glm-4.7"
-                                        className="w-full bg-white border border-stone-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                                     />
-                                    <p className="text-xs text-stone-400 mt-1">输入模型名称，如 MiniMax-M2.1</p>
+                                    <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
+                                        <Server size={12} />
+                                        输入模型名称，如 MiniMax-M2.1
+                                    </p>
+                                </div>
+                                
+                                <div className="pt-4 border-t border-slate-100">
+                                    <button
+                                        onClick={handleSave}
+                                        disabled={saved}
+                                        className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all shadow-sm ${saved
+                                            ? 'bg-green-50 text-green-600 border border-green-200'
+                                            : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200'
+                                            }`}
+                                    >
+                                        {saved ? <Check size={16} /> : null}
+                                        {saved ? '已保存设置' : '保存设置'}
+                                    </button>
                                 </div>
                             </>
                         )}
@@ -256,13 +253,13 @@ export function SettingsView({ onClose }: SettingsViewProps) {
                                     出于安全考虑，AI 只能访问以下授权的文件夹及其子文件夹。
                                 </div>
 
-                                {config.authorizedFolders.length === 0 ? (
+                                {(config.authorizedFolders || []).length === 0 ? (
                                     <div className="text-center py-8 text-stone-400 border-2 border-dashed border-stone-200 rounded-xl">
                                         <p className="text-sm">暂无授权文件夹</p>
                                     </div>
                                 ) : (
                                     <div className="space-y-2">
-                                        {config.authorizedFolders.map((folder, idx) => (
+                                        {(config.authorizedFolders || []).map((folder, idx) => (
                                             <div
                                                 key={idx}
                                                 className="flex items-center justify-between p-3 bg-white border border-stone-200 rounded-lg group"
@@ -291,120 +288,25 @@ export function SettingsView({ onClose }: SettingsViewProps) {
                                     <Plus size={16} />
                                     添加文件夹
                                 </button>
-                            </>
-                        )}
 
-                        {activeTab === 'mcp' && (
-                            <div className="h-full flex flex-col">
-                                <div className="flex items-center justify-between mb-2">
-                                    <span className="text-xs font-medium text-stone-500">mcp.json 配置</span>
+                                <div className="pt-4 border-t border-slate-100">
                                     <button
-                                        onClick={saveMcpConfig}
-                                        className={`text-xs px-2 py-1 rounded transition-colors ${mcpSaved ? 'bg-green-100 text-green-600' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                                        onClick={handleSave}
+                                        disabled={saved}
+                                        className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all shadow-sm ${saved
+                                            ? 'bg-green-50 text-green-600 border border-green-200'
+                                            : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200'
                                             }`}
                                     >
-                                        {mcpSaved ? '已保存' : '保存配置'}
+                                        {saved ? <Check size={16} /> : null}
+                                        {saved ? '已保存设置' : '保存设置'}
                                     </button>
                                 </div>
-                                <textarea
-                                    value={mcpConfig}
-                                    onChange={(e) => setMcpConfig(e.target.value)}
-                                    className="w-full h-[320px] bg-white border border-stone-200 rounded-lg p-3 font-mono text-xs focus:outline-none focus:border-orange-500 resize-none text-stone-700"
-                                    placeholder='{ "mcpServers": { ... } }'
-                                    spellCheck={false}
-                                />
-                                <p className="text-[10px] text-stone-400 mt-2">
-                                    配置将保存在 ~/.opencowork/mcp.json。请确保 JSON 格式正确。
-                                </p>
-
-                            </div>
-                        )}
-
-                        {activeTab === 'skills' && (
-                            <div className="space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <p className="text-sm text-stone-500">自定义 AI 技能</p>
-                                    <button
-                                        onClick={() => {
-                                            setEditingSkill(null);
-                                            setShowSkillEditor(true);
-                                        }}
-                                        className="flex items-center gap-1 text-xs px-2 py-1 bg-orange-500 text-white rounded hover:bg-orange-600 transition-colors"
-                                    >
-                                        <Plus size={12} />
-                                        新建技能
-                                    </button>
-                                </div>
-
-                                {skills.length === 0 ? (
-                                    <div className="text-center py-8 text-stone-400 border-2 border-dashed border-stone-200 rounded-xl">
-                                        <p className="text-sm">暂无技能</p>
-                                    </div>
-                                ) : (
-                                    <div className="grid grid-cols-1 gap-2">
-                                        {skills.map((skill) => (
-                                            <div
-                                                key={skill.id}
-                                                className="flex items-center justify-between p-3 bg-white border border-stone-200 rounded-lg hover:border-orange-200 transition-colors group"
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${skill.isBuiltin ? 'bg-orange-50 text-orange-600' : 'bg-purple-50 text-purple-600'}`}>
-                                                        <Zap size={16} />
-                                                    </div>
-                                                    <div>
-                                                        <div className="flex items-center gap-2">
-                                                            <p className="text-sm font-medium text-stone-700">{skill.name}</p>
-                                                            {skill.isBuiltin && (
-                                                                <span className="text-[10px] px-1.5 py-0.5 bg-stone-100 text-stone-500 rounded-full font-medium">内置</span>
-                                                            )}
-                                                        </div>
-                                                        <p className="text-[10px] text-stone-400 font-mono truncate max-w-xs">{skill.path}</p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <button
-                                                        onClick={() => {
-                                                            setEditingSkill(skill.id);
-                                                            setViewingSkill(skill.isBuiltin); // Set view-only if built-in
-                                                            setShowSkillEditor(true);
-                                                        }}
-                                                        className="p-1.5 text-stone-400 hover:text-blue-500 hover:bg-blue-50 rounded"
-                                                        title={skill.isBuiltin ? "查看" : "编辑"}
-                                                    >
-                                                        {skill.isBuiltin ? <Eye size={14} /> : <Edit2 size={14} />}
-                                                    </button>
-                                                    {!skill.isBuiltin && (
-                                                        <button
-                                                            onClick={() => deleteSkill(skill.id)}
-                                                            className="p-1.5 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded"
-                                                            title="删除"
-                                                        >
-                                                            <Trash2 size={14} />
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
+                            </>
                         )}
 
                         {activeTab === 'advanced' && (
                             <>
-                                <div className="flex items-center justify-between p-3 bg-white border border-stone-200 rounded-lg opacity-60">
-                                    <div>
-                                        <p className="text-sm font-medium text-stone-700">浏览器操作</p>
-                                        <p className="text-xs text-stone-400">允许 AI 操作浏览器（开发中）</p>
-                                    </div>
-                                    <button
-                                        disabled
-                                        className="w-10 h-6 rounded-full bg-stone-200 cursor-not-allowed"
-                                    >
-                                        <div className="w-4 h-4 rounded-full bg-white shadow mx-1 translate-x-0" />
-                                    </button>
-                                </div>
-
                                 <div className="flex items-center justify-between p-3 bg-white border border-stone-200 rounded-lg">
                                     <div>
                                         <p className="text-sm font-medium text-stone-700">快捷键</p>
@@ -433,11 +335,11 @@ export function SettingsView({ onClose }: SettingsViewProps) {
                                 {/* Permissions Management */}
                                 <div className="space-y-2">
                                     <p className="text-sm font-medium text-stone-700">已授权的权限</p>
-                                    {permissions.length === 0 ? (
+                                    {(permissions || []).length === 0 ? (
                                         <p className="text-xs text-stone-400 p-3 bg-stone-50 rounded-lg">暂无已保存的权限</p>
                                     ) : (
                                         <div className="space-y-2">
-                                            {permissions.map((p, idx) => (
+                                            {(permissions || []).map((p, idx) => (
                                                 <div key={idx} className="flex items-center justify-between p-2 bg-white border border-stone-200 rounded-lg">
                                                     <div className="flex-1">
                                                         <p className="text-sm font-mono text-stone-700">{p.tool}</p>
@@ -460,24 +362,25 @@ export function SettingsView({ onClose }: SettingsViewProps) {
                                         </div>
                                     )}
                                 </div>
+
+                                <div className="pt-4 border-t border-slate-100">
+                                    <button
+                                        onClick={handleSave}
+                                        disabled={saved}
+                                        className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all shadow-sm ${saved
+                                            ? 'bg-green-50 text-green-600 border border-green-200'
+                                            : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200'
+                                            }`}
+                                    >
+                                        {saved ? <Check size={16} /> : null}
+                                        {saved ? '已保存设置' : '保存设置'}
+                                    </button>
+                                </div>
                             </>
                         )}
                     </div>
                 </div>
             </div>
-
-            {/* Skill Editor Modal */}
-            {showSkillEditor && (
-                <SkillEditor
-                    filename={editingSkill}
-                    readOnly={viewingSkill}
-                    onClose={() => {
-                        setShowSkillEditor(false);
-                        setViewingSkill(false);
-                    }}
-                    onSave={refreshSkills}
-                />
-            )}
         </div>
     );
 }

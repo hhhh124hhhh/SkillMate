@@ -8,6 +8,8 @@ export interface ToolPermission {
 
 export interface AppConfig {
     apiKey: string;
+    doubaoApiKey?: string; // New field
+    zhipuApiKey?: string; // New field for Zhipu AI
     apiUrl: string;
     model: string;
     authorizedFolders: string[];
@@ -18,8 +20,10 @@ export interface AppConfig {
 
 const defaults: AppConfig = {
     apiKey: '',
-    apiUrl: 'https://api.minimaxi.com/anthropic',
-    model: 'MiniMax-M2.1',
+    doubaoApiKey: '', // Default empty
+    zhipuApiKey: '', // Default empty
+    apiUrl: 'https://open.bigmodel.cn/api/coding/paas',
+    model: 'GLM-4.7',
     authorizedFolders: [],
     networkAccess: true, // "Open and use" implies network should be on
     shortcut: 'Alt+Space',
@@ -31,8 +35,14 @@ class ConfigStore {
 
     constructor() {
         this.store = new Store<AppConfig>({
-            name: 'opencowork-config',
+            name: 'wechatflowwork-config',
             defaults
+        });
+        console.log('[ConfigStore] Initialized with path:', this.store.path);
+        console.log('[ConfigStore] Current config on init:', {
+            apiKey: this.store.get('apiKey') ? '***' + this.store.get('apiKey').slice(-4) : 'empty',
+            apiUrl: this.store.get('apiUrl'),
+            model: this.store.get('model')
         });
     }
 
@@ -41,20 +51,66 @@ class ConfigStore {
     }
 
     set<K extends keyof AppConfig>(key: K, value: AppConfig[K]): void {
-        this.store.set(key, value);
+        try {
+            console.log(`[ConfigStore.set] Setting ${key}:`, value);
+            this.store.set(key, value);
+
+            // 验证保存
+            const saved = this.store.get(key);
+            console.log(`[ConfigStore.set] Verification for ${key}:`, {
+                saved: JSON.stringify(saved),
+                equals: JSON.stringify(saved) === JSON.stringify(value)
+            });
+        } catch (error) {
+            console.error(`[ConfigStore.set] Failed to set ${key}:`, error);
+            throw error;
+        }
     }
 
     getAll(): AppConfig {
-        return this.store.store;
+        // electron-store v11: use .store to access all data
+        const data = this.store.store as AppConfig;
+        console.log('[ConfigStore.getAll] Returning config:', {
+            apiKey: data.apiKey ? '***' + data.apiKey.slice(-4) : 'empty',
+            apiUrl: data.apiUrl,
+            model: data.model
+        });
+        return data;
     }
 
     // API Key
     getApiKey(): string {
+        const model = this.store.get('model');
+        // If using Zhipu model, return Zhipu API key
+        if (model && (model.includes('GLM') || model.includes('zhipu') || model.includes('ZHIPU'))) {
+            return this.getZhipuApiKey();
+        }
+        // Otherwise return Anthropic API key
         return this.store.get('apiKey') || process.env.ANTHROPIC_API_KEY || '';
     }
 
     setApiKey(key: string): void {
+        console.log('[ConfigStore.setApiKey] Saving apiKey, length:', key.length);
         this.store.set('apiKey', key);
+        console.log('[ConfigStore.setApiKey] Verification after save:', this.store.get('apiKey') ? 'saved' : 'empty');
+    }
+
+    // Doubao API Key
+    getDoubaoApiKey(): string {
+        return this.store.get('doubaoApiKey') || process.env.DOUBAO_API_KEY || '';
+    }
+
+    setDoubaoApiKey(key: string): void {
+        this.store.set('doubaoApiKey', key);
+    }
+
+    // Zhipu API Key
+    getZhipuApiKey(): string {
+        return this.store.get('zhipuApiKey') || process.env.ZHIPU_API_KEY || '';
+    }
+
+    setZhipuApiKey(key: string): void {
+        this.store.set('zhipuApiKey', key);
     }
 
     // Model
@@ -68,6 +124,12 @@ class ConfigStore {
 
     // API URL
     getApiUrl(): string {
+        const model = this.store.get('model');
+        // If using Zhipu model, use fixed Zhipu API URL
+        if (model && (model.includes('GLM') || model.includes('zhipu') || model.includes('ZHIPU'))) {
+            return 'https://open.bigmodel.cn/api/anthropic';
+        }
+        // Otherwise use configured API URL
         return this.store.get('apiUrl');
     }
 

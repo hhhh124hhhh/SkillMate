@@ -1,0 +1,145 @@
+template:
+  name: "优雅衬线"
+  id: "elegant_serif"
+  description: "优雅衬线字体，适合文艺、深度文章"
+  category: "editorial"
+  version: "1.0.0"
+
+  background:
+    type: "ai_generate"
+    style: "minimal"
+    size: "3072x1306"
+
+  elements:
+    - type: "text"
+      id: "main_title"
+      content: "{{title}}"
+
+      position:
+        type: "absolute"
+        x: "50%"
+        y: "50%"        # 垂直居中
+        anchor: "middle"
+
+      font:
+        family: ["Songti SC", "Noto Serif SC", "SimSun", "serif"]  # 衬线字体
+        size: 130
+        weight: "normal"
+        color: "#1A1A1A"
+        spacing: 3       # 优雅的字间距
+
+      effects:
+        shadow:
+          enabled: false
+        stroke:
+          enabled: false
+
+      wrap:
+        enabled: true
+        max_width: "80%"
+        max_lines: 3
+        line_height: 1.4
+        align: "center"
+
+    - type: "decoration"
+      id: "divider_top"
+      content: ""
+
+      position:
+        type: "absolute"
+        x: "50%"
+        y: "20%"        # 上方装饰线
+        anchor: "middle"
+
+      style:
+        type: "line"
+        width: 400
+        height: 2
+        color: "#1A1A1A"
+
+    - type: "decoration"
+      id: "divider_bottom"
+      content: ""
+
+      position:
+        type: "absolute"
+        x: "50%"
+        y: "80%"        # 下方装饰线
+        anchor: "middle"
+
+      style:
+        type: "line"
+        width: 400
+        height: 2
+        color: "#1A1A1A"
+
+    - type: "optional"
+      id: "subtitle"
+      content: "{{subtitle}}"
+      required: false
+
+      position:
+        type: "absolute"
+        x: "50%"
+        y: "88%"        # 靠底部
+        anchor: "middle"
+
+      font:
+        family: ["Songti SC", "Noto Serif SC", "serif"]
+        size: 45
+        weight: "normal"
+        color: "#666666"
+        spacing: 2
+
+      effects:
+        shadow:
+          enabled: false
+
+      wrap:
+        enabled: true
+        max_width: "75%"
+        max_lines: 1
+        line_height: 1.4
+        align: "center"
+
+  variants:
+    - name: "经典黑白"
+      elements:
+        - id: "main_title"
+          font:
+            color: "#1A1A1A"
+        - id: "divider_top"
+          style:
+            color: "#1A1A1A"
+        - id: "divider_bottom"
+          style:
+            color: "#1A1A1A"
+
+    - name: "深蓝白字"
+      background:
+        style: "tech"
+      elements:
+        - id: "main_title"
+          font:
+            color: "#FFFFFF"
+        - id: "divider_top"
+          style:
+            color: "#FFFFFF"
+        - id: "divider_bottom"
+          style:
+            color: "#FFFFFF"
+
+    - name: "米棕风格"
+      background:
+        type: "solid"
+        color: "#F5F5DC"
+      elements:
+        - id: "main_title"
+          font:
+            color: "#8B4513"
+        - id: "divider_top"
+          style:
+            color: "#8B4513"
+        - id: "divider_bottom"
+          style:
+            color: "#8B4513"

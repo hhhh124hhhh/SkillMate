@@ -1,0 +1,129 @@
+template:
+  name: "卡片式"
+  id: "card_style"
+  description: "卡片式设计，适合展示多个要点或层级信息"
+  category: "creative"
+  version: "1.0.0"
+
+  background:
+    type: "ai_generate"
+    style: "fresh"
+    size: "3072x1306"
+
+  elements:
+    - type: "text"
+      id: "main_title"
+      content: "{{title}}"
+
+      position:
+        type: "absolute"
+        x: "50%"
+        y: "25%"        # 上方位置
+        anchor: "middle"
+
+      font:
+        family: ["Microsoft YaHei", "SimHei", "sans-serif"]
+        size: 95
+        weight: "bold"
+        color: "#FFFFFF"
+        spacing: 0
+
+      effects:
+        shadow:
+          enabled: true
+          color: "rgba(0,0,0,0.4)"
+          offset_x: 4
+          offset_y: 4
+          blur: 0
+
+      wrap:
+        enabled: true
+        max_width: "90%"
+        max_lines: 2
+        line_height: 1.3
+        align: "center"
+
+    - type: "optional"
+      id: "subtitle"
+      content: "{{subtitle}}"
+      required: false
+
+      position:
+        type: "absolute"
+        x: "50%"
+        y: "50%"        # 中间位置
+        anchor: "middle"
+
+      font:
+        family: ["Microsoft YaHei", "sans-serif"]
+        size: 60
+        weight: "normal"
+        color: "#FFFFFF"
+        spacing: 0
+
+      effects:
+        shadow:
+          enabled: true
+          color: "rgba(0,0,0,0.4)"
+          offset_x: 3
+          offset_y: 3
+          blur: 0
+
+      wrap:
+        enabled: true
+        max_width: "85%"
+        max_lines: 2
+        line_height: 1.4
+        align: "center"
+
+    - type: "decoration"
+      id: "badge"
+      content: ""      # 装饰元素，不需要文字
+
+      position:
+        type: "absolute"
+        x: "50%"
+        y: "80%"        # 底部装饰
+        anchor: "middle"
+
+      style:
+        shape: "rounded_rectangle"
+        width: 300
+        height: 80
+        background: "rgba(255,255,255,0.2)"
+        border_color: "#FFFFFF"
+        border_width: 2
+        corner_radius: 40
+
+  variants:
+    - name: "清新卡片"
+      background:
+        style: "fresh"
+      elements:
+        - id: "main_title"
+          font:
+            color: "#065F46"
+
+    - name: "温暖卡片"
+      background:
+        style: "warm"
+      elements:
+        - id: "main_title"
+          font:
+            color: "#FFFFFF"
+
+    - name: "科技卡片"
+      background:
+        style: "tech"
+      elements:
+        - id: "main_title"
+          font:
+            color: "#FFFFFF"
+
+    - name: "商务卡片"
+      background:
+        style: "business"
+      elements:
+        - id: "main_title"
+          font:
+            color: "#FFFFFF"

@@ -1,0 +1,329 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "WeChat Cover Template Schema",
+  "description": "Schema for validating WeChat official account cover templates",
+  "type": "object",
+  "required": ["template"],
+  "properties": {
+    "template": {
+      "type": "object",
+      "required": ["name", "id", "description", "category", "version", "background", "elements"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Template display name"
+        },
+        "id": {
+          "type": "string",
+          "description": "Unique template identifier",
+          "pattern": "^[a-z_]+$"
+        },
+        "description": {
+          "type": "string",
+          "description": "Template description"
+        },
+        "category": {
+          "type": "string",
+          "enum": ["basic", "structured", "minimal", "creative", "tech", "editorial"],
+          "description": "Template category"
+        },
+        "version": {
+          "type": "string",
+          "description": "Template version",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "background": {
+          "type": "object",
+          "required": ["type", "size"],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["ai_generate", "solid", "gradient"]
+            },
+            "style": {
+              "type": "string",
+              "enum": ["tech", "fresh", "minimal", "warm", "business"],
+              "description": "Background style for AI generation"
+            },
+            "color": {
+              "type": "string",
+              "description": "Solid background color (hex)",
+              "pattern": "^#[0-9A-Fa-f]{6}$"
+            },
+            "gradient": {
+              "type": "object",
+              "required": ["from", "to", "direction"],
+              "properties": {
+                "from": {
+                  "type": "string",
+                  "description": "Start color (hex or rgba)",
+                  "pattern": "^(#[0-9A-Fa-f]{6}|rgba?\\(\\s*\\d+\\s*,\\s*\\d+\\s*,\\s*\\d+\\s*(,\\s*[\\d.]+\\s*)?\\))$"
+                },
+                "to": {
+                  "type": "string",
+                  "description": "End color (hex or rgba)",
+                  "pattern": "^(#[0-9A-Fa-f]{6}|rgba?\\(\\s*\\d+\\s*,\\s*\\d+\\s*,\\s*\\d+\\s*(,\\s*[\\d.]+\\s*)?\\))$"
+                },
+                "direction": {
+                  "type": "string",
+                  "enum": ["horizontal", "vertical", "diagonal"]
+                }
+              }
+            },
+            "size": {
+              "type": "string",
+              "description": "Image size as WIDTHxHEIGHT",
+              "pattern": "^\\d+x\\d+$"
+            }
+          }
+        },
+        "overlay": {
+          "type": "object",
+          "required": ["enabled", "type"],
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "type": {
+              "type": "string",
+              "enum": ["gradient", "solid"]
+            },
+            "gradient": {
+              "type": "object",
+              "properties": {
+                "from": {
+                  "type": "string",
+                  "pattern": "^rgba?\\(\\s*\\d+\\s*,\\s*\\d+\\s*,\\s*\\d+\\s*(,\\s*[\\d.]+\\s*)?\\)$"
+                },
+                "to": {
+                  "type": "string",
+                  "pattern": "^rgba?\\(\\s*\\d+\\s*,\\s*\\d+\\s*,\\s*\\d+\\s*(,\\s*[\\d.]+\\s*)?\\)$"
+                },
+                "direction": {
+                  "type": "string",
+                  "enum": ["vertical", "horizontal", "diagonal"]
+                }
+              }
+            },
+            "color": {
+              "type": "string",
+              "pattern": "^rgba?\\(\\s*\\d+\\s*,\\s*\\d+\\s*,\\s*\\d+\\s*(,\\s*[\\d.]+\\s*)?\\)$"
+            }
+          }
+        },
+        "elements": {
+          "type": "array",
+          "description": "Array of template elements",
+          "items": {
+            "type": "object",
+            "required": ["type", "id"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["text", "optional", "decoration"]
+              },
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z_]+$"
+              },
+              "required": {
+                "type": "boolean",
+                "description": "Whether optional elements are required",
+                "default": true
+              },
+              "content": {
+                "type": "string",
+                "description": "Element content with variable placeholders like {{title}}"
+              },
+              "position": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": ["center", "left", "right", "absolute", "corners"]
+                  },
+                  "x": {
+                    "oneOf": [
+                      { "type": "string", "pattern": "^\\d+%$" },
+                      { "type": "number", "minimum": 0 }
+                    ]
+                  },
+                  "y": {
+                    "oneOf": [
+                      { "type": "string", "pattern": "^\\d+%$" },
+                      { "type": "number", "minimum": 0 }
+                    ]
+                  },
+                  "anchor": {
+                    "type": "string",
+                    "enum": ["left", "center", "right", "middle", "top", "bottom"]
+                  }
+                }
+              },
+              "font": {
+                "type": "object",
+                "properties": {
+                  "family": {
+                    "oneOf": [
+                      { "type": "string" },
+                      { "type": "array", "items": { "type": "string" } }
+                    ]
+                  },
+                  "size": {
+                    "type": "number",
+                    "minimum": 1
+                  },
+                  "weight": {
+                    "type": "string",
+                    "enum": ["normal", "bold", "light"]
+                  },
+                  "color": {
+                    "type": "string",
+                    "pattern": "^#[0-9A-Fa-f]{6}$"
+                  },
+                  "spacing": {
+                    "type": "number",
+                    "minimum": 0
+                  }
+                }
+              },
+              "effects": {
+                "type": "object",
+                "properties": {
+                  "shadow": {
+                    "oneOf": [
+                      { "type": "boolean" },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "enabled": { "type": "boolean" },
+                          "color": { "type": "string" },
+                          "offset_x": { "type": "number" },
+                          "offset_y": { "type": "number" },
+                          "blur": { "type": "number", "minimum": 0 }
+                        }
+                      }
+                    ]
+                  },
+                  "stroke": {
+                    "oneOf": [
+                      { "type": "boolean" },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "enabled": { "type": "boolean" },
+                          "color": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+                          "width": { "type": "number", "minimum": 0 }
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              "wrap": {
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "max_width": {
+                    "oneOf": [
+                      { "type": "string", "pattern": "^\\d+%$" },
+                      { "type": "number", "minimum": 0 }
+                    ]
+                  },
+                  "max_lines": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "line_height": {
+                    "type": "number",
+                    "minimum": 0.1
+                  },
+                  "align": {
+                    "type": "string",
+                    "enum": ["left", "center", "right"]
+                  }
+                }
+              },
+              "style": {
+                "type": "object",
+                "description": "Decoration element style",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": ["line", "rounded_rectangle", "brackets"]
+                  },
+                  "width": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "height": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "background": {
+                    "type": "string"
+                  },
+                  "border_color": {
+                    "type": "string",
+                    "pattern": "^#[0-9A-Fa-f]{6}$"
+                  },
+                  "border_width": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "corner_radius": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "color": {
+                    "type": "string",
+                    "pattern": "^#[0-9A-Fa-f]{6}$"
+                  },
+                  "corner_size": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "padding": {
+                    "type": "number",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "variants": {
+          "type": "array",
+          "description": "Template style variants",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "background": {
+                "$ref": "#/properties/template/properties/background"
+              },
+              "elements": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string" },
+                    "font": { "$ref": "#/properties/template/properties/elements/items/properties/font" },
+                    "effects": { "$ref": "#/properties/template/properties/elements/items/properties/effects" },
+                    "position": { "$ref": "#/properties/template/properties/elements/items/properties/position" },
+                    "style": { "$ref": "#/properties/template/properties/elements/items/properties/style" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

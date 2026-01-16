@@ -1,0 +1,126 @@
+template:
+  name: "科技几何"
+  id: "tech_geometric"
+  description: "科技风格，配几何装饰元素，适合技术文章"
+  category: "tech"
+  version: "1.0.0"
+
+  background:
+    type: "ai_generate"
+    style: "tech"
+    size: "3072x1306"
+
+  elements:
+    - type: "text"
+      id: "main_title"
+      content: "{{title}}"
+
+      position:
+        type: "absolute"
+        x: "50%"
+        y: "45%"        # 略偏上
+        anchor: "middle"
+
+      font:
+        family: ["SimHei", "Microsoft YaHei UI", "sans-serif"]
+        size: 120
+        weight: "bold"
+        color: "#FFFFFF"
+        spacing: 2       # 科技感字间距
+
+      effects:
+        shadow:
+          enabled: true
+          color: "rgba(0,0,0,0.5)"
+          offset_x: 4
+          offset_y: 4
+          blur: 0
+        stroke:
+          enabled: true
+          color: "#60A5FA"  # 蓝色描边
+          width: 2
+
+      wrap:
+        enabled: true
+        max_width: "88%"
+        max_lines: 2
+        line_height: 1.3
+        align: "center"
+
+    - type: "decoration"
+      id: "corner_brackets"
+      content: ""
+
+      position:
+        type: "corners"   # 四角装饰
+
+      style:
+        type: "brackets"
+        color: "#60A5FA"
+        width: 3
+        corner_size: 60   # 角标大小
+        padding: 50       # 距离边缘的距离
+
+    - type: "optional"
+      id: "subtitle"
+      content: "{{subtitle}}"
+      required: false
+
+      position:
+        type: "absolute"
+        x: "50%"
+        y: "78%"        # 靠下
+        anchor: "middle"
+
+      font:
+        family: ["Consolas", "Microsoft YaHei", "monospace"]  # 等宽字体增加科技感
+        size: 50
+        weight: "normal"
+        color: "#E0E7FF"
+        spacing: 1
+
+      effects:
+        shadow:
+          enabled: true
+          color: "rgba(0,0,0,0.4)"
+          offset_x: 2
+          offset_y: 2
+          blur: 0
+
+      wrap:
+        enabled: true
+        max_width: "85%"
+        max_lines: 2
+        line_height: 1.4
+        align: "center"
+
+  variants:
+    - name: "蓝色科技"
+      elements:
+        - id: "main_title"
+          effects:
+            stroke:
+              color: "#60A5FA"
+        - id: "corner_brackets"
+          style:
+            color: "#60A5FA"
+
+    - name: "紫色科技"
+      elements:
+        - id: "main_title"
+          effects:
+            stroke:
+              color: "#A78BFA"
+        - id: "corner_brackets"
+          style:
+            color: "#A78BFA"
+
+    - name: "绿色科技"
+      elements:
+        - id: "main_title"
+          effects:
+            stroke:
+              color: "#34D399"
+        - id: "corner_brackets"
+          style:
+            color: "#34D399"

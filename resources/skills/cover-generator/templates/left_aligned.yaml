@@ -1,0 +1,91 @@
+template:
+  name: "左对齐标题"
+  id: "left_aligned"
+  description: "标题左对齐，右侧留白适合装饰"
+  category: "basic"
+  version: "1.0.0"
+
+  background:
+    type: "ai_generate"
+    style: "minimal"
+    size: "3072x1306"
+
+  elements:
+    - type: "text"
+      id: "main_title"
+      content: "{{title}}"
+
+      position:
+        type: "absolute"
+        x: "10%"                # 左边距10%
+        y: "50%"                # 垂直居中
+        anchor: "left"          # 左对齐
+
+      font:
+        family: ["Microsoft YaHei", "SimHei", "sans-serif"]
+        size: 100
+        weight: "bold"
+        color: "#333333"
+        spacing: 0
+
+      effects:
+        shadow:
+          enabled: false
+        stroke:
+          enabled: false
+
+      wrap:
+        enabled: true
+        max_width: "60%"        # 左侧最多占60%
+        max_lines: 3
+        line_height: 1.3
+        align: "left"
+
+    - type: "optional"
+      id: "subtitle"
+      content: "{{subtitle}}"
+      required: false           # 可选元素
+
+      position:
+        type: "absolute"
+        x: "10%"
+        y: "85%"                # 靠近底部
+        anchor: "left"
+
+      font:
+        family: ["Microsoft YaHei", "sans-serif"]
+        size: 50
+        weight: "normal"
+        color: "#666666"
+        spacing: 0
+
+      effects:
+        shadow:
+          enabled: false
+
+      wrap:
+        enabled: true
+        max_width: "60%"
+        max_lines: 2
+        line_height: 1.4
+        align: "left"
+
+  variants:
+    - name: "默认极简风"
+      background:
+        style: "minimal"
+      elements:
+        - id: "main_title"
+          font:
+            color: "#333333"
+
+    - name: "科技风格"
+      background:
+        style: "tech"
+      elements:
+        - id: "main_title"
+          font:
+            color: "#FFFFFF"
+        - id: "subtitle"
+          font:
+            color: "#E0E7FF"

@@ -2,6 +2,9 @@ import { defineConfig } from 'vite'
 import path from 'node:path'
 import electron from 'vite-plugin-electron/simple'
 import react from '@vitejs/plugin-react'
+// CommonJS 兼容导入
+import obfuscatorPackage from 'rollup-plugin-javascript-obfuscator'
+const obfuscator = obfuscatorPackage.default || obfuscatorPackage
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -21,7 +24,21 @@ export default defineConfig({
                 '@modelcontextprotocol/sdk'
               ],
             },
-          }
+          },
+          plugins: [
+            obfuscator({
+              compact: true,                    // 压缩代码
+              controlFlowFlattening: false,     // 控制流扁平化(影响性能,关闭)
+              deadCodeInjection: false,         // 死代码注入(影响性能,关闭)
+              stringArray: true,                // 字符串数组化
+              stringArrayThreshold: 0.5,        // 字符串混淆比例(0.5 平衡性能和安全)
+              transformObjectKeys: true,        // 对象键转换
+              identifierNamesGenerator: 'hex',  // 标识符名称生成器
+              ignoreImports: true,              // 忽略 import 语句(避免破坏模块系统)
+              debugProtection: false,           // 调试保护(影响开发,关闭)
+              disableConsoleOutput: false       // 保留 console 输出(便于调试)
+            })
+          ]
         }
       },
       preload: {
@@ -38,7 +55,16 @@ export default defineConfig({
                 '@modelcontextprotocol/sdk'
               ],
             },
-          }
+          },
+          plugins: [
+            obfuscator({
+              compact: true,
+              stringArray: true,
+              stringArrayThreshold: 0.5,
+              ignoreImports: true,
+              disableConsoleOutput: false
+            })
+          ]
         }
       },
       // Ployfill the Electron and Node.js API for Renderer process.

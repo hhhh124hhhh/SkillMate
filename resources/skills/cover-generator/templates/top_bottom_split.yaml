@@ -1,0 +1,113 @@
+template:
+  name: "上下分区"
+  id: "top_bottom_split"
+  description: "上半部分主标题，下半部分副标题或装饰"
+  category: "structured"
+  version: "1.0.0"
+
+  background:
+    type: "gradient"  # 使用纯渐变，不AI生成
+    gradient:
+      from: "#667eea"
+      to: "#764ba2"
+      direction: "horizontal"
+    size: "3072x1306"
+
+  elements:
+    - type: "text"
+      id: "main_title"
+      content: "{{title}}"
+
+      position:
+        type: "absolute"
+        x: "50%"
+        y: "35%"                # 上半区域（略偏上）
+        anchor: "middle"
+
+      font:
+        family: ["SimHei", "Microsoft YaHei", "sans-serif"]
+        size: 110
+        weight: "bold"
+        color: "#FFFFFF"
+        spacing: 0
+
+      effects:
+        shadow:
+          enabled: true
+          color: "rgba(0,0,0,0.3)"
+          offset_x: 3
+          offset_y: 3
+          blur: 0
+
+      wrap:
+        enabled: true
+        max_width: "85%"
+        max_lines: 2
+        line_height: 1.3
+        align: "center"
+
+    - type: "optional"
+      id: "subtitle"
+      content: "{{subtitle}}"
+      required: false
+
+      position:
+        type: "absolute"
+        x: "50%"
+        y: "75%"                # 下半区域
+        anchor: "middle"
+
+      font:
+        family: ["Microsoft YaHei", "sans-serif"]
+        size: 55
+        weight: "normal"
+        color: "#E0E7FF"
+        spacing: 0
+
+      effects:
+        shadow:
+          enabled: true
+          color: "rgba(0,0,0,0.3)"
+          offset_x: 2
+          offset_y: 2
+          blur: 0
+
+      wrap:
+        enabled: true
+        max_width: "80%"
+        max_lines: 2
+        line_height: 1.4
+        align: "center"
+
+  variants:
+    - name: "蓝紫渐变"
+      background:
+        type: "gradient"
+        gradient:
+          from: "#667eea"
+          to: "#764ba2"
+          direction: "horizontal"
+
+    - name: "橙红渐变"
+      background:
+        type: "gradient"
+        gradient:
+          from: "#f093fb"
+          to: "#f5576c"
+          direction: "diagonal"
+
+    - name: "青绿渐变"
+      background:
+        type: "gradient"
+        gradient:
+          from: "#4facfe"
+          to: "#00f2fe"
+          direction: "horizontal"
+
+    - name: "深蓝渐变"
+      background:
+        type: "gradient"
+        gradient:
+          from: "#0c3483"
+          to: "#a2b6df"
+          direction: "vertical"

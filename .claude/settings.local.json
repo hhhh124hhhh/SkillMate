@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__zread__get_repo_structure",
+      "mcp__zread__read_file",
+      "mcp__web-search-prime__webSearchPrime",
+      "mcp__web-reader__webReader",
+      "WebSearch",
+      "Bash(npm run generate-icons:*)",
+      "Bash(dir build /b)",
+      "Bash(npx -y fetcher-mcp:*)",
+      "Bash(echo:*)",
+      "Bash(findstr:*)",
+      "Bash(timeout 30 npm run dev:*)",
+      "Bash(node node_modules/fetcher-mcp/build/index.js:*)",
+      "Bash(where:*)",
+      "mcp__zread__search_doc",
+      "Bash(npm run dev)",
+      "Bash(timeout:*)",
+      "Bash(node:*)"
+    ]
+  }
+}

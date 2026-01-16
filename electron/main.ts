@@ -72,11 +72,11 @@ app.on('activate', () => {
 
 app.whenReady().then(() => {
   // Set App User Model ID for Windows notifications
-  app.setAppUserModelId('com.opencowork.app')
+  app.setAppUserModelId('com.wechatflowwork.app')
 
   // Register Protocol Client
   if (app.isPackaged) {
-    app.setAsDefaultProtocolClient('opencowork')
+    app.setAsDefaultProtocolClient('wechatflowwork')
   } else {
     console.log('Skipping protocol registration in Dev mode.')
   }
@@ -115,7 +115,7 @@ app.whenReady().then(() => {
     mainWin?.show()
   }
 
-  console.log('OpenCowork started. Press Alt+Space to toggle floating ball.')
+  console.log('WeChat_Flowwork started. Press Alt+Space to toggle floating ball.')
 })
 
 
@@ -223,14 +223,63 @@ ipcMain.handle('agent:set-working-dir', (_, folderPath: string) => {
   return true
 })
 
-ipcMain.handle('config:get-all', () => configStore.getAll())
+ipcMain.handle('config:get-all', () => {
+  const config = configStore.getAll()
+  console.log('[config:get-all] Returning config:', { ...config, apiKey: config.apiKey ? '***' + config.apiKey.slice(-4) : 'empty' })
+  return config
+})
 ipcMain.handle('config:set-all', (_, cfg) => {
-  if (cfg.apiKey) configStore.setApiKey(cfg.apiKey)
-  if (cfg.apiUrl) configStore.setApiUrl(cfg.apiUrl)
-  if (cfg.model) configStore.setModel(cfg.model)
-  configStore.set('authorizedFolders', cfg.authorizedFolders || [])
+  console.log('[config:set-all] Received config:', {
+    apiKey: cfg.apiKey ? '***' + cfg.apiKey.slice(-4) : 'empty',
+    apiUrl: cfg.apiUrl,
+    model: cfg.model,
+    hasApiKey: !!cfg.apiKey
+  })
+
+  if (cfg.apiKey !== undefined) {
+    configStore.setApiKey(cfg.apiKey)
+    console.log('[config:set-all] Saved apiKey, length:', cfg.apiKey.length)
+  }
+  if (cfg.doubaoApiKey !== undefined) configStore.setDoubaoApiKey(cfg.doubaoApiKey)
+  if (cfg.apiUrl !== undefined) {
+    configStore.setApiUrl(cfg.apiUrl)
+    console.log('[config:set-all] Saved apiUrl:', cfg.apiUrl)
+  }
+  if (cfg.model !== undefined) {
+    configStore.setModel(cfg.model)
+    console.log('[config:set-all] Saved model:', cfg.model)
+  }
+
+  // 添加 authorizedFolders 日志
+  console.log('[config:set-all] Saving authorizedFolders:', {
+    count: cfg.authorizedFolders?.length || 0,
+    folders: cfg.authorizedFolders
+  });
+
+  try {
+    configStore.set('authorizedFolders', cfg.authorizedFolders || [])
+    console.log('[config:set-all] authorizedFolders saved successfully');
+
+    // 验证保存
+    const savedFolders = configStore.get('authorizedFolders');
+    console.log('[config:set-all] Verification - saved folders:', {
+      count: savedFolders?.length || 0,
+      folders: savedFolders
+    });
+  } catch (error) {
+    console.error('[config:set-all] Failed to save authorizedFolders:', error);
+  }
+
   configStore.setNetworkAccess(cfg.networkAccess || false)
-  if (cfg.shortcut) configStore.set('shortcut', cfg.shortcut)
+  if (cfg.shortcut !== undefined) configStore.set('shortcut', cfg.shortcut)
+
+  // Verify save
+  const savedConfig = configStore.getAll()
+  console.log('[config:set-all] Verification after save:', {
+    apiKey: savedConfig.apiKey ? '***' + savedConfig.apiKey.slice(-4) : 'empty',
+    apiUrl: savedConfig.apiUrl,
+    model: savedConfig.model
+  })
 
   // Reinitialize agent
   initializeAgent()
@@ -262,7 +311,7 @@ ipcMain.handle('shortcut:update', (_, newShortcut: string) => {
 
 ipcMain.handle('dialog:select-folder', async () => {
   const result = await dialog.showOpenDialog(mainWin!, {
-    properties: ['openDirectory']
+    properties: ['openDirectory', 'createDirectory', 'promptToCreate']
   })
   if (!result.canceled && result.filePaths.length > 0) {
     return result.filePaths[0]
@@ -314,7 +363,7 @@ ipcMain.handle('window:maximize', () => {
 ipcMain.handle('window:close', () => mainWin?.hide())
 
 // MCP Configuration Handlers
-const mcpConfigPath = path.join(os.homedir(), '.opencowork', 'mcp.json');
+const mcpConfigPath = path.join(os.homedir(), '.wechatflowwork', 'mcp.json');
 
 ipcMain.handle('mcp:get-config', async () => {
   try {
@@ -400,58 +449,34 @@ ipcMain.handle('skills:get', async (_, skillId: string) => {
   }
 });
 
-ipcMain.handle('skills:save', async (_, { filename, content }: { filename: string, content: string }) => {
-  try {
-    const skillId = filename.replace('.md', ''); // normalized id
-
-    // Check if built-in
-    const builtinSkills = getBuiltinSkillNames();
-    if (builtinSkills.includes(skillId)) {
-      return { success: false, error: 'Cannot modify built-in skills' };
-    }
-
-    if (!fs.existsSync(skillsDir)) fs.mkdirSync(skillsDir, { recursive: true });
-    const skillPath = path.join(skillsDir, skillId);
-    if (!fs.existsSync(skillPath)) fs.mkdirSync(skillPath, { recursive: true });
-
-    // Save to README.md or existing md
-    let targetFile = 'README.md';
-    if (fs.existsSync(skillPath)) {
-      const existing = fs.readdirSync(skillPath).find(f => f.toLowerCase().endsWith('.md'));
-      if (existing) targetFile = existing;
-    }
-
-    fs.writeFileSync(path.join(skillPath, targetFile), content, 'utf-8');
-
-    return { success: true };
-  } catch (e) {
-    console.error('Failed to save skill:', e);
-    return { success: false, error: (e as Error).message };
-  }
+ipcMain.handle('skills:save', async () => {
+  // [Security] Skills modification disabled for stability
+  return { success: false, error: '技能编辑功能已禁用 (Skills Locked)' };
 });
 
-ipcMain.handle('skills:delete', async (_, skillId: string) => {
-  try {
-    // Check if built-in
-    const builtinSkills = getBuiltinSkillNames();
-    if (builtinSkills.includes(skillId)) {
-      return { success: false, error: 'Cannot delete built-in skills' };
-    }
-
-    const skillPath = path.join(skillsDir, skillId);
-    if (fs.existsSync(skillPath)) {
-      fs.rmSync(skillPath, { recursive: true, force: true });
-      return { success: true };
-    }
-    return { success: false, error: 'Skill not found' };
-  } catch (e) {
-    return { success: false, error: (e as Error).message };
-  }
+ipcMain.handle('skills:delete', async () => {
+  // [Security] Skills deletion disabled for stability
+  return { success: false, error: '技能删除功能已禁用 (Skills Locked)' };
 });
 
 
 function initializeAgent() {
   const apiKey = configStore.getApiKey() || process.env.ANTHROPIC_API_KEY
+
+  // 注入豆包 API Key 到环境变量,供 Skills 使用
+  const doubaoApiKey = configStore.getDoubaoApiKey()
+  if (doubaoApiKey) {
+    process.env.DOUBAO_API_KEY = doubaoApiKey
+    console.log('Doubao API Key已配置并注入到环境变量')
+  }
+
+  // 注入智谱 API Key 到环境变量,供 Skills 使用
+  const zhipuApiKey = configStore.getZhipuApiKey()
+  if (zhipuApiKey) {
+    process.env.ZHIPU_API_KEY = zhipuApiKey
+    console.log('Zhipu API Key已配置并注入到环境变量')
+  }
+
   if (apiKey && mainWin) {
     agent = new AgentRuntime(apiKey, mainWin, configStore.getModel(), configStore.getApiUrl())
     // Add floating ball window to receive updates
@@ -478,7 +503,7 @@ function createTray() {
     tray = new Tray(blankIcon)
   }
 
-  tray.setToolTip('OpenCowork')
+  tray.setToolTip('公众号助手')
 
   const contextMenu = Menu.buildFromTemplate([
     {
