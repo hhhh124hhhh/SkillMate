@@ -26,3 +26,13 @@ dist-electron
 release
 build
 .opencowork
+
+# Environment files
+.env
+
+# Temporary files
+tmpclaude-*/
+nul
+
+# Screenshots
+Quicker_*.png
