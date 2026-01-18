@@ -2,7 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import yaml from 'js-yaml';
 import { app } from 'electron';
-import { SkillEncryption, EncryptedSkillData } from '../../security/SkillEncryption';
+import { SkillEncryption, EncryptedSkillData } from '../../security/SkillEncryption.js';
 
 export interface SkillDefinition {
     name: string;

@@ -1,6 +1,6 @@
 import Store from 'electron-store';
-import { secureStorage } from '../security/SecureStorage';
-import { auditLogger } from '../security/AuditLogger';
+import { secureStorage } from '../security/SecureStorage.js';
+import { auditLogger } from '../security/AuditLogger.js';
 
 export interface ToolPermission {
     tool: string;           // 'write_file', 'run_command', etc.

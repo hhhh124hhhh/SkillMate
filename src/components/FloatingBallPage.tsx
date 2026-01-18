@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { ArrowUp, ChevronDown, Home, History, X, Plus } from 'lucide-react';
-import { MarkdownRenderer } from './MarkdownRenderer';
+import { MarkdownRenderer } from './MarkdownRenderer.js';
 
 type BallState = 'collapsed' | 'input' | 'expanded';
 
@@ -120,8 +120,14 @@ export function FloatingBallPage() {
 
     // Handle ball click - expand slowly
     const handleBallClick = () => {
+        console.log('[FloatingBall] Clicked! Current state:', ballState);
         setBallState('input');
-        window.ipcRenderer.invoke('floating-ball:toggle');
+        console.log('[FloatingBall] State changed to: input');
+        window.ipcRenderer.invoke('floating-ball:toggle').then(() => {
+            console.log('[FloatingBall] Toggle IPC call succeeded');
+        }).catch(err => {
+            console.error('[FloatingBall] Toggle IPC call failed:', err);
+        });
     };
 
     // Handle submit - send message and expand to full view

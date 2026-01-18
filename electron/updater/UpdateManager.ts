@@ -11,7 +11,7 @@
 
 import type { UpdateInfo } from 'electron-updater'
 import pkg from 'electron-updater'
-import { BrowserWindow } from 'electron'
+import { BrowserWindow, app } from 'electron'
 import log from 'electron-log'
 
 const { autoUpdater } = pkg
@@ -170,7 +170,6 @@ export class UpdateManager {
    * 获取当前版本
    */
   public getCurrentVersion(): string {
-    const { app } = require('electron')
     return app.getVersion()
   }
 

@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect, ReactNode } from 'react';
-import { translations, Language, TranslationKey } from './translations';
+import { translations, Language, TranslationKey } from './translations.js';
 
 export interface I18nContextType {
     language: Language;
@@ -33,4 +33,4 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 }
 
 // Re-export useI18n for convenience
-export { useI18n } from './useI18n';
+export { useI18n } from './useI18n.js';

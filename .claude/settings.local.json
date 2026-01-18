@@ -39,7 +39,11 @@
       "Bash(npm --version:*)",
       "Bash(npm install:*)",
       "Bash(npm view:*)",
-      "Bash(ping:*)"
+      "Bash(ping:*)",
+      "Bash(tasklist:*)",
+      "Bash(netstat:*)",
+      "Bash(curl:*)",
+      "Bash(npm run build:*)"
     ]
   }
 }

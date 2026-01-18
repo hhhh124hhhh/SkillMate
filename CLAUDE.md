@@ -179,6 +179,93 @@ App.tsx
 - ES 模块导入（`import/export`），不使用 CommonJS（`require`）
 - Vite 构建时排除某些 Node.js 模块（`rollupOptions.external`）
 
+### Node.js 模块系统规范（CRITICAL）
+
+**本项目统一使用 ES Module (ESM)**，严格遵循以下规则避免 CommonJS/ESM 冲突：
+
+#### 1. package.json 配置
+```json
+{
+  "type": "module",  // ✅ 全局启用 ESM
+  "exports": "./dist/index.js"  // ✅ 明确导出入口
+}
+```
+
+#### 2. 文件扩展名规范
+- ✅ **使用**：`.js` (跟随 `type: "module"`)
+- ✅ **主进程**：`.ts` 编译为 `.mjs`
+- ⚠️ **预加载脚本**：Electron 限制，编译为 `.cjs`
+- ❌ **禁止**：混用 `require()` 和 `import`
+
+#### 3. 导入语法规则
+```typescript
+// ✅ 正确：ESM 导入
+import { helper } from './helper.js';
+import config from './config.js';
+
+// ❌ 错误：CommonJS 语法
+const helper = require('./helper');
+```
+
+**重要**：ESM 要求导入路径必须包含文件扩展名（`.js`）
+
+#### 4. Electron 特殊处理
+```typescript
+// electron/main.ts - 主进程（ESM）
+import { app, BrowserWindow } from 'electron';
+
+// electron/preload.ts - 预加载（需编译为 CJS）
+// 通过 tsconfig 单独配置：
+{
+  "compilerOptions": {
+    "module": "CommonJS",
+    "outDir": "./dist/preload"
+  }
+}
+```
+
+#### 5. 依赖管理规则
+- ✅ **优先选择**：支持 ESM 的包（查看 `package.json` 的 `"type"` 或 `"exports"`）
+- ⚠️ **检查依赖**：`npm ls <package>` 查看模块类型冲突
+- ❌ **避免**：仅支持 CJS 的老版本包（如 `chalk@4` → 升级到 `chalk@5`）
+
+#### 6. 构建配置
+```javascript
+// vite.config.ts
+export default {
+  build: {
+    target: 'node14',
+    rollupOptions: {
+      output: {
+        format: 'es'  // ✅ 输出 ESM
+      }
+    }
+  }
+}
+```
+
+#### 7. tsconfig.json 配置
+```json
+{
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "node16",
+    "esModuleInterop": true,  // ✅ 允许导入 CJS 模块
+    "allowSyntheticDefaultImports": true
+  }
+}
+```
+
+#### 8. 故障排查清单
+遇到模块错误时，按顺序检查：
+- [ ] `package.json` 是否设置 `"type": "module"`
+- [ ] 导入路径是否包含文件扩展名（`.js`）
+- [ ] 依赖包是否支持 ESM
+- [ ] 预加载脚本是否编译为 `.cjs`
+- [ ] 构建配置是否输出 ESM 格式
+
+**参考**：[Node.js Package Exports](https://nodejs.cn/api/packages.html)
+
 ### 构建配置
 - **代码混淆**: 生产环境使用 javascript-obfuscator 混淆主进程和预加载脚本
   - 字符串数组化 (stringArrayThreshold: 0.5)

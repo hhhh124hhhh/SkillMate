@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Square, ArrowUp, ChevronDown, ChevronUp, Download, FolderOpen, MessageCircle, Zap, AlertTriangle, Check, X, Settings, History, Plus, Trash2, PenTool, Search, Layout, Type, FileUp, FileText, FileSpreadsheet, Braces, Eye, Image } from 'lucide-react';
-import { MarkdownRenderer } from './MarkdownRenderer';
-import { FilePreview } from './FilePreview';
+import { MarkdownRenderer } from './MarkdownRenderer.js';
+import { FilePreview } from './FilePreview.js';
 import Anthropic from '@anthropic-ai/sdk';
 
 type Mode = 'chat' | 'work';
@@ -60,9 +60,14 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
     // Load config including model name
     useEffect(() => {
         window.ipcRenderer.invoke('config:get-all').then((cfg) => {
-            const config = cfg as { model?: string } | undefined;
+            const config = cfg as { model?: string; authorizedFolders?: string[] } | undefined;
             if (config?.model) setModelName(config.model);
+            if (config?.authorizedFolders && config.authorizedFolders.length > 0) {
+                // 更新工作目录为第一个授权文件夹
+                setWorkingDir(config.authorizedFolders[0]);
+            }
         });
+
         // Listen for streaming tokens
         const removeStreamListener = window.ipcRenderer.on('agent:stream-token', (_event, ...args) => {
             const token = args[0] as string;
@@ -85,10 +90,24 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
             setPermissionRequest(req);
         });
 
+        // 监听配置更新事件
+        const handleConfigUpdated = () => {
+            window.ipcRenderer.invoke('config:get-all').then((cfg) => {
+                const config = cfg as { model?: string; authorizedFolders?: string[] } | undefined;
+                if (config?.model) setModelName(config.model);
+                if (config?.authorizedFolders && config.authorizedFolders.length > 0) {
+                    // 更新工作目录为第一个授权文件夹
+                    setWorkingDir(config.authorizedFolders[0]);
+                }
+            });
+        };
+        const removeConfigListener = window.ipcRenderer.on('config:updated', handleConfigUpdated);
+
         return () => {
             removeStreamListener?.();
             removeHistoryListener?.();
             removeConfirmListener?.();
+            removeConfigListener?.();
         };
     }, []);
 

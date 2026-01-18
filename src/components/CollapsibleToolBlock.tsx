@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, Terminal, Loader2, Check, X } from 'lucide-react';
-import { useI18n } from '../i18n/I18nContext';
+import { useI18n } from '../i18n/I18nContext.js';
 
 export interface ToolBlockData {
     id: string;

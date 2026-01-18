@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Maximize2, Minimize2, Copy, Download } from 'lucide-react';
-import { MarkdownRenderer } from './MarkdownRenderer';
+import { MarkdownRenderer } from './MarkdownRenderer.js';
 
 interface FilePreviewProps {
   filePath: string | null;

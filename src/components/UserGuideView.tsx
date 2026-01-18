@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Search, Type, PenTool, Image, Layout, BarChart, AlertCircle, CheckCircle, X } from 'lucide-react';
-import { ConfirmDialog } from './ConfirmDialog';
+import { ConfirmDialog } from './ConfirmDialog.js';
 
 interface UserGuideViewProps {
     onClose: () => void;
@@ -85,8 +85,11 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
     const [isLoading, setIsLoading] = useState(true);
     const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
-    const handleCloseClick = () => {
+    const handleCloseClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        console.log('[UserGuideView] Close button clicked, setting showCloseConfirm to true');
         setShowCloseConfirm(true);
+        console.log('[UserGuideView] showCloseConfirm state updated');
     };
 
     const handleConfirmClose = () => {
@@ -159,7 +162,43 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
         }
     };
 
-    const handleAuthorizeFolder = () => {
+    const handleQuickAuthorize = async () => {
+        try {
+            // 打开文件夹选择对话框
+            const folderPath = await window.ipcRenderer.invoke('dialog:select-folder') as string | null;
+
+            if (!folderPath) {
+                // 用户取消选择
+                return;
+            }
+
+            // 获取当前配置
+            const currentConfig = await window.ipcRenderer.invoke('config:get-safe') as { authorizedFolders?: string[] };
+            const currentFolders = currentConfig.authorizedFolders || [];
+
+            // 添加新文件夹（避免重复）
+            const newFolders = currentFolders.includes(folderPath)
+                ? currentFolders
+                : [...currentFolders, folderPath];
+
+            // 保存到配置
+            await window.ipcRenderer.invoke('config:set-all', {
+                authorizedFolders: newFolders
+            });
+
+            // 更新状态并跳转到下一步
+            setSetupStatus({ ...setupStatus, hasAuthorizedFolders: true });
+            setCurrentStep('workflow');
+
+            // 显示成功提示
+            alert('文件夹授权成功！');
+        } catch (error) {
+            console.error('[UserGuideView] Failed to authorize folder:', error);
+            alert('文件夹授权失败，请重试');
+        }
+    };
+
+    const handleAdvancedSettings = () => {
         try {
             // 发送事件到 App.tsx，请求打开设置页面的"权限"标签
             window.dispatchEvent(new CustomEvent('open-settings', { detail: { tab: 'folders' } }));
@@ -168,8 +207,8 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
                 onClose();
             }, 100);
         } catch (error) {
-            console.error('[UserGuideView] Failed to authorize folder:', error);
-            alert('文件夹授权失败，请重试');
+            console.error('[UserGuideView] Failed to open settings:', error);
+            alert('打开设置失败，请重试');
         }
     };
 
@@ -179,8 +218,9 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
             <div className="h-full w-full bg-slate-50 relative">
                 <button
                     onClick={handleCloseClick}
-                    className="absolute top-4 right-4 p-2 bg-white rounded-full shadow-sm hover:bg-slate-100 transition-colors"
+                    className="absolute top-4 right-4 p-2 bg-white rounded-full shadow-sm hover:bg-slate-100 transition-colors z-[99999] pointer-events-auto"
                     aria-label="关闭"
+                    style={{ zIndex: 99999, pointerEvents: 'auto', position: 'absolute' }}
                 >
                     <X size={20} className="text-slate-500" />
                 </button>
@@ -209,8 +249,9 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
             <div className="h-full w-full bg-slate-50 overflow-y-auto relative">
                 <button
                     onClick={handleCloseClick}
-                    className="absolute top-4 right-4 p-2 bg-white rounded-full shadow-sm hover:bg-slate-100 transition-colors"
+                    className="absolute top-4 right-4 p-2 bg-white rounded-full shadow-sm hover:bg-slate-100 transition-colors z-[99999] pointer-events-auto"
                     aria-label="关闭"
+                    style={{ zIndex: 99999, pointerEvents: 'auto', position: 'absolute' }}
                 >
                     <X size={20} className="text-slate-500" />
                 </button>
@@ -296,8 +337,9 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
             <div className="h-full w-full bg-slate-50 overflow-y-auto relative">
                 <button
                     onClick={handleCloseClick}
-                    className="absolute top-4 right-4 p-2 bg-white rounded-full shadow-sm hover:bg-slate-100 transition-colors"
+                    className="absolute top-4 right-4 p-2 bg-white rounded-full shadow-sm hover:bg-slate-100 transition-colors z-[99999] pointer-events-auto"
                     aria-label="关闭"
+                    style={{ zIndex: 99999, pointerEvents: 'auto', position: 'absolute' }}
                 >
                     <X size={20} className="text-slate-500" />
                 </button>
@@ -367,12 +409,20 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
                                 </div>
                             </div>
 
-                            <button
-                                onClick={handleAuthorizeFolder}
-                                className="w-full bg-orange-500 text-white px-8 py-4 rounded-xl hover:bg-orange-600 transition-colors text-lg font-semibold shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all"
-                            >
-                                立即授权文件夹 →
-                            </button>
+                            <div className="flex gap-3 w-full">
+                                <button
+                                    onClick={handleQuickAuthorize}
+                                    className="flex-1 bg-orange-500 text-white px-6 py-4 rounded-xl hover:bg-orange-600 transition-colors text-base font-semibold shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all"
+                                >
+                                    ⚡ 快速授权
+                                </button>
+                                <button
+                                    onClick={handleAdvancedSettings}
+                                    className="flex-1 bg-white text-orange-600 border-2 border-orange-500 px-6 py-4 rounded-xl hover:bg-orange-50 transition-colors text-base font-semibold shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all"
+                                >
+                                    ⚙️ 高级设置
+                                </button>
+                            </div>
 
                             <p className="text-xs text-orange-700">
                                 授权完成后，返回即可查看完整创作流程
@@ -398,7 +448,7 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
         <div className="h-full w-full bg-slate-50 overflow-y-auto relative">
             <button
                 onClick={handleCloseClick}
-                className="absolute top-4 right-4 p-2 bg-white rounded-full shadow-sm hover:bg-slate-100 transition-colors"
+                className="absolute top-4 right-4 p-2 bg-white rounded-full shadow-sm hover:bg-slate-100 transition-colors z-[99999] pointer-events-auto"
                 aria-label="关闭"
             >
                 <X size={20} className="text-slate-500" />

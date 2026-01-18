@@ -73,4 +73,4 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 }
 
 // Re-export useTheme for convenience
-export { useTheme } from './useTheme';
+export { useTheme } from './useTheme.js';

@@ -1,5 +1,5 @@
 import { Notification, app } from 'electron';
-import { configStore } from '../config/ConfigStore';
+import { configStore } from '../config/ConfigStore.js';
 
 export type NotificationType = 'success' | 'error' | 'info' | 'warning';
 

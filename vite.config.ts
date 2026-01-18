@@ -50,6 +50,10 @@ export default defineConfig({
         vite: {
           build: {
             rollupOptions: {
+              output: {
+                format: 'cjs',  // 输出为 CommonJS 格式
+                entryFileNames: '[name].cjs'  // 输出文件名为 .cjs
+              },
               external: [
                 'sqlite3',
                 'sequelize',

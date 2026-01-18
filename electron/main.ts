@@ -4,13 +4,13 @@ import path from 'node:path'
 import os from 'node:os'
 import fs from 'node:fs'
 import dotenv from 'dotenv'
-import { AgentRuntime } from './agent/AgentRuntime'
-import { pythonRuntime } from './agent/PythonRuntime'
-import { configStore } from './config/ConfigStore'
-import { sessionStore } from './config/SessionStore'
-import { notificationService } from './services/NotificationService'
-import { auditLogger, setupAuditHooks } from './security/AuditLogger'
-import { UpdateManager } from './updater/UpdateManager'
+import { AgentRuntime } from './agent/AgentRuntime.js'
+import { pythonRuntime } from './agent/PythonRuntime.js'
+import { configStore } from './config/ConfigStore.js'
+import { sessionStore } from './config/SessionStore.js'
+import { notificationService } from './services/NotificationService.js'
+import { auditLogger, setupAuditHooks } from './security/AuditLogger.js'
+import { UpdateManager } from './updater/UpdateManager.js'
 import Anthropic from '@anthropic-ai/sdk'
 
 // Extend App type to include isQuitting property
@@ -86,7 +86,7 @@ let updateManager: UpdateManager | null = null
 let isBallExpanded = false
 const BALL_SIZE = 64
 const EXPANDED_WIDTH = 340    // Match w-80 (320px) + padding
-const EXPANDED_HEIGHT = 320   // Compact height for less dramatic expansion
+const EXPANDED_HEIGHT = 480   // 增加高度以显示完整的对话界面
 
 app.on('before-quit', () => {
   app.isQuitting = true
@@ -438,6 +438,12 @@ ipcMain.handle('config:set-all', async (_, cfg) => {
 
   // Reinitialize agent
   await initializeAgent()
+
+  // 广播配置更新事件到所有窗口
+  BrowserWindow.getAllWindows().forEach(win => {
+    win.webContents.send('config:updated')
+  })
+  console.log('[config:set-all] Broadcasted config:updated event to all windows')
 })
 
 // 首次启动配置处理
@@ -530,13 +536,31 @@ ipcMain.handle('shortcut:update', (_, newShortcut: string) => {
 })
 
 ipcMain.handle('dialog:select-folder', async () => {
-  const result = await dialog.showOpenDialog(mainWin!, {
-    properties: ['openDirectory', 'createDirectory', 'promptToCreate']
-  })
-  if (!result.canceled && result.filePaths.length > 0) {
-    return result.filePaths[0]
+  console.log('[dialog:select-folder] Opening folder selection dialog...')
+  if (!mainWin) {
+    console.error('[dialog:select-folder] ❌ mainWin is null!')
+    return null
   }
-  return null
+
+  try {
+    const result = await dialog.showOpenDialog(mainWin, {
+      properties: ['openDirectory', 'createDirectory', 'promptToCreate']
+    })
+    console.log('[dialog:select-folder] Dialog result:', {
+      canceled: result.canceled,
+      filePaths: result.filePaths
+    })
+
+    if (!result.canceled && result.filePaths.length > 0) {
+      console.log('[dialog:select-folder] ✅ Selected folder:', result.filePaths[0])
+      return result.filePaths[0]
+    }
+    console.log('[dialog:select-folder] ⚠️ Dialog canceled')
+    return null
+  } catch (error) {
+    console.error('[dialog:select-folder] ❌ Error:', error)
+    return null
+  }
 })
 
 ipcMain.handle('shell:open-path', async (_, filePath: string) => {
@@ -856,6 +880,10 @@ function createTray() {
 }
 
 function createMainWindow() {
+  const preloadPath = path.join(__dirname, 'preload.cjs')
+  console.log('[Main Window] __dirname:', __dirname)
+  console.log('[Main Window] preload path:', preloadPath)
+
   mainWin = new BrowserWindow({
     width: 900,
     height: 750,
@@ -865,7 +893,7 @@ function createMainWindow() {
     frame: false,
     titleBarStyle: 'hiddenInset',
     webPreferences: {
-      preload: path.join(__dirname, 'preload.mjs'),
+      preload: preloadPath,
       // 🔒 安全配置
       contextIsolation: true,          // 启用上下文隔离（防止渲染进程访问 Node.js）
       nodeIntegration: false,           // 禁用 Node.js 集成（默认值，显式声明）
@@ -890,9 +918,24 @@ function createMainWindow() {
     }
   })
 
+  // 🔍 调试：检查 preload 是否加载
   mainWin.webContents.on('did-finish-load', () => {
-    mainWin?.webContents.send('main-process-message', (new Date).toLocaleString())
+    console.log('[Main Window] Finished loading')
+    mainWin.webContents.executeJavaScript('typeof window.ipcRenderer')
+      .then(result => {
+        console.log('[Main Window] window.ipcRenderer type:', result)
+        // 发送主进程消息
+        mainWin?.webContents.send('main-process-message', (new Date).toLocaleString())
+      })
+      .catch(err => {
+        console.error('[Main Window] Error checking ipcRenderer:', err)
+      })
   })
+
+  // 🐛 开发模式下自动打开 DevTools
+  if (VITE_DEV_SERVER_URL) {
+    mainWin.webContents.openDevTools()
+  }
 
   if (VITE_DEV_SERVER_URL) {
     mainWin.loadURL(VITE_DEV_SERVER_URL)
@@ -916,7 +959,7 @@ function createFloatingBallWindow() {
     hasShadow: false,
     skipTaskbar: true,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.mjs'),
+      preload: path.join(__dirname, 'preload.cjs'),
       // 🔒 安全配置
       contextIsolation: true,          // 启用上下文隔离
       nodeIntegration: false,           // 禁用 Node.js 集成
@@ -949,10 +992,16 @@ function createFloatingBallWindow() {
 }
 
 function toggleFloatingBallExpanded() {
-  if (!floatingBallWin) return
+  console.log('[FloatingBall] toggleFloatingBallExpanded called, isBallExpanded:', isBallExpanded)
+  if (!floatingBallWin) {
+    console.error('[FloatingBall] floatingBallWin is null!')
+    return
+  }
 
   const [currentX, currentY] = floatingBallWin.getPosition()
   const { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workAreaSize
+  console.log('[FloatingBall] Current position:', currentX, currentY)
+  console.log('[FloatingBall] Screen size:', screenWidth, screenHeight)
 
   if (isBallExpanded) {
     // Collapse - Calculate where ball should go based on current expanded window position
@@ -965,6 +1014,7 @@ function toggleFloatingBallExpanded() {
     const finalX = Math.max(0, Math.min(ballX, screenWidth - BALL_SIZE))
     const finalY = Math.max(0, Math.min(ballY, screenHeight - BALL_SIZE))
 
+    console.log('[FloatingBall] Collapsing to:', BALL_SIZE, 'x', BALL_SIZE, 'at', finalX, finalY)
     floatingBallWin.setSize(BALL_SIZE, BALL_SIZE)
     floatingBallWin.setPosition(finalX, finalY)
     isBallExpanded = false
@@ -985,11 +1035,13 @@ function toggleFloatingBallExpanded() {
     newX = Math.max(0, newX)
     newY = Math.max(0, newY)
 
+    console.log('[FloatingBall] Expanding to:', EXPANDED_WIDTH, 'x', EXPANDED_HEIGHT, 'at', newX, newY)
     floatingBallWin.setSize(EXPANDED_WIDTH, EXPANDED_HEIGHT)
     floatingBallWin.setPosition(newX, newY)
     isBallExpanded = true
   }
 
+  console.log('[FloatingBall] Sending state-changed event:', isBallExpanded)
   floatingBallWin.webContents.send('floating-ball:state-changed', isBallExpanded)
 }
 

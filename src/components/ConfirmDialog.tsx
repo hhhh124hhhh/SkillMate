@@ -37,10 +37,19 @@ export function ConfirmDialog({
     const [remember, setRemember] = useState(false);
 
     // 检查是否使用模式 2 (简单确认对话框)
-    const isSimpleMode = isOpen !== undefined && request === null;
+    const isSimpleMode = isOpen !== undefined && request == null;
+
+    console.log('[ConfirmDialog] isOpen:', isOpen, 'request:', request, 'isSimpleMode:', isSimpleMode);
 
     // 如果两种模式都不激活，返回 null
-    if ((!request && !isSimpleMode) || (isSimpleMode && !isOpen)) return null;
+    if (request == null && !isSimpleMode) {
+        console.log('[ConfirmDialog] Returning null - no request and not simple mode');
+        return null;
+    }
+    if (isSimpleMode && !isOpen) {
+        console.log('[ConfirmDialog] Returning null - simple mode but not open');
+        return null;
+    }
 
     // 模式 1: 工具操作确认
     if (request && !isSimpleMode) {
@@ -123,8 +132,9 @@ export function ConfirmDialog({
     }
 
     // 模式 2: 简单确认对话框
+    console.log('[ConfirmDialog] Rendering simple mode dialog with title:', title);
     return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
             <div className="bg-background border border-border rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                 {/* Header */}
                 <div className="p-5 border-b border-border bg-amber-500/10">
@@ -174,5 +184,5 @@ export function ConfirmDialog({
 }
 
 // Re-export useConfirmations for convenience
-export { useConfirmations } from './useConfirmations';
+export { useConfirmations } from './useConfirmations.js';
 

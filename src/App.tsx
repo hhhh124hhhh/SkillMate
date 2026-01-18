@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Minus, Square, X, HelpCircle } from 'lucide-react';
-import { CoworkView } from './components/CoworkView';
-import { SettingsView } from './components/SettingsView';
-import { UserGuideView } from './components/UserGuideView';
-import { ConfirmDialog, useConfirmations } from './components/ConfirmDialog';
-import { FloatingBallPage } from './components/FloatingBallPage';
-import { UpdateNotification } from './components/UpdateNotification';
+import { CoworkView } from './components/CoworkView.js';
+import { SettingsView } from './components/SettingsView.js';
+import { UserGuideView } from './components/UserGuideView.js';
+import { ConfirmDialog, useConfirmations } from './components/ConfirmDialog.js';
+import { FloatingBallPage } from './components/FloatingBallPage.js';
+import { UpdateNotification } from './components/UpdateNotification.js';
 import Anthropic from '@anthropic-ai/sdk';
 
 function App() {
@@ -127,7 +127,7 @@ function App() {
           <span className="font-semibold text-slate-700 text-sm tracking-tight">公众号运营牛马</span>
         </div>
 
-        <div className="flex items-center gap-1" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+        <div className="flex items-center gap-1 z-50" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
           {/* 新增：帮助按钮 */}
           <button
             onClick={() => setShowUserGuide(true)}
@@ -139,7 +139,8 @@ function App() {
 
           {/* Window Controls */}
           <button
-            onClick={async () => {
+            onClick={async (e) => {
+              e.stopPropagation();
               console.log('Minimize button clicked');
               try {
                 console.log('Minimize - Calling window.ipcRenderer.invoke');
@@ -155,7 +156,8 @@ function App() {
             <Minus size={14} />
           </button>
           <button
-            onClick={async () => {
+            onClick={async (e) => {
+              e.stopPropagation();
               console.log('Maximize button clicked');
               try {
                 console.log('Maximize - Calling window.ipcRenderer.invoke');
@@ -171,7 +173,8 @@ function App() {
             <Square size={12} />
           </button>
           <button
-            onClick={async () => {
+            onClick={async (e) => {
+              e.stopPropagation();
               console.log('Close button clicked');
               try {
                 console.log('Close - Calling window.ipcRenderer.invoke');

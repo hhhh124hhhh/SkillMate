@@ -51,6 +51,9 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
     // Permissions State
     const [permissions, setPermissions] = useState<ToolPermission[]>([]);
 
+    // API Key 状态
+    const [hasApiKey, setHasApiKey] = useState(false);
+
     const loadPermissions = () => {
         window.ipcRenderer.invoke('permissions:list').then(list => setPermissions(list as ToolPermission[]));
     };
@@ -91,6 +94,48 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
                 setConfig(safeConfig);
             }
         });
+
+        // 检查 API Key 状态
+        window.ipcRenderer.invoke('config:get-api-key-status').then((status) => {
+            setHasApiKey((status as { hasApiKey: boolean }).hasApiKey);
+        });
+
+        // 监听配置更新事件
+        const handleConfigUpdated = () => {
+            // 重新加载配置
+            window.ipcRenderer.invoke('config:get-safe').then((cfg) => {
+                if (cfg) {
+                    const loadedConfig = cfg as Partial<Config>;
+                    setConfig(prevConfig => ({
+                        ...prevConfig,
+                        apiUrl: loadedConfig.apiUrl || 'https://open.bigmodel.cn/api/anthropic',
+                        model: loadedConfig.model || 'GLM-4.7',
+                        authorizedFolders: loadedConfig.authorizedFolders || [],
+                        networkAccess: loadedConfig.networkAccess ?? false,
+                        shortcut: loadedConfig.shortcut || 'Alt+Space',
+                        notifications: loadedConfig.notifications ?? true,
+                        notificationTypes: {
+                            workComplete: loadedConfig.notificationTypes?.workComplete ?? true,
+                            error: loadedConfig.notificationTypes?.error ?? true,
+                            info: loadedConfig.notificationTypes?.info ?? true
+                        }
+                    }));
+                }
+            });
+
+            // 重新检查 API Key 状态
+            window.ipcRenderer.invoke('config:get-api-key-status').then((status) => {
+                setHasApiKey((status as { hasApiKey: boolean }).hasApiKey);
+            });
+        };
+
+        // 使用 on 方法，它会返回清理函数
+        const removeConfigListener = window.ipcRenderer.on('config:updated', handleConfigUpdated);
+
+        return () => {
+            // 使用返回的清理函数
+            removeConfigListener?.();
+        };
     }, []);
 
     useEffect(() => {
@@ -143,13 +188,21 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
     };
 
     const addFolder = async () => {
-        const result = await window.ipcRenderer.invoke('dialog:select-folder') as string | null;
-        console.log('[SettingsView.addFolder] Selected folder:', result);
-        const currentFolders = config.authorizedFolders || [];
-        if (result && !currentFolders.includes(result)) {
-            const newFolders = [...currentFolders, result];
-            console.log('[SettingsView.addFolder] New folders:', newFolders);
-            setConfig({ ...config, authorizedFolders: newFolders });
+        try {
+            console.log('[SettingsView.addFolder] Invoking dialog:select-folder...');
+            const result = await window.ipcRenderer.invoke('dialog:select-folder') as string | null;
+            console.log('[SettingsView.addFolder] Selected folder:', result);
+            const currentFolders = config.authorizedFolders || [];
+            if (result && !currentFolders.includes(result)) {
+                const newFolders = [...currentFolders, result];
+                console.log('[SettingsView.addFolder] New folders:', newFolders);
+                setConfig({ ...config, authorizedFolders: newFolders });
+            } else if (result && currentFolders.includes(result)) {
+                console.log('[SettingsView.addFolder] Folder already in list:', result);
+            }
+        } catch (error) {
+            console.error('[SettingsView.addFolder] Error:', error);
+            alert('打开文件夹选择对话框失败：' + (error as Error).message);
         }
     };
 
@@ -209,9 +262,15 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
                                         type="password"
                                         value={config.apiKey}
                                         onChange={(e) => setConfig({ ...config, apiKey: e.target.value })}
-                                        placeholder="sk-..."
+                                        placeholder={hasApiKey ? "••••••••••••••••" : "sk-..."}
                                         className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-base text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                                     />
+                                    {hasApiKey && config.apiKey === '' && (
+                                        <p className="text-xs text-green-600 mt-1.5 flex items-center gap-1">
+                                            <Check className="w-3.5 h-3.5" />
+                                            已配置
+                                        </p>
+                                    )}
                                     {/* 新增：获取 API Key 说明 */}
                                     <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                                         <p className="text-xs font-medium text-blue-900 mb-2">

@@ -2,10 +2,10 @@ import fs from 'fs/promises';
 import path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { pythonRuntime } from '../PythonRuntime';
-import { configStore } from '../../config/ConfigStore';
-import { permissionManager } from '../security/PermissionManager';
-import { auditLogger } from '../../security/AuditLogger';
+import { pythonRuntime } from '../PythonRuntime.js';
+import { configStore } from '../../config/ConfigStore.js';
+import { permissionManager } from '../security/PermissionManager.js';
+import { auditLogger } from '../../security/AuditLogger.js';
 
 const execAsync = promisify(exec);
 

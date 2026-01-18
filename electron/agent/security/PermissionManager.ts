@@ -1,5 +1,5 @@
 import path from 'path';
-import { configStore } from '../../config/ConfigStore';
+import { configStore } from '../../config/ConfigStore.js';
 
 export class PermissionManager {
     private authorizedFolders: Set<string> = new Set();

@@ -1,14 +1,14 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { BrowserWindow } from 'electron';
 
-import { FileSystemTools, ReadFileSchema, WriteFileSchema, ListDirSchema, RunCommandSchema } from './tools/FileSystemTools';
-import { SkillManager } from './skills/SkillManager';
-import { MCPClientService } from './mcp/MCPClientService';
-import { permissionManager } from './security/PermissionManager';
-import { configStore } from '../config/ConfigStore';
-import { notificationService } from '../services/NotificationService';
-import { promptInjectionDefense } from '../security/PromptInjectionDefense';
-import { dlp } from '../data-loss-prevention/DataLossPrevention';
+import { FileSystemTools, ReadFileSchema, WriteFileSchema, ListDirSchema, RunCommandSchema } from './tools/FileSystemTools.js';
+import { SkillManager } from './skills/SkillManager.js';
+import { MCPClientService } from './mcp/MCPClientService.js';
+import { permissionManager } from './security/PermissionManager.js';
+import { configStore } from '../config/ConfigStore.js';
+import { notificationService } from '../services/NotificationService.js';
+import { promptInjectionDefense } from '../security/PromptInjectionDefense.js';
+import { dlp } from '../data-loss-prevention/DataLossPrevention.js';
 import os from 'os';
 
 
