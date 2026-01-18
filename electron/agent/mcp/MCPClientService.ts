@@ -84,7 +84,7 @@ export class MCPClientService {
                 // [Restored] Sync API Key from ConfigStore if Base URL matches MiniMax
                 // This allows users to use the app's configured key without duplicating it in mcp.json
                 const { configStore } = await import('../../config/ConfigStore'); // Dynamic import to avoid cycles if any
-                const appApiKey = configStore.getApiKey();
+                const appApiKey = await configStore.getApiKey();
                 const appApiUrl = configStore.getApiUrl() || '';
 
                 // Check if we should inject the app's key

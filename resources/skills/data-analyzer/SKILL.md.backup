@@ -1,138 +1,11 @@
 ---
-name: data-analyzer
-description: |
-  公众号数据分析工具。当用户要求"分析数据"、"统计阅读量"、"用户画像"、"竞品分析"、
-  "分析公众号数据"、"阅读量分析"、"用户行为分析"、"内容效果评估"、"数据报告"时触发此技能。
-
-  工作流程：
-  1. 收集用户数据（从文件或用户输入）
-  2. 选择分析类型（7种分析模式）
-  3. 调用内置脚本执行分析：resources/skills/data-analyzer/scripts/data_analyzer.py
-  4. 输出分析结果和建议
-
-  ⚠️ 重要：必须使用 run_command 工具调用脚本，不要自己写 Python 分析代码。
+name: 数据分析工具
+description: 基于AI的公众号数据分析工具，支持阅读量统计、用户画像、竞品分析等。当用户需要"分析数据"、"统计阅读量"、"用户画像"、"竞品分析"时触发。
 ---
 
 # 数据分析工具
 
 基于2025年最新最佳实践的数据分析工具，为微信公众号运营提供全方位的数据分析支持。
-
-## ⚡ 快速执行指南（重要）
-
-### 前置条件检查
-
-在执行分析前，请确认：
-
-1. **数据已准备**
-   - 文章数据：包含标题、阅读量、发布时间、互动数据
-   - 用户数据：包含性别、年龄、地域、活跃状态
-
-2. **数据格式正确**
-   - JSON 格式：`[{"title": "文章1", "reading_count": 5000, ...}]`
-   - CSV 格式：支持从文件读取
-
-### 执行方式
-
-**使用 run_command 工具执行命令**（推荐）：
-
-```bash
-# 阅读量统计
-python -c "
-import sys
-sys.path.insert(0, 'resources/skills/data-analyzer/scripts')
-from data_analyzer import handler
-import json
-
-result = handler({
-    'action': 'analyze_reading_stats',
-    'article_data': [
-        {'title': '文章1', 'reading_count': 5000, 'publish_time': '2025-01-10 08:00:00'}
-    ]
-})
-print(json.dumps(result, ensure_ascii=False, indent=2))
-"
-```
-
-### 常见问题
-
-**Q: AI 自己写了分析脚本怎么办？**
-A: 这是错误的！必须使用 run_command 调用 data_analyzer.py，不要自己写 Python 代码。
-
-**Q: 数据从哪里来？**
-A: 从文件读取（使用 read_file 工具）或让用户提供数据。
-
-**Q: 如何选择分析类型？**
-A: 根据用户需求选择 action 参数（7种分析模式）。
-
----
-
-## ⚠️ 执行约束（必须遵守）
-
-### 禁止行为
-
-❌ **不要自己写 Python 数据分析脚本**
-❌ **不要使用 pandas、numpy 等库进行分析**
-❌ **不要生成分析代码让用户自己运行**
-
-### 正确做法
-
-✅ **必须使用 run_command 工具调用 data_analyzer.py**
-✅ **必须通过 handler 函数传递参数**
-✅ **必须直接输出分析结果给用户**
-
-### 为什么？
-
-内置脚本已经实现了完整的数据分析功能：
-- 7 种专业分析模式
-- 综合评分算法（阅读量30% + 互动70%）
-- 智能建议生成
-- 趋势识别算法
-
-自己写代码会：
-- 浪费时间重新实现已有功能
-- 可能出现 bug 和不准确的分析
-- 用户需要额外配置 Python 环境
-
----
-
-## 7种分析模式
-
-### 1. 阅读量统计（analyze_reading_stats）
-**用途**：总量、平均值、极值、趋势分析、改进建议
-**输入**：文章数据列表（标题、阅读量、发布时间）
-**输出**：统计结果 + 趋势 + 改进建议
-
-### 2. 用户画像分析（analyze_user_portrait）
-**用途**：性别、年龄、地域、兴趣分布
-**输入**：用户数据列表（性别、年龄、地域、活跃状态）
-**输出**：分布数据 + 主要特征
-
-### 3. 竞品分析（analyze_competitor）
-**用途**：数据对比、差距分析、优势劣势评估
-**输入**：竞品数据 + 自身数据
-**输出**：对比结果 + 状态 + 建议
-
-### 4. 内容效果评估（evaluate_content_effect）
-**用途**：多维度评分、Top/Low 文章识别
-**输入**：文章数据（阅读量、点赞、评论、转发、收藏）
-**输出**：Top/Low 文章 + 评分 + 建议
-
-### 5. 发布时间优化（optimize_publish_time）
-**用途**：时间段效果分析、最佳时间推荐
-**输入**：文章数据（发布时间、阅读量）
-**输出**：时间段表现 + 最佳时间 + 建议
-
-### 6. 用户行为分析（analyze_user_behavior）
-**用途**：活跃度、互动行为分布
-**输入**：用户数据（活跃状态、互动行为）
-**输出**：活跃率 + 行为分布 + 建议
-
-### 7. 数据报告生成（generate_data_report）
-**用途**：综合评分、多维度分析、可视化建议
-**输入**：文章数据 + 用户数据
-**输出**：综合报告 + 评分 + 建议
-
----
 
 ## 核心功能
 
@@ -274,6 +147,77 @@ A: 根据用户需求选择 action 参数（7种分析模式）。
 
 详见：references/metrics.md
 
+## API 使用
+
+### handler(args) 主函数
+
+```python
+from data_analyzer import handler
+
+# 阅读量统计
+args = {
+    "action": "analyze_reading_stats",
+    "article_data": [
+        {"id": 1, "title": "文章1", "reading_count": 5000, "publish_time": "2025-01-10 08:00:00"}
+    ]
+}
+result = handler(args)
+
+# 用户画像分析
+args = {
+    "action": "analyze_user_portrait",
+    "user_data": [
+        {"gender": "男", "age": "25-30", "location": "北京", "is_active": True}
+    ]
+}
+result = handler(args)
+
+# 竞品分析
+args = {
+    "action": "analyze_competitor",
+    "competitor_data": [{"id": 1, "title": "竞品文章", "reading_count": 6000}],
+    "self_data": [{"id": 1, "title": "自身文章", "reading_count": 8000}]
+}
+result = handler(args)
+
+# 内容效果评估
+args = {
+    "action": "evaluate_content_effect",
+    "article_data": [
+        {"id": 1, "title": "爆款文章", "reading_count": 10000, "likes": 500, "comments": 200}
+    ]
+}
+result = handler(args)
+
+# 发布时间优化
+args = {
+    "action": "optimize_publish_time",
+    "article_data": [
+        {"id": 1, "title": "文章1", "reading_count": 5000, "publish_time": "08:00"}
+    ]
+}
+result = handler(args)
+
+# 用户行为分析
+args = {
+    "action": "analyze_user_behavior",
+    "user_data": [
+        {"gender": "男", "age": "25-30", "location": "北京", "is_active": True}
+    ]
+}
+result = handler(args)
+
+# 生成数据报告
+args = {
+    "action": "generate_data_report",
+    "article_data": [{"id": 1, "reading_count": 5000}],
+    "user_data": [{"gender": "男", "age": "25-30", "location": "北京", "is_active": True}]
+}
+result = handler(args)
+```
+
+详见：references/api-reference.md
+
 ## 设计权衡说明
 
 ### 为什么阅读量占30%最高权重？
@@ -392,29 +336,6 @@ A: 根据用户需求选择 action 参数（7种分析模式）。
 - **用户留存**：提升用户留存率20-30%
 - **内容优化**：提升内容质量30-50%
 - **运营效率**：提升运营效率40-60%
-
-## 错误处理
-
-### 常见错误及解决方案
-
-**错误1：提示 "文章数据不能为空"**
-- 原因：article_data 参数为空或格式错误
-- 解决：检查数据格式，确保是 JSON 列表
-
-**错误2：提示 "不支持的操作类型"**
-- 原因：action 参数拼写错误
-- 解决：使用正确的 action 名称（如 analyze_reading_stats）
-
-**错误3：分析结果不符合预期**
-- 原因：数据字段缺失或字段名错误
-- 解决：检查数据字段名称（如 reading_count 而非 read_count）
-
-### 备选方案
-
-如果内置脚本无法满足需求，可以：
-1. 使用 pandas 进行自定义分析（需要用户环境支持）
-2. 导出数据到 Excel，使用专业分析工具
-3. 使用在线数据分析平台
 
 ## 参考资料
 

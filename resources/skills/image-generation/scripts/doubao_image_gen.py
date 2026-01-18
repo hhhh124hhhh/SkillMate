@@ -67,7 +67,9 @@ class DoubaoImageGenerator:
             base_url: API基础URL
         """
         if api_key is None:
-            api_key = os.getenv("DOUBAO_API_KEY", "9087db7c-d9e1-489a-8bf4-b76c153d2bea")
+            api_key = os.getenv("DOUBAO_API_KEY")
+            if not api_key:
+                raise ValueError("DOUBAO_API_KEY environment variable is not set")
 
         self.api_key = api_key
         self.base_url = base_url

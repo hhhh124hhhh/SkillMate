@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { Square, ArrowUp, ChevronDown, ChevronUp, Download, FolderOpen, MessageCircle, Zap, AlertTriangle, Check, X, Settings, History, Plus, Trash2, PenTool, Search, Layout, Type } from 'lucide-react';
+import { Square, ArrowUp, ChevronDown, ChevronUp, Download, FolderOpen, MessageCircle, Zap, AlertTriangle, Check, X, Settings, History, Plus, Trash2, PenTool, Search, Layout, Type, FileUp, FileText, FileSpreadsheet, Braces, Eye, Image } from 'lucide-react';
 import { MarkdownRenderer } from './MarkdownRenderer';
+import { FilePreview } from './FilePreview';
 import Anthropic from '@anthropic-ai/sdk';
 
 type Mode = 'chat' | 'work';
@@ -19,6 +20,13 @@ interface SessionSummary {
     updatedAt: number;
 }
 
+interface DocumentFile {
+    name: string;
+    path: string;
+    type: string;
+    size?: number; // File size in bytes
+}
+
 interface CoworkViewProps {
     history: Anthropic.MessageParam[];
     onSendMessage: (message: string | { content: string, images: string[] }) => void;
@@ -30,6 +38,8 @@ interface CoworkViewProps {
 export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOpenSettings }: CoworkViewProps) {
     const [input, setInput] = useState('');
     const [images, setImages] = useState<string[]>([]); // Base64 strings
+    const [documents, setDocuments] = useState<DocumentFile[]>([]); // Dropped documents
+    const [isDragging, setIsDragging] = useState(false); // Drag state
     const [mode, setMode] = useState<Mode>('work');
     const [expandedBlocks, setExpandedBlocks] = useState<Set<string>>(new Set());
     const [streamingText, setStreamingText] = useState('');
@@ -41,7 +51,11 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
     const scrollRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const documentInputRef = useRef<HTMLInputElement>(null);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [previewFilePath, setPreviewFilePath] = useState<string | null>(null);
+    const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
+    const attachmentMenuRef = useRef<HTMLDivElement>(null);
 
     // Load config including model name
     useEffect(() => {
@@ -93,21 +107,111 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
         }
     }, [history, streamingText, images]); // Scroll when images change too
 
+    // Close attachment menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (attachmentMenuRef.current &&
+                !attachmentMenuRef.current.contains(event.target as Node)) {
+                setShowAttachmentMenu(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    // Helper function to format file size
+    const formatFileSize = (bytes: number): string => {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    };
+
+    // Helper function to get file icon based on type
+    const getFileIcon = (fileType: string, fileName: string) => {
+        const ext = fileName.split('.').pop()?.toLowerCase();
+        if (ext === 'xlsx' || ext === 'xls' || fileType.includes('sheet')) {
+            return <FileSpreadsheet size={16} className="text-green-500" />;
+        }
+        if (ext === 'json' || fileType.includes('json')) {
+            return <Braces size={16} className="text-purple-500" />;
+        }
+        return <FileText size={16} className="text-blue-500" />;
+    };
+
+    // Robust file input trigger function with fallback mechanism
+    const triggerFileSelect = (inputRef: React.RefObject<HTMLInputElement>, type: 'image' | 'file') => {
+        console.log(`[File Select] Triggering ${type} input`);
+        console.log(`[File Select] ref:`, inputRef.current);
+
+        // Method 1: Use ref
+        if (inputRef.current) {
+            console.log('[File Select] Method 1: Using ref.current.click()');
+            try {
+                inputRef.current.click();
+                console.log('[File Select] Click triggered successfully');
+            } catch (error) {
+                console.error('[File Select] Click failed:', error);
+                // Method 2: Fallback to querySelector
+                const selector = type === 'image'
+                    ? 'input[type="file"][accept="image/*"]'
+                    : 'input[type="file"][accept*=".txt"]';
+                const input = document.querySelector(selector) as HTMLInputElement;
+                if (input) {
+                    console.log('[File Select] Method 2: Using querySelector fallback');
+                    input.click();
+                } else {
+                    console.error('[File Select] Cannot find input element');
+                    alert('无法打开文件选择器，请刷新页面后重试');
+                }
+            }
+        } else {
+            console.error('[File Select] ref is null');
+            // Try direct DOM access as last resort
+            const selector = type === 'image'
+                ? 'input[type="file"][accept="image/*"]'
+                : 'input[type="file"][accept*=".txt"]';
+            const input = document.querySelector(selector) as HTMLInputElement;
+            if (input) {
+                console.log('[File Select] Direct DOM access: Using querySelector');
+                input.click();
+            } else {
+                console.error('[File Select] Cannot find input element via querySelector');
+                alert('文件选择器未就绪，请稍后重试');
+            }
+        }
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if ((!input.trim() && images.length === 0) || isProcessing) return;
+        if ((!input.trim() && images.length === 0 && documents.length === 0) || isProcessing) return;
 
         setStreamingText('');
 
-        // Send as object if images exist, otherwise string for backward compat
+        // Build message content with document references
+        let messageContent = input;
+
+        // Add document references with clear instructions for AI
+        if (documents.length > 0) {
+            const docInfo = documents.map(doc =>
+                `- ${doc.name} (${formatFileSize(doc.size || 0)})`
+            ).join('\n');
+
+            const docPaths = documents.map(doc => doc.path).join('\n');
+
+            messageContent += `\n\n[已添加 ${documents.length} 个文件]\n${docInfo}\n\n文件路径：\n${docPaths}\n\n请使用 read_file 工具读取这些文件进行分析。`;
+        }
+
+        // Send as object if images or documents exist, otherwise string for backward compat
         if (images.length > 0) {
-            onSendMessage({ content: input, images });
+            onSendMessage({ content: messageContent, images });
         } else {
-            onSendMessage(input);
+            onSendMessage(messageContent);
         }
 
         setInput('');
         setImages([]);
+        setDocuments([]);
     };
 
     const handleSelectFolder = async () => {
@@ -116,6 +220,13 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
             setWorkingDir(folder);
             // Set as primary working directory (also authorizes it)
             await window.ipcRenderer.invoke('agent:set-working-dir', folder);
+        }
+    };
+
+    const handleOpenFile = async () => {
+        const filePath = await window.ipcRenderer.invoke('dialog:select-file') as string | null;
+        if (filePath) {
+            setPreviewFilePath(filePath);
         }
     };
 
@@ -131,15 +242,26 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
 
     // Image Input Handlers
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        console.log('[handleFileSelect] Triggered');
+        console.log('[handleFileSelect] Files:', e.target.files);
+
         const files = e.target.files;
         if (files) {
+            console.log(`[handleFileSelect] Processing ${files.length} files`);
             Array.from(files).forEach(file => {
+                console.log(`[handleFileSelect] File: ${file.name}, type: ${file.type}`);
                 if (file.type.startsWith('image/')) {
+                    console.log('[handleFileSelect] Processing as image');
                     const reader = new FileReader();
                     reader.onload = (e) => {
                         const result = e.target?.result as string;
                         if (result) {
-                            setImages(prev => [...prev, result]);
+                            console.log('[handleFileSelect] Image loaded, adding to state');
+                            setImages(prev => {
+                                const newImages = [...prev, result];
+                                console.log(`[handleFileSelect] Total images: ${newImages.length}`);
+                                return newImages;
+                            });
                         }
                     };
                     reader.readAsDataURL(file);
@@ -148,6 +270,23 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
         }
         // Reset input
         if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
+    // Document/All Files Input Handler
+    const handleDocumentSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        console.log('[handleDocumentSelect] Triggered');
+        console.log('[handleDocumentSelect] Files:', e.target.files);
+
+        const files = e.target.files;
+        if (files) {
+            console.log(`[handleDocumentSelect] Processing ${files.length} files`);
+            for (const file of Array.from(files)) {
+                console.log(`[handleDocumentSelect] File: ${file.name}, type: ${file.type}, size: ${file.size}`);
+                await processDroppedFile(file);
+            }
+        }
+        // Reset input
+        if (documentInputRef.current) documentInputRef.current.value = '';
     };
 
     const handlePaste = (e: React.ClipboardEvent) => {
@@ -172,6 +311,118 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
 
     const removeImage = (index: number) => {
         setImages(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const removeDocument = (index: number) => {
+        setDocuments(prev => prev.filter((_, i) => i !== index));
+    };
+
+    // Drag and drop handlers
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(true);
+        setShowAttachmentMenu(false); // Close attachment menu when dragging
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+    };
+
+    const handleDrop = async (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+
+        const files: File[] = [];
+        if (e.dataTransfer.items) {
+            // Use DataTransferItemList interface
+            [...e.dataTransfer.items].forEach((item) => {
+                if (item.kind === 'file') {
+                    const file = item.getAsFile();
+                    if (file) files.push(file);
+                }
+            });
+        } else {
+            // Fallback: use DataTransfer.files interface
+            files.push(...e.dataTransfer.files);
+        }
+
+        // Process each file
+        for (const file of files) {
+            await processDroppedFile(file);
+        }
+    };
+
+    // Process a single dropped file
+    const processDroppedFile = async (file: File) => {
+        const fileType = file.type;
+        const fileName = file.name;
+
+        // Image files
+        if (fileType.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const result = e.target?.result as string;
+                if (result) {
+                    setImages(prev => [...prev, result]);
+                }
+            };
+            reader.readAsDataURL(file);
+            return;
+        }
+
+        // Text documents (txt, md, json, csv)
+        const textExtensions = ['txt', 'md', 'json', 'csv'];
+        const ext = fileName.split('.').pop()?.toLowerCase();
+
+        if (ext && textExtensions.includes(ext)) {
+            // Save to temp directory and show as preview card
+            const arrayBuffer = await file.arrayBuffer();
+            const result = await window.ipcRenderer.invoke('fs:save-temp-file', {
+                name: fileName,
+                data: Array.from(new Uint8Array(arrayBuffer))
+            }) as { success: boolean; path: string; error?: string };
+
+            if (result.success) {
+                setDocuments(prev => [...prev, {
+                    name: fileName,
+                    path: result.path,
+                    type: fileType,
+                    size: file.size
+                }]);
+            } else {
+                console.error('Failed to save text file:', result.error);
+            }
+            return;
+        }
+
+        // Excel files (xlsx, xls)
+        if (ext === 'xlsx' || ext === 'xls') {
+            // Save to temp directory via IPC
+            const arrayBuffer = await file.arrayBuffer();
+            const result = await window.ipcRenderer.invoke('fs:save-temp-file', {
+                name: fileName,
+                data: Array.from(new Uint8Array(arrayBuffer))
+            }) as { success: boolean; path: string; error?: string };
+
+            if (result.success) {
+                setDocuments(prev => [...prev, {
+                    name: fileName,
+                    path: result.path,
+                    type: fileType,
+                    size: file.size
+                }]);
+            } else {
+                console.error('Failed to save temp file:', result.error);
+            }
+            return;
+        }
+
+        // Unsupported file type
+        console.warn(`Unsupported file type: ${fileType} (${fileName})`);
     };
 
     // Keyboard shortcuts
@@ -262,6 +513,14 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                         className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
                     />
                 </div>
+            )}
+
+            {/* File Preview Overlay */}
+            {previewFilePath && (
+                <FilePreview
+                    filePath={previewFilePath}
+                    onClose={() => setPreviewFilePath(null)}
+                />
             )}
 
             {/* Top Bar with Mode Tabs and Settings */}
@@ -455,68 +714,183 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                         </div>
                     )}
 
+                    {/* Document Preview Area */}
+                    {documents.length > 0 && (
+                        <div className="flex gap-2 mb-2 flex-wrap">
+                            {documents.map((doc, idx) => (
+                                <div key={idx} className="bg-white border border-slate-200 rounded-lg px-3 py-2 flex items-center gap-2 shrink-0 min-w-[140px]">
+                                    {getFileIcon(doc.type, doc.name)}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="text-xs text-slate-700 truncate" title={doc.name}>{doc.name}</div>
+                                        {doc.size !== undefined && (
+                                            <div className="text-[10px] text-slate-400">{formatFileSize(doc.size)}</div>
+                                        )}
+                                    </div>
+                                    <button
+                                        onClick={() => removeDocument(idx)}
+                                        className="text-slate-400 hover:text-red-500 transition-colors"
+                                        title="移除文件"
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
                     <form onSubmit={handleSubmit}>
-                        <div className="input-bar">
-                            <button type="button" onClick={handleSelectFolder} className="p-3 text-slate-400 hover:text-slate-600 transition-colors" title="选择工作目录">
-                                <FolderOpen size={18} />
-                            </button>
+                        <div
+                            className={`relative border-2 rounded-xl transition-all duration-200 ${isDragging ? 'border-blue-400 bg-blue-50' : 'border-transparent'}`}
+                            onDragOver={handleDragOver}
+                            onDragLeave={handleDragLeave}
+                            onDrop={handleDrop}
+                        >
+                            {/* Drag overlay */}
+                            {isDragging && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-blue-50/95 rounded-xl z-10">
+                                    <div className="text-center">
+                                        <FileUp size={48} className="mx-auto mb-2 text-blue-500" />
+                                        <p className="text-lg font-medium text-blue-700">松开添加文件</p>
+                                        <p className="text-sm text-blue-600">支持图片、txt、md、json、csv、xlsx</p>
+                                    </div>
+                                </div>
+                            )}
 
-                            {/* Image Upload Button */}
-                            <button
-                                type="button"
-                                onClick={() => fileInputRef.current?.click()}
-                                className="p-3 text-slate-400 hover:text-slate-600 transition-colors"
-                                title="上传图片"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></svg>
-                            </button>
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                className="hidden"
-                                accept="image/*"
-                                multiple
-                                onChange={handleFileSelect}
-                            />
+                            <div className="input-bar">
+                                <button type="button" onClick={handleSelectFolder} className="p-3 text-slate-400 hover:text-slate-600 transition-colors" title="选择工作目录">
+                                    <FolderOpen size={18} />
+                                </button>
 
-                            <input
-                                ref={inputRef}
-                                type="text"
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                onPaste={handlePaste}
-                                placeholder={mode === 'chat' ? "输入消息... (Ctrl+L 聚焦)" : workingDir ? "开始干活：找热门选题、批量生成标题、快速写作、文章排版... (Ctrl+L 聚焦)" : "请先选择工作目录"}
-                                className="flex-1 bg-transparent text-slate-800 placeholder:text-slate-400 py-3 text-sm focus:outline-none"
-                                disabled={isProcessing}
-                            />
-
-                            {/* Model Selector */}
-                            <div className="flex items-center gap-1.5 px-3 text-xs text-slate-500 border-l border-slate-100">
-                                <span className="font-medium max-w-20 truncate">{modelName}</span>
-                                <ChevronDown size={12} />
-                            </div>
-
-                            <div className="pr-2">
-                                {isProcessing ? (
+                                {/* Attachment Menu Button */}
+                                <div className="relative">
                                     <button
                                         type="button"
-                                        onClick={onAbort}
-                                        className="p-2.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-all"
+                                        onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
+                                        className={`p-3 transition-colors ${
+                                            showAttachmentMenu
+                                                ? 'text-blue-600 bg-blue-50'
+                                                : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50'
+                                        }`}
+                                        title="附件（图片、文件、预览）"
                                     >
-                                        <Square size={16} fill="currentColor" />
+                                        <Plus size={18} />
                                     </button>
-                                ) : (
-                                    <button
-                                        type="submit"
-                                        disabled={!input.trim() && images.length === 0}
-                                        className={`p-2.5 rounded-lg transition-all ${input.trim() || images.length > 0
-                                            ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700 shadow-blue-200'
-                                            : 'bg-slate-100 text-slate-300'
-                                            }`}
-                                    >
-                                        <ArrowUp size={16} />
-                                    </button>
-                                )}
+
+                                    {/* Attachment Menu Popup */}
+                                    {showAttachmentMenu && (
+                                        <div
+                                            ref={attachmentMenuRef}
+                                            className="absolute bottom-full left-0 mb-2 z-20 w-48
+                                                       bg-white rounded-2xl shadow-xl border border-slate-100
+                                                       overflow-hidden animate-in fade-in zoom-in-95 duration-200
+                                                       ring-1 ring-black/5"
+                                        >
+                                            <div className="py-1">
+                                                {/* Upload Image */}
+                                                <button
+                                                    onClick={() => {
+                                                        triggerFileSelect(fileInputRef, 'image');
+                                                        setShowAttachmentMenu(false);
+                                                    }}
+                                                    className="flex items-center gap-3 w-full px-3 py-2.5
+                                                               text-sm text-slate-700 hover:bg-slate-50
+                                                               transition-colors cursor-pointer"
+                                                >
+                                                    <Image size={16} className="text-slate-500" />
+                                                    <span>上传图片</span>
+                                                </button>
+
+                                                {/* Upload File */}
+                                                <button
+                                                    onClick={() => {
+                                                        triggerFileSelect(documentInputRef, 'file');
+                                                        setShowAttachmentMenu(false);
+                                                    }}
+                                                    className="flex items-center gap-3 w-full px-3 py-2.5
+                                                               text-sm text-slate-700 hover:bg-slate-50
+                                                               transition-colors cursor-pointer"
+                                                >
+                                                    <FileText size={16} className="text-slate-500" />
+                                                    <span>上传文件</span>
+                                                </button>
+
+                                                {/* File Preview */}
+                                                <button
+                                                    onClick={() => {
+                                                        handleOpenFile();
+                                                        setShowAttachmentMenu(false);
+                                                    }}
+                                                    className="flex items-center gap-3 w-full px-3 py-2.5
+                                                               text-sm text-slate-700 hover:bg-slate-50
+                                                               transition-colors cursor-pointer"
+                                                >
+                                                    <Eye size={16} className="text-slate-500" />
+                                                    <span>文件预览</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Hidden file inputs */}
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    className="hidden"
+                                    accept="image/*"
+                                    multiple
+                                    onChange={handleFileSelect}
+                                />
+                                <input
+                                    type="file"
+                                    ref={documentInputRef}
+                                    className="hidden"
+                                    accept="image/*,.txt,.md,.json,.csv,.xlsx,.xls"
+                                    multiple
+                                    onChange={handleDocumentSelect}
+                                />
+
+                                <input
+                                    ref={inputRef}
+                                    type="text"
+                                    value={input}
+                                    onChange={(e) => setInput(e.target.value)}
+                                    onPaste={handlePaste}
+                                    placeholder={mode === 'chat' ? "输入消息或拖放文件... (Ctrl+L 聚焦)" : workingDir ? "开始干活：找热门选题、批量生成标题、快速写作、文章排版... (Ctrl+L 聚焦)" : "请先选择工作目录"}
+                                    className="flex-1 bg-transparent text-slate-800 placeholder:text-slate-400 py-3 text-sm focus:outline-none"
+                                    disabled={isProcessing}
+                                />
+
+                                {/* Model Selector */}
+                                <div className="flex items-center gap-1.5 px-3 text-xs text-slate-500 border-l border-slate-100">
+                                    <span className="font-medium max-w-20 truncate">{modelName}</span>
+                                    <ChevronDown size={12} />
+                                </div>
+
+                                <div className="pr-2">
+                                    {isProcessing ? (
+                                        <button
+                                            type="button"
+                                            onClick={onAbort}
+                                            className="p-2.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-all"
+                                            title="停止生成 (AI 正在回复时)"
+                                        >
+                                            <Square size={16} fill="currentColor" />
+                                        </button>
+                                    ) : (
+                                        <button
+                                            type="submit"
+                                            disabled={!input.trim() && images.length === 0 && documents.length === 0}
+                                            className={`p-2.5 rounded-lg transition-all ${input.trim() || images.length > 0 || documents.length > 0
+                                                ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700 shadow-blue-200'
+                                                : 'bg-slate-100 text-slate-300'
+                                                }`}
+                                            title="发送消息"
+                                        >
+                                            <ArrowUp size={16} />
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </form>

@@ -1,11 +1,67 @@
 ---
 name: image-generation
-description: 集成火山引擎豆包Seedream 4.5图像生成API，为营销推广、创意设计、教育培训、内容创作等场景生成高质量图像。使用场景：（1）营销推广：社交媒体海报、活动宣传、Banner广告、产品展示（2）创意设计：Logo、图标、场景插画、背景纹理（3）教育培训：思维导图、教学插图、知识卡片（4）内容创作：文章封面、概念示意图、背景配图。当用户需要"生成配图"、"创建图片"、"AI生图"、"设计海报"、"制作插图"时触发此skill。
+description: |
+  AI图片生成工具。当用户要求"生成图片"、"画图"、"画一张图"、"制作配图"、
+  "AI生图"、"设计海报"、"制作插图"、"创建配图"、"需要图片"、"做个图"、
+  "设计图"、"配图"、"生成配图"、"创建图片"时触发此技能。
+
+  直接调用内置脚本：resources/skills/image-generation/scripts/doubao_image_gen.py
+  支持多种场景：技术架构图、流程图、封面设计、概念图等。
+  输出尺寸：1024x1024、1792x1024、2560x1440
+  质量选项：standard、hd
 ---
 
 # 豆包图像生成Skill
 
 本skill集成火山引擎豆包Seedream 4.5 API，为公众号文章、技术博客、演示等场景快速生成高质量配图。
+
+## ⚡ 快速执行指南（重要）
+
+### 前置条件检查
+
+在生成图片前，请确认：
+
+1. **DOUBAO_API_KEY 已配置**
+   - 打开设置面板 → API 配置
+   - 确认显示"豆包 API Key：已配置"
+
+2. **输出目录已创建**
+   - 检查命令：`dir assets\images` (Windows) 或 `ls assets/images` (Linux/Mac)
+   - 如不存在，使用 `run_command` 创建：`mkdir -p assets/images`
+
+3. **工作目录正确**
+   - 当前应该在公众号项目目录下（如 `D:\公众号试验\文章标题\`）
+
+### 执行方式
+
+**使用 run_command 工具执行命令**（推荐）：
+
+```bash
+python resources/skills/image-generation/scripts/doubao_image_gen.py --prompt "技术架构图，展示微服务系统结构" --size "1792x1024" --quality "hd" --output "assets/images/01-微服务架构.png"
+```
+
+**完整工作流程**：
+1. 使用 `read_file` 工具读取文章内容
+2. 分析需要生成的图片
+3. 使用 `run_command` 工具执行上述命令
+4. 确认返回信息包含 "Successfully wrote to"
+5. 使用 `write_file` 工具更新文章，插入图片引用
+
+### 常见问题
+
+**Q: 提示 "DOUBAO_API_KEY environment variable is not set"**
+A: 需要在设置面板配置豆包 API Key
+
+**Q: 生成的图片在哪里？**
+A: 保存在指定的输出路径，如 `assets/images/01-xxx.png`
+
+**Q: 如何测试 API Key 是否配置成功？**
+A: 运行以下命令测试：
+```bash
+python resources/skills/image-generation/scripts/doubao_image_gen.py --prompt "测试" --output test.png
+```
+
+---
 
 ## 🚀 快速开始
 
@@ -88,7 +144,9 @@ python .claude/skills/image-generation/scripts/doubao_image_gen.py \
 
 本skill现在支持**小红书风格 + 公众号规范**的风格模板系统，自动生成高质量的封面和配图。
 
-### 5种预设风格
+### 14种预设风格
+
+#### 现有风格（5种）
 
 | 风格代码 | 风格名称 | 适用场景 | 配色特点 |
 |---------|---------|---------|---------|
@@ -97,6 +155,17 @@ python .claude/skills/image-generation/scripts/doubao_image_gen.py \
 | `minimal` | 简约极简 | 哲学思考、深度观点、极简主义 | 浅灰白背景，深灰文字 |
 | `warm` | 温暖治愈 | 情感文章、成长感悟、人生故事 | 暖黄→粉红渐变，深棕文字 |
 | `business` | 商务专业 | 商业分析、数据报告、市场研究 | 深蓝背景，白色文字 |
+
+#### 新增风格（9种，来自宝玉）
+
+| 风格代码 | 风格名称 | 适用场景 | 配色特点 |
+|---------|---------|---------|---------|
+| `elegant` | 优雅精致 | 商业分析、领导力内容、专业服务 | Warm cream 背景，珊瑚色强调 |
+| `bold` | 高对比冲击 | 观点文章、重要提醒、警告内容 | 黑色背景，鲜艳红/黄文字 |
+| `playful` | 活泼趣味 | 教程指南、轻松内容、入门教程 | Light cream 背景，薄荷绿强调 |
+| `nature` | 自然有机 | 环保健康、自然主题、可持续发展 | Sand beige 背景，森林绿文字 |
+| `sketch` | 手绘草图 | 头脑风暴、创意过程、概念设计 | Off-white 背景，铅笔灰文字 |
+| `notion` | Notion 极简线条 | 知识分享、概念解释、生产力工具 | 纯白背景，黑色极简线条 |
 
 ### 使用风格系统
 
@@ -157,7 +226,12 @@ python .claude/skills/cover-generator/scripts/cover_generator.py \
 - 技术关键词 → tech
 - 生活关键词 → fresh
 - 情感关键词 → warm
-- 商业关键词 → business
+- 商业关键词 → business 或 elegant
+- 观点/警告 → bold
+- 教程/指南 → playful
+- 环保/健康 → nature
+- 头脑风暴/创意 → sketch
+- 知识分享/概念 → notion（默认）
 
 ### 完整示例
 

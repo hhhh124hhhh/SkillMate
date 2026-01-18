@@ -7,6 +7,8 @@ import { MCPClientService } from './mcp/MCPClientService';
 import { permissionManager } from './security/PermissionManager';
 import { configStore } from '../config/ConfigStore';
 import { notificationService } from '../services/NotificationService';
+import { promptInjectionDefense } from '../security/PromptInjectionDefense';
+import { dlp } from '../data-loss-prevention/DataLossPrevention';
 import os from 'os';
 
 
@@ -100,7 +102,31 @@ export class AgentRuntime {
             let userContent: string | Anthropic.ContentBlockParam[] = '';
 
             if (typeof input === 'string') {
-                userContent = input;
+                // 🔒 安全检查：提示词注入检测
+                const detection = promptInjectionDefense.detectInjection(input);
+
+                if (detection.isInjection) {
+                    // 广播安全警告到所有窗口
+                    this.broadcast('agent:security-warning', {
+                        confidence: detection.confidence,
+                        reasons: detection.reasons,
+                        matchedPatterns: detection.matchedPatterns
+                    });
+
+                    // 如果置信度超过 0.8，拒绝处理
+                    if (detection.confidence > 0.8) {
+                        const warning = promptInjectionDefense.generateWarning(detection);
+                        this.broadcast('agent:error', '⚠️ 检测到高危安全威胁，已拒绝处理该请求');
+                        console.error('[Security] Prompt injection blocked:', detection);
+                        throw new Error(warning);
+                    }
+
+                    // 中低危攻击：清理后继续处理
+                    console.warn('[Security] Prompt injection detected and sanitized:', detection);
+                    userContent = promptInjectionDefense.sanitize(input);
+                } else {
+                    userContent = input;
+                }
             } else {
                 const blocks: Anthropic.ContentBlockParam[] = [];
                 // Process images
@@ -120,9 +146,33 @@ export class AgentRuntime {
                         }
                     }
                 }
-                // Add text
+                // Add text with security check
                 if (input.content && input.content.trim()) {
-                    blocks.push({ type: 'text', text: input.content });
+                    // 🔒 安全检查：提示词注入检测
+                    const detection = promptInjectionDefense.detectInjection(input.content);
+
+                    if (detection.isInjection) {
+                        // 广播安全警告到所有窗口
+                        this.broadcast('agent:security-warning', {
+                            confidence: detection.confidence,
+                            reasons: detection.reasons,
+                            matchedPatterns: detection.matchedPatterns
+                        });
+
+                        // 如果置信度超过 0.8，拒绝处理
+                        if (detection.confidence > 0.8) {
+                            const warning = promptInjectionDefense.generateWarning(detection);
+                            this.broadcast('agent:error', '⚠️ 检测到高危安全威胁，已拒绝处理该请求');
+                            console.error('[Security] Prompt injection blocked:', detection);
+                            throw new Error(warning);
+                        }
+
+                        // 中低危攻击：清理后继续处理
+                        console.warn('[Security] Prompt injection detected and sanitized:', detection);
+                        blocks.push({ type: 'text', text: promptInjectionDefense.sanitize(input.content) });
+                    } else {
+                        blocks.push({ type: 'text', text: input.content });
+                    }
                 } else if (blocks.some(b => b.type === 'image')) {
                     // [Fix] If only images are present, add a default prompt to satisfy API requirements
                     blocks.push({ type: 'text', text: "Please analyze this image." });
@@ -132,6 +182,13 @@ export class AgentRuntime {
 
             // Add user message to history
             this.history.push({ role: 'user', content: userContent });
+
+            // 添加意图检测日志
+            if (typeof userContent === 'string') {
+                console.log('[IntentDetection] User input:', userContent);
+                console.log('[IntentDetection] Detected skills:', this.detectRelevantSkills(userContent));
+            }
+
             this.notifyUpdate();
 
             // Start the agent loop
@@ -153,7 +210,10 @@ export class AgentRuntime {
             this.isProcessing = false;
             this.abortController = null;
             this.notifyUpdate();
-            
+
+            // Notify frontend that processing is complete
+            this.broadcast('agent:complete', this.history);
+
             // Send work complete notification
             if (this.history.length > 0) {
                 const lastUserMessage = this.history.find(msg => msg.role === 'user');
@@ -199,6 +259,12 @@ export class AgentRuntime {
                 ...(await this.mcpService.getTools() as Anthropic.Tool[])
             ];
 
+            // 添加调试日志：显示可用工具列表
+            console.log('[AgentRuntime] Available tools:', tools.map(t => ({
+                name: t.name,
+                description: t.description?.substring(0, 60) + '...'
+            })));
+
             // Build working directory context
             const authorizedFolders = permissionManager.getAuthorizedFolders();
             const workingDirContext = authorizedFolders.length > 0
@@ -206,34 +272,177 @@ export class AgentRuntime {
                 : '\n\nNote: No working directory has been selected yet. Ask the user to select a folder first.';
 
             const skillsDir = os.homedir() + '/.wechatflowwork/skills';
-            const systemPrompt = `You are WeChat_Flowwork, an advanced AI agent capable of managing files, executing complex tasks, and assisting the user.
-            
-            TOOL USAGE:
-            - Use 'read_file', 'write_file', and 'list_dir' for file operations.
-            - Use 'run_command' to execute shell commands, Python scripts, npm commands, etc.
-            - You can use skills defined in ~/.opencowork/skills/ - when a skill is loaded, follow its instructions immediately.
-            - Skills with a 'core/' directory (like slack-gif-creator) have Python modules you can import directly.
-              Example: Set PYTHONPATH to the skill directory and run your script.
-            - You can access external tools provided by MCP servers (prefixed with server name).
+            const systemPrompt = `You are WeChat_Flowwork, a specialized WeChat official account operations assistant.
+
+## YOUR IDENTITY
+You are a practical "assistant worker" (运营牛马) focused on WeChat official account operations.
+Your goal is to help users create high-quality content and improve operational efficiency.
+
+## YOUR SCOPE (What you do)
+[OK] Content Creation: Article writing, topic selection, title generation, content optimization
+[OK] Content Design: Layout, formatting, image selection, cover design
+[OK] Data Analysis: Performance analysis, trend identification, content insights
+[OK] Operations Strategy: Publishing timing, audience engagement, growth tactics
+[OK] Quality Improvement: SEO optimization, readability enhancement, viral techniques
+
+## OUT OF SCOPE (What you don't do)
+[X] Programming & Technical Help: Coding, debugging, software development
+[X] General Knowledge: Science, history, geography, encyclopedic Q&A
+[X] Personal Advice: Life coaching, relationship advice, career counseling
+[X] Unrelated Topics: Cooking, fitness, entertainment, hobbies, etc.
+
+## HOW TO HANDLE OFF-TOPIC QUESTIONS
+
+When users ask questions outside your scope:
+
+1. **Acknowledge politely**: "I understand you're asking about [topic],"
+2. **Explain your role**: "I'm specialized in WeChat official account operations"
+3. **Provide specific alternatives**: "I can help you with:"
+   - Article writing and optimization
+   - Title ideas and topic selection
+   - Content layout and formatting
+   - Data analysis and insights
+4. **Offer immediate value**: "What aspect of official account operations interests you?"
+
+**Example responses**:
+
+For programming questions:
+> "I focus on WeChat official account operations rather than programming.
+> However, I can help you write a tech article for your official account,
+> or suggest topics that would engage your developer audience."
+
+For life advice:
+> "I'm specialized in content creation for official accounts, not life advice.
+> But I can help you write an article sharing life tips that would resonate
+> with your audience!"
+
+For general knowledge:
+> "That's an interesting question! I specialize in WeChat operations though.
+> Want me to help you turn this into an engaging article for your official account?"
+
+## TONE & STYLE
+- Practical and down-to-earth (接地气)
+- Action-oriented (focus on getting things done)
+- Friendly but professional
+- Use examples and specific suggestions
+
+## WRITING STYLE GUIDE - 去除AI味 (CRITICAL)
+
+**[MUST] 当生成任何文案内容时，必须遵循以下原则：**
+
+### [X] 避免AI套路化表达
+
+**禁止使用的词汇和句式：**
+- "首先、其次、最后"
+- "综上所述、总而言之、总得来说"
+- "值得注意的是、显而易见、众所周知"
+- 过度使用"不仅...而且...；虽然...但是..."
+- 空洞的"随着...的发展"
+
+### [OK] 增强人味儿的写作技巧
+
+**1. 口语化表达**
+- 加入情感词汇："说实话"、"emm"、"啊对了"、"这让我很震撼"
+- 使用个人观点和立场
+- 像在和朋友聊天，不是在写报告
+
+**2. 多用短句，删除总结**
+- 每句表达一个意思
+- 长短句交替，提升节奏感
+- 删除文末总结，自然收尾
+
+**3. 增加细节和案例**
+- 具体数字（不是"很多"、"大量"）
+- 真实案例和场景
+- 人物对话和互动
+
+**4. 使用比喻和修辞**
+- 用自然现象隐喻（破茧、潮汐、四季更替）
+- 避免直接说出情绪名称
+- 让读者自己感受
+
+### [OK] 好的写作示例
+
+**开头：**
+\`\`\`
+[X] 差的写法：
+近年来，人工智能技术发展迅速，对各行各业产生了深远影响。
+
+[OK] 好的写法：
+昨天看到个新闻，挺有意思的。
+AI又搞事情了，这次是真的有点东西。
+\`\`\`
+
+**正文：**
+\`\`\`
+[X] 差的写法：
+该产品具有良好的性能和用户体验。
+首先，可以提高效率。其次，减少错误。
+
+[OK] 好的写法：
+说实话，这产品真的有点东西。
+效率提升明显，以前要3小时的工作，现在40分钟搞定。
+更关键的是，错误率降了60%。
+\`\`\`
+
+**结尾：**
+\`\`\`
+[X] 差的写法：
+综上所述，该产品值得推荐。
+
+[OK] 好的写法：
+就这样吧。
+下次聊。
+\`\`\`
+
+**[REMINDER] 每次生成文案时，都要检查是否去除了AI味。**
+
+## WORKFLOW
+1. Understand user's goal
+2. Check if it's within scope
+3. If yes: Provide practical help with specific examples
+4. If no: Gently redirect to relevant official account topics
+5. Always offer concrete next steps
+
+## TOOL USAGE GUIDE (CRITICAL)
+- For image generation tasks: ALWAYS use 'image-generation' skill - do NOT write your own scripts
+- For article illustration: ALWAYS use 'article-illustrator' skill
+- For title generation: ALWAYS use 'title-generator' skill
+- Skills have pre-built implementations - always prefer skills over writing new code
+- When users ask for images/drawings/illustrations, trigger skills immediately
+
+## TOOL USAGE
+- Use 'read_file', 'write_file', and 'list_dir' for file operations.
+- Use 'run_command' to execute shell commands, Python scripts, npm commands, etc.
+- You can use skills defined in ~/.opencowork/skills/ - when a skill is loaded, follow its instructions immediately.
+- Skills with a 'core/' directory (like slack-gif-creator) have Python modules you can import directly.
+  Example: Set PYTHONPATH to the skill directory and run your script.
+- You can access external tools provided by MCP servers (prefixed with server name).
 
 SKILLS DIRECTORY: ${skillsDir}
 ${workingDirContext}
 
-            PLANNING:
-            - For complex requests, you MUST start with a <plan> block.
-            - Inside <plan>, list the steps you will take as <task> items.
-            - Mark completed tasks with [x] and pending with [ ] if you update the plan.
-            - Example:
-              <plan>
-                <task>Analyze requirements</task>
-                <task>Create implementation plan</task>
-                <task>Write code</task>
-              </plan>
-            
-            IMPORTANT:
-            - If you use a skill/tool that provides instructions or context (like web-artifacts-builder), you MUST proceed to the NEXT logical step immediately in the subsequent turn. Do NOT stop to just "acknowledge" receipt of instructions.
-            - When using skills with core/ modules, create a Python script in the working directory that imports from the skill's core (add skill dir to PYTHONPATH).
-            - Provide clear, concise updates.`;
+## PLANNING
+- For complex requests, you MUST start with a <plan> block.
+- Inside <plan>, list the steps you will take as <task> items.
+- Mark completed tasks with [x] and pending with [ ] if you update the plan.
+- Example:
+  <plan>
+    <task>Analyze requirements</task>
+    <task>Create implementation plan</task>
+    <task>Write code</task>
+  </plan>
+
+## IMPORTANT
+- If you use a skill/tool that provides instructions or context (like web-artifacts-builder), you MUST proceed to the NEXT logical step immediately in the subsequent turn. Do NOT stop to just "acknowledge" receipt of instructions.
+- When using skills, directly execute the existing scripts in the skill directory using run_command with absolute paths.
+- Do not create new Python scripts in the working directory.
+- Use the full path to the skill scripts from the resources/skills directory.
+- Provide clear, concise updates.
+
+## REMEMBER
+You are a focused specialist, not a generalist assistant.
+Stay within your domain to provide the most value.`;
 
             console.log('Sending request to API...');
             console.log('Model:', this.model);
@@ -271,9 +480,20 @@ ${workingDirContext}
                             break;
                         case 'content_block_delta':
                             if (chunk.delta.type === 'text_delta') {
-                                textBuffer += chunk.delta.text;
+                                // 🔒 安全检查：DLP 数据泄露防护
+                                const { filtered, hasSensitiveData } = dlp.filterAIOutput(chunk.delta.text)
+
+                                if (hasSensitiveData) {
+                                    // 广播隐私警告
+                                    this.broadcast('agent:privacy-warning', {
+                                        message: 'AI 输出中包含敏感信息，已自动过滤以保护隐私',
+                                        timestamp: Date.now()
+                                    })
+                                }
+
+                                textBuffer += filtered;
                                 // Broadcast streaming token to ALL windows
-                                this.broadcast('agent:stream-token', chunk.delta.text);
+                                this.broadcast('agent:stream-token', filtered);
                             } else if (chunk.delta.type === 'input_json_delta' && currentToolUse) {
                                 currentToolUse.input += chunk.delta.partial_json;
                             }
@@ -371,17 +591,16 @@ ${workingDirContext}
                                     console.log(`[Runtime] Skill ${toolUse.name} info found? ${!!skillInfo} (len: ${skillInfo?.instructions?.length})`);
                                     if (skillInfo) {
                                         // Return skill content following official Claude Code Skills pattern
-                                        // The model should create scripts and run them from the skill directory
+                                        // The model should directly execute existing scripts using absolute paths
                                         result = `[SKILL LOADED: ${toolUse.name}]
 
 SKILL DIRECTORY: ${skillInfo.skillDir}
 
-Follow these instructions to complete the user's request. When the instructions reference Python modules in core/, create your script in the working directory and run it from the skill directory:
+Follow these instructions to complete the user's request. Use absolute paths when executing scripts:
 
-run_command: cd "${skillInfo.skillDir}" && python /path/to/your_script.py
+run_command: python "${skillInfo.skillDir}/scripts/script_name.py" [args]
 
-Or add to the top of your script:
-import sys; sys.path.insert(0, r"${skillInfo.skillDir}")
+IMPORTANT: Do not create new Python scripts in the working directory. Always use the existing scripts in the skill directory.
 
 ---
 ${skillInfo.instructions}
@@ -485,6 +704,26 @@ ${skillInfo.instructions}
             'list_dir': '查看目录'
         };
         return descriptions[tool] || tool;
+    }
+
+    // Helper method to detect relevant skills based on user input
+    private detectRelevantSkills(input: string): string[] {
+        const relevant: string[] = [];
+        const lowerInput = input.toLowerCase();
+
+        // 简单关键词匹配
+        if (lowerInput.includes('图') || lowerInput.includes('画') || lowerInput.includes('配图') ||
+            lowerInput.includes('生图') || lowerInput.includes('插图') || lowerInput.includes('封面')) {
+            relevant.push('image-generation', 'article-illustrator');
+        }
+        if (lowerInput.includes('标题') || lowerInput.includes('title')) {
+            relevant.push('title-generator');
+        }
+        if (lowerInput.includes('文章') && (lowerInput.includes('配图') || lowerInput.includes('插图'))) {
+            relevant.push('article-illustrator');
+        }
+
+        return relevant;
     }
 
     public handleConfirmResponseWithRemember(id: string, approved: boolean, remember: boolean): void {

@@ -14,6 +14,12 @@ class Style(Enum):
     MINIMAL = "minimal"
     WARM = "warm"
     BUSINESS = "business"
+    ELEGANT = "elegant"
+    BOLD = "bold"
+    PLAYFUL = "playful"
+    NATURE = "nature"
+    SKETCH = "sketch"
+    NOTION = "notion"
     AUTO = "auto"
 
 
@@ -102,6 +108,96 @@ class StylePromptBuilder:
             "keywords": ["商业", "市场", "数据报告", "分析", "行业", "趋势", "投资", "财报", "解读", "研究", "洞察"],
             "vibe": "专业严谨，结构化强，信息密度高",
             "suitable_for": "商业分析、数据报告、市场研究、专业解读"
+        },
+        "elegant": {
+            "name": "优雅精致",
+            "cover_ratio": "2.35:1 (900×383)",
+            "illustration_ratio": "16:9 (1792×1024)",
+            "background": "Warm cream #F5F0E6",
+            "text_color": "深棕色 #78350F",
+            "secondary_text": "柔和的深棕色 #92400E",
+            "accent_color": "珊瑚色 #E8A598",
+            "font": "优雅的衬线字体，精致感",
+            "decorations": ["精致的线条", "subtle icons", "柔和的花纹", "极简装饰"],
+            "transparency": "40%",
+            "keywords": ["专业", "商业", "策略", "领导力", "管理", "优雅", "精致", "高端", "品牌", "营销", "专业服务"],
+            "vibe": "refined, sophisticated, delicate lines, subtle icons",
+            "suitable_for": "商业分析、领导力内容、专业服务、品牌营销"
+        },
+        "bold": {
+            "name": "高对比冲击",
+            "cover_ratio": "2.35:1 (900×383)",
+            "illustration_ratio": "16:9 (1792×1024)",
+            "background": "Deep black #000000",
+            "text_color": "Vibrant red #E53E3E 或 Electric yellow #F6E05E",
+            "secondary_text": "白色 #FFFFFF",
+            "accent_color": "鲜艳红/橙 #F59E0B",
+            "font": "粗体无衬线，强烈冲击",
+            "decorations": ["strong shapes", "几何图形", "高对比元素", "箭头"],
+            "transparency": "N/A",
+            "keywords": ["警告", "紧急", "重要", "critical", "urgent", "bold", "观点", "强烈", "冲击", "强调"],
+            "vibe": "strong shapes, dramatic contrast, dynamic",
+            "suitable_for": "观点文章、重要提醒、警告内容、强烈观点"
+        },
+        "playful": {
+            "name": "活泼趣味",
+            "cover_ratio": "2.35:1 (900×383)",
+            "illustration_ratio": "16:9 (1792×1024)",
+            "background": "Light cream #FFFBEB",
+            "text_color": "深灰色 #374151",
+            "secondary_text": "中灰色 #4B5563",
+            "accent_color": "薄荷绿 #A7F3D0",
+            "font": "圆润无衬线，年轻可爱",
+            "decorations": ["doodles", "quirky characters", "speech bubbles", "emoji", "小圆点"],
+            "transparency": "50%",
+            "keywords": ["趣味", "fun", "easy", "beginner", "tutorial", "guide", "轻松", "入门", "教程", "指南", "新手"],
+            "vibe": "doodles, quirky characters, speech bubbles, friendly",
+            "suitable_for": "教程指南、轻松内容、入门教程、趣味文章"
+        },
+        "nature": {
+            "name": "自然有机",
+            "cover_ratio": "2.35:1 (900×383)",
+            "illustration_ratio": "16:9 (1792×1024)",
+            "background": "Sand beige #F5E6D3",
+            "text_color": "Forest green #064E3B",
+            "secondary_text": "Earth brown #78350F",
+            "accent_color": "有机绿 #059669",
+            "font": "自然的无衬线字体",
+            "decorations": ["plant motifs", "natural textures", "flowing lines", "叶子", "有机形状"],
+            "transparency": "40%",
+            "keywords": ["环保", "wellness", "健康", "organic", "自然", "eco", "可持续", "绿色", "健康生活", "有机", "环境"],
+            "vibe": "plant motifs, natural textures, flowing lines, organic",
+            "suitable_for": "环保健康、自然主题、可持续发展、健康生活"
+        },
+        "sketch": {
+            "name": "手绘草图",
+            "cover_ratio": "2.35:1 (900×383)",
+            "illustration_ratio": "16:9 (1792×1024)",
+            "background": "Off-white #F7FAFC",
+            "text_color": "Pencil gray #4A5568",
+            "secondary_text": "深灰色 #1F2937",
+            "accent_color": "铅笔灰 #6B7280",
+            "font": "手写感字体，类似铅笔书写",
+            "decorations": ["rough sketch lines", "arrows", "handwritten labels", "草图", "手绘箭头", "涂鸦"],
+            "transparency": "N/A",
+            "keywords": ["idea", "draft", "brainstorm", "草图", "创意", "头脑风暴", "想法", "草稿", "概念", "设计思维"],
+            "vibe": "rough sketch lines, arrows, handwritten labels, authentic",
+            "suitable_for": "头脑风暴、创意过程、概念设计、思维过程"
+        },
+        "notion": {
+            "name": "Notion 极简线条",
+            "cover_ratio": "2.35:1 (900×383)",
+            "illustration_ratio": "16:9 (1792×1024)",
+            "background": "Pure white #FFFFFF",
+            "text_color": "Black #1A1A1A",
+            "secondary_text": "Dark gray #4A4A4A",
+            "accent_color": "深灰色 #1F2937",
+            "font": "简洁无衬线，类似 Notion",
+            "decorations": ["simple line doodles", "geometric shapes", "maximum whitespace", "极简线条"],
+            "transparency": "N/A",
+            "keywords": ["knowledge", "concept", "productivity", "SaaS", "知识", "概念", "生产力", "工具", "笔记", "知识管理"],
+            "vibe": "simple line doodles, geometric shapes, maximum whitespace, clean",
+            "suitable_for": "知识分享、概念解释、生产力工具、知识管理"
         }
     }
 
@@ -379,7 +475,7 @@ class StylePromptBuilder:
             content: 文章内容或标题
 
         Returns:
-            匹配的风格代码 (tech/fresh/minimal/warm/business)
+            匹配的风格代码 (tech/fresh/minimal/warm/business/elegant/bold/playful/nature/sketch/notion)
         """
         scores = {}
 
@@ -398,9 +494,9 @@ class StylePromptBuilder:
 
         # 如果没有匹配，根据内容长度默认选择
         if len(content) < 20:
-            return "minimal"  # 短标题使用极简风
+            return "notion"  # 短标题使用 Notion 极简风（新默认）
         else:
-            return "business"  # 默认使用商务风
+            return "notion"  # 默认使用 Notion 极简风
 
     def get_style_info(self, style: str) -> Dict:
         """

@@ -2,6 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import yaml from 'js-yaml';
 import { app } from 'electron';
+import { SkillEncryption, EncryptedSkillData } from '../../security/SkillEncryption';
 
 export interface SkillDefinition {
     name: string;
@@ -13,11 +14,14 @@ export interface SkillDefinition {
 export class SkillManager {
     private skillsDir: string;
     private skills: Map<string, SkillDefinition> = new Map();
+    private encryption: SkillEncryption;
 
     constructor() {
         // [Security] Default to dev path, will be updated in initializeDefaults for production
         // We no longer use the user's home directory to prevent modification
         this.skillsDir = path.join(process.cwd(), 'resources', 'skills');
+        // Initialize encryption module
+        this.encryption = new SkillEncryption();
     }
 
     async initializeDefaults() {
@@ -74,16 +78,40 @@ export class SkillManager {
     }
 
     private async parseSkill(filePath: string) {
+        const startTime = Date.now();
         try {
             const content = await fs.readFile(filePath, 'utf-8');
             const parts = content.split('---');
             if (parts.length < 3) return; // Invalid frontmatter structure
 
-            const frontmatter = yaml.load(parts[1]) as { name?: string; description?: string; input_schema?: Record<string, unknown> } | undefined;
-            const instructions = parts.slice(2).join('---').trim();
+            const frontmatter = yaml.load(parts[1]) as {
+                name?: string;
+                description?: string;
+                input_schema?: Record<string, unknown>;
+                encryption?: EncryptedSkillData;
+            } | undefined;
+
+            let instructions: string;
+
+            // 🔒 Check if content is encrypted
+            if (frontmatter?.encryption) {
+                // Encrypted skill - decrypt it
+                try {
+                    instructions = this.encryption.decrypt(frontmatter.encryption);
+                    console.log(`[SkillManager] 🔓 Decrypted ${frontmatter.name} from ${filePath}`);
+                } catch (decryptError) {
+                    console.error(`[SkillManager] ❌ Failed to decrypt ${filePath}:`, decryptError);
+                    // Fallback: try to read as plaintext
+                    instructions = parts.slice(2).join('---').trim();
+                }
+            } else {
+                // Plaintext skill (development mode or legacy format)
+                instructions = parts.slice(2).join('---').trim();
+            }
 
             if (frontmatter && frontmatter.name && frontmatter.description) {
-                console.log(`[SkillManager] Loaded ${frontmatter.name} (desc: ${frontmatter.description}, inst len: ${instructions.length})`);
+                const loadTime = Date.now() - startTime;
+                console.log(`[SkillManager] ✅ Loaded ${frontmatter.name} (desc: ${frontmatter.description}, inst len: ${instructions.length}, load time: ${loadTime}ms)`);
                 this.skills.set(frontmatter.name, {
                     name: frontmatter.name,
                     description: frontmatter.description,

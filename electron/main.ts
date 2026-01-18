@@ -9,6 +9,8 @@ import { pythonRuntime } from './agent/PythonRuntime'
 import { configStore } from './config/ConfigStore'
 import { sessionStore } from './config/SessionStore'
 import { notificationService } from './services/NotificationService'
+import { auditLogger, setupAuditHooks } from './security/AuditLogger'
+import { UpdateManager } from './updater/UpdateManager'
 import Anthropic from '@anthropic-ai/sdk'
 
 // Extend App type to include isQuitting property
@@ -25,6 +27,35 @@ dotenv.config()
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 process.env.APP_ROOT = path.join(__dirname, '..')
+
+// Function to update .env file
+function updateEnvFile(key: string, value: string) {
+  const envPath = path.join(process.env.APP_ROOT || '', '.env')
+  
+  try {
+    if (fs.existsSync(envPath)) {
+      let content = fs.readFileSync(envPath, 'utf8')
+      const regex = new RegExp(`${key}=.*`, 'g')
+      
+      if (regex.test(content)) {
+        // Replace existing value
+        content = content.replace(regex, `${key}=${value}`)
+        console.log(`[updateEnvFile] Updated ${key} in .env file`)
+      } else {
+        // Add new value
+        content += `\n${key}=${value}`
+        console.log(`[updateEnvFile] Added ${key} to .env file`)
+      }
+      
+      fs.writeFileSync(envPath, content)
+      console.log(`[updateEnvFile] Saved ${key} to .env file`)
+    } else {
+      console.log(`[updateEnvFile] .env file not found at ${envPath}`)
+    }
+  } catch (error) {
+    console.error(`[updateEnvFile] Failed to update .env file:`, error)
+  }
+}
 
 export const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
 export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron')
@@ -49,6 +80,7 @@ let mainWin: BrowserWindow | null = null
 let floatingBallWin: BrowserWindow | null = null
 let tray: Tray | null = null
 let agent: AgentRuntime | null = null
+let updateManager: UpdateManager | null = null
 
 // Ball state
 let isBallExpanded = false
@@ -83,6 +115,36 @@ app.whenReady().then(async () => {
     console.log('Skipping protocol registration in Dev mode.')
   }
 
+  // 🔒 0. 初始化审计日志系统
+  console.log('[Main] Initializing audit logger...')
+  setupAuditHooks()
+
+  // 设置定期清理任务（每天凌晨 2 点清理过期日志）
+  setInterval(async () => {
+    const now = new Date()
+    if (now.getHours() === 2 && now.getMinutes() === 0) {
+      console.log('[Main] Running scheduled log cleanup...')
+      await auditLogger.cleanupOldLogs()
+    }
+  }, 60 * 1000) // 每分钟检查一次
+
+  // 启动时立即清理一次过期日志
+  await auditLogger.cleanupOldLogs()
+
+  // 记录应用启动事件
+  await auditLogger.log(
+    'auth',
+    'application_started',
+    {
+      version: app.getVersion(),
+      platform: process.platform,
+      arch: process.arch
+    },
+    'info'
+  )
+
+  console.log('[Main] ✓ Audit logger ready')
+
   // 0. Initialize Python runtime FIRST
   console.log('[Main] Initializing Python runtime...')
   const pythonReady = await pythonRuntime.initialize();
@@ -104,8 +166,16 @@ app.whenReady().then(async () => {
   createMainWindow()
   createFloatingBallWindow()
 
+  // 🔒 2.5. 初始化更新管理器（仅生产环境）
+  if (process.env.NODE_ENV === 'production' && mainWin) {
+    console.log('[Main] Initializing update manager...')
+    updateManager = new UpdateManager(mainWin)
+    updateManager.scheduleAutoCheck()
+    console.log('[Main] ✓ Update manager ready')
+  }
+
   // 3. Initialize agent AFTER windows are created
-  initializeAgent()
+  await initializeAgent()
 
   // 4. Create system tray
   createTray()
@@ -230,6 +300,52 @@ ipcMain.handle('permissions:clear', () => {
   return { success: true }
 })
 
+// File system operations for drag and drop
+ipcMain.handle('fs:save-temp-file', async (_event, { name, data }: { name: string, data: number[] }) => {
+  try {
+    // Create temp directory
+    const tmpDir = path.join(os.tmpdir(), 'wechat-flowwork')
+    if (!fs.existsSync(tmpDir)) {
+      fs.mkdirSync(tmpDir, { recursive: true })
+    }
+
+    // Save file
+    const filePath = path.join(tmpDir, name)
+    fs.writeFileSync(filePath, Buffer.from(data))
+
+    console.log(`[fs:save-temp-file] Saved temp file: ${filePath}`)
+    return { success: true, path: filePath }
+  } catch (error) {
+    console.error('[fs:save-temp-file] Failed to save temp file:', error)
+    return { success: false, error: (error as Error).message }
+  }
+})
+
+// File system operations for file preview
+ipcMain.handle('fs:read-file', async (_event, filePath: string) => {
+  try {
+    const content = fs.readFileSync(filePath, 'utf-8')
+    console.log(`[fs:read-file] Read file: ${filePath}`)
+    return content
+  } catch (error) {
+    console.error('[fs:read-file] Failed to read file:', error)
+    throw new Error(`无法读取文件：${(error as Error).message}`)
+  }
+})
+
+ipcMain.handle('dialog:select-file', async () => {
+  const result = await dialog.showOpenDialog(mainWin!, {
+    properties: ['openFile'],
+    filters: [
+      { name: 'Markdown Files', extensions: ['md', 'markdown'] },
+      { name: 'Text Files', extensions: ['txt'] },
+      { name: 'All Files', extensions: ['*'] }
+    ]
+  })
+  if (result.canceled || result.filePaths.length === 0) return null
+  return result.filePaths[0]
+})
+
 ipcMain.handle('agent:set-working-dir', (_, folderPath: string) => {
   // Set as first (primary) in the list
   const folders = configStore.getAll().authorizedFolders || []
@@ -243,7 +359,24 @@ ipcMain.handle('config:get-all', () => {
   console.log('[config:get-all] Returning config:', { ...config, apiKey: config.apiKey ? '***' + config.apiKey.slice(-4) : 'empty' })
   return config
 })
-ipcMain.handle('config:set-all', (_, cfg) => {
+
+// 🔒 安全配置获取（不包含 API Key 等敏感信息）
+ipcMain.handle('config:get-safe', () => {
+  const config = configStore.getAll()
+  const safeConfig = {
+    apiUrl: config.apiUrl,
+    model: config.model,
+    authorizedFolders: config.authorizedFolders,
+    networkAccess: config.networkAccess,
+    shortcut: config.shortcut,
+    notifications: config.notifications,
+    notificationTypes: config.notificationTypes,
+    // ❌ 不返回: apiKey, doubaoApiKey, zhipuApiKey
+  }
+  return safeConfig
+})
+
+ipcMain.handle('config:set-all', async (_, cfg) => {
   console.log('[config:set-all] Received config:', {
     apiKey: cfg.apiKey ? '***' + cfg.apiKey.slice(-4) : 'empty',
     apiUrl: cfg.apiUrl,
@@ -252,10 +385,17 @@ ipcMain.handle('config:set-all', (_, cfg) => {
   })
 
   if (cfg.apiKey !== undefined) {
-    configStore.setApiKey(cfg.apiKey)
+    await configStore.setApiKey(cfg.apiKey)
     console.log('[config:set-all] Saved apiKey, length:', cfg.apiKey.length)
   }
-  if (cfg.doubaoApiKey !== undefined) configStore.setDoubaoApiKey(cfg.doubaoApiKey)
+  if (cfg.doubaoApiKey !== undefined) {
+    await configStore.setDoubaoApiKey(cfg.doubaoApiKey)
+    // Update .env file
+    updateEnvFile('DOUBAO_API_KEY', cfg.doubaoApiKey)
+  }
+  if (cfg.zhipuApiKey !== undefined) {
+    await configStore.setZhipuApiKey(cfg.zhipuApiKey)
+  }
   if (cfg.apiUrl !== undefined) {
     configStore.setApiUrl(cfg.apiUrl)
     console.log('[config:set-all] Saved apiUrl:', cfg.apiUrl)
@@ -297,8 +437,73 @@ ipcMain.handle('config:set-all', (_, cfg) => {
   })
 
   // Reinitialize agent
-  initializeAgent()
+  await initializeAgent()
 })
+
+// 首次启动配置处理
+ipcMain.handle('config:get-first-launch', () => {
+  // 使用 ConfigStore 方法获取，支持默认值
+  const firstLaunch = configStore.getFirstLaunch()
+  console.log('[config:get-first-launch] Returning:', firstLaunch)
+  return firstLaunch
+})
+
+ipcMain.handle('config:set-first-launch', () => {
+  console.log('[config:set-first-launch] Setting to false')
+  configStore.setFirstLaunch(false)
+  return true
+})
+
+// 检测 API Key 是否已设置
+ipcMain.handle('config:get-api-key-status', async () => {
+  const apiKey = await configStore.getApiKey();
+  return {
+    hasApiKey: !!apiKey,
+    apiKeyLength: apiKey?.length || 0
+  };
+});
+
+// 检查所有必需配置是否完整
+ipcMain.handle('config:get-setup-status', async () => {
+  try {
+    console.log('[config:get-setup-status] Fetching setup status...');
+    const apiKey = await configStore.getApiKey();
+    const folders = configStore.getAuthorizedFolders();
+    const status = {
+      hasApiKey: !!apiKey,
+      hasAuthorizedFolders: folders.length > 0,
+      isSetupComplete: !!apiKey && folders.length > 0
+    };
+    console.log('[config:get-setup-status] Returning:', status);
+    return status;
+  } catch (error) {
+    console.error('[config:get-setup-status] Error:', error);
+    // 返回默认状态（引导用户重新配置）
+    return {
+      hasApiKey: false,
+      hasAuthorizedFolders: false,
+      isSetupComplete: false
+    };
+  }
+});
+
+// 🔒 更新管理器 IPC 处理器
+ipcMain.handle('update:check', async () => {
+  console.log('[update:check] Manual update check requested')
+  await updateManager?.checkForUpdates()
+})
+
+ipcMain.handle('update:install', async () => {
+  console.log('[update:install] User requested to install update')
+  updateManager?.quitAndInstall()
+})
+
+// 重置首次启动状态（调试用）
+ipcMain.handle('config:reset-first-launch', () => {
+  console.log('[config:reset-first-launch] Resetting to true');
+  configStore.setFirstLaunch(true);
+  return { success: true };
+});
 
 // Shortcut update handler
 ipcMain.handle('shortcut:update', (_, newShortcut: string) => {
@@ -367,15 +572,63 @@ ipcMain.handle('floating-ball:move', (_, { deltaX, deltaY }: { deltaX: number, d
 })
 
 // Window controls for custom titlebar
-ipcMain.handle('window:minimize', () => mainWin?.minimize())
-ipcMain.handle('window:maximize', () => {
-  if (mainWin?.isMaximized()) {
-    mainWin.unmaximize()
-  } else {
-    mainWin?.maximize()
+ipcMain.handle('window:minimize', async () => {
+  console.log('IPC: window:minimize called');
+  try {
+    if (mainWin && !mainWin.isDestroyed()) {
+      console.log('IPC: window:minimize - mainWin exists and not destroyed');
+      mainWin.minimize();
+      console.log('IPC: window:minimize completed successfully');
+      return { success: true, message: 'Window minimized' };
+    } else {
+      console.error('IPC: window:minimize failed - mainWin is null or destroyed');
+      return { success: false, message: 'Main window not available' };
+    }
+  } catch (error) {
+    console.error('IPC: window:minimize error:', error);
+    return { success: false, message: `Error: ${error.message}` };
   }
 })
-ipcMain.handle('window:close', () => mainWin?.hide())
+ipcMain.handle('window:maximize', async () => {
+  console.log('IPC: window:maximize called');
+  try {
+    if (mainWin && !mainWin.isDestroyed()) {
+      console.log('IPC: window:maximize - mainWin exists and not destroyed');
+      if (mainWin.isMaximized()) {
+        mainWin.unmaximize();
+        console.log('IPC: window:maximize - unmaximized successfully');
+        return { success: true, message: 'Window unmaximized', isMaximized: false };
+      } else {
+        mainWin.maximize();
+        console.log('IPC: window:maximize - maximized successfully');
+        return { success: true, message: 'Window maximized', isMaximized: true };
+      }
+    } else {
+      console.error('IPC: window:maximize failed - mainWin is null or destroyed');
+      return { success: false, message: 'Main window not available' };
+    }
+  } catch (error) {
+    console.error('IPC: window:maximize error:', error);
+    return { success: false, message: `Error: ${error.message}` };
+  }
+})
+ipcMain.handle('window:close', async () => {
+  console.log('IPC: window:close called');
+  try {
+    if (mainWin && !mainWin.isDestroyed()) {
+      console.log('IPC: window:close - mainWin exists and not destroyed');
+      mainWin.hide();
+      console.log('IPC: window:close completed successfully');
+      return { success: true, message: 'Window hidden' };
+    } else {
+      console.error('IPC: window:close failed - mainWin is null or destroyed');
+      return { success: false, message: 'Main window not available' };
+    }
+  } catch (error) {
+    console.error('IPC: window:close error:', error);
+    return { success: false, message: `Error: ${error.message}` };
+  }
+})
 
 // MCP Configuration Handlers
 const mcpConfigPath = path.join(os.homedir(), '.wechatflowwork', 'mcp.json');
@@ -505,18 +758,18 @@ ipcMain.handle('notification:has-permission', () => {
 });
 
 
-function initializeAgent() {
-  const apiKey = configStore.getApiKey() || process.env.ANTHROPIC_API_KEY
+async function initializeAgent() {
+  const apiKey = await configStore.getApiKey() || process.env.ANTHROPIC_API_KEY
 
   // 注入豆包 API Key 到环境变量,供 Skills 使用
-  const doubaoApiKey = configStore.getDoubaoApiKey()
+  const doubaoApiKey = await configStore.getDoubaoApiKey()
   if (doubaoApiKey) {
     process.env.DOUBAO_API_KEY = doubaoApiKey
     console.log('Doubao API Key已配置并注入到环境变量')
   }
 
   // 注入智谱 API Key 到环境变量,供 Skills 使用
-  const zhipuApiKey = configStore.getZhipuApiKey()
+  const zhipuApiKey = await configStore.getZhipuApiKey()
   if (zhipuApiKey) {
     process.env.ZHIPU_API_KEY = zhipuApiKey
     console.log('Zhipu API Key已配置并注入到环境变量')
@@ -529,6 +782,20 @@ function initializeAgent() {
       agent.addWindow(floatingBallWin)
     }
     (global as Record<string, unknown>).agent = agent
+
+    // 自动加载当前会话的历史记录
+    const currentSessionId = sessionStore.getCurrentSessionId()
+    if (currentSessionId) {
+      const session = sessionStore.getSession(currentSessionId)
+      if (session && session.messages.length > 0) {
+        console.log(`[Main] Auto-loading session: ${session.title} (${session.messages.length} messages)`)
+        agent.loadHistory(session.messages)
+      } else {
+        console.log('[Main] Current session is empty, starting fresh')
+      }
+    } else {
+      console.log('[Main] No current session found, starting fresh')
+    }
 
     // Trigger async initialization for MCP and Skills
     agent.initialize().catch(err => console.error('Agent initialization failed:', err));
@@ -590,15 +857,21 @@ function createTray() {
 
 function createMainWindow() {
   mainWin = new BrowserWindow({
-    width: 480,
-    height: 720,
-    minWidth: 400,
-    minHeight: 600,
+    width: 900,
+    height: 750,
+    minWidth: 800,
+    minHeight: 650,
     icon: path.join(process.env.VITE_PUBLIC || '', 'icon.png'),
     frame: false,
     titleBarStyle: 'hiddenInset',
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
+      // 🔒 安全配置
+      contextIsolation: true,          // 启用上下文隔离（防止渲染进程访问 Node.js）
+      nodeIntegration: false,           // 禁用 Node.js 集成（默认值，显式声明）
+      sandbox: false,                   // 暂时禁用沙箱（preload 需要访问 Node.js 的某些功能）
+      webSecurity: true,                // 启用 Web 安全策略
+      allowRunningInsecureContent: false, // 禁止 HTTPS 页面加载 HTTP 资源
     },
     show: false,
   })
@@ -644,6 +917,12 @@ function createFloatingBallWindow() {
     skipTaskbar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
+      // 🔒 安全配置
+      contextIsolation: true,          // 启用上下文隔离
+      nodeIntegration: false,           // 禁用 Node.js 集成
+      sandbox: false,                   // 暂时禁用沙箱
+      webSecurity: true,                // 启用 Web 安全策略
+      allowRunningInsecureContent: false, // 禁止混合内容
     },
     icon: path.join(process.env.VITE_PUBLIC, 'icon.png'),
   })

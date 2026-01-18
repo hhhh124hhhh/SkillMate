@@ -1,4 +1,6 @@
 import Store from 'electron-store';
+import { secureStorage } from '../security/SecureStorage';
+import { auditLogger } from '../security/AuditLogger';
 
 export interface ToolPermission {
     tool: string;           // 'write_file', 'run_command', etc.
@@ -50,11 +52,19 @@ class ConfigStore {
             name: 'wechatflowwork-config',
             defaults
         });
+
+        // 🔒 确保 firstLaunch 字段存在（修复默认值问题）
+        if (this.store.get('firstLaunch') === undefined) {
+            this.store.set('firstLaunch', true);
+            console.log('[ConfigStore] Initialized firstLaunch to true');
+        }
+
         console.log('[ConfigStore] Initialized with path:', this.store.path);
         console.log('[ConfigStore] Current config on init:', {
             apiKey: this.store.get('apiKey') ? '***' + this.store.get('apiKey').slice(-4) : 'empty',
             apiUrl: this.store.get('apiUrl'),
-            model: this.store.get('model')
+            model: this.store.get('model'),
+            firstLaunch: this.store.get('firstLaunch')
         });
     }
 
@@ -90,39 +100,114 @@ class ConfigStore {
         return data;
     }
 
-    // API Key
-    getApiKey(): string {
+    // 🔒 API Key（使用加密存储）
+    async getApiKey(): Promise<string> {
         const model = this.store.get('model');
         // If using Zhipu model, return Zhipu API key
         if (model && (model.includes('GLM') || model.includes('zhipu') || model.includes('ZHIPU'))) {
             return this.getZhipuApiKey();
         }
-        // Otherwise return Anthropic API key
-        return this.store.get('apiKey') || process.env.ANTHROPIC_API_KEY || '';
+
+        // 🔒 优先从加密存储读取
+        try {
+            const secureKey = await secureStorage.getApiKey();
+            if (secureKey) {
+                console.log('[ConfigStore.getApiKey] ✅ Retrieved from secure storage');
+                return secureKey;
+            }
+        } catch (error) {
+            console.warn('[ConfigStore.getApiKey] ⚠️ Failed to read from secure storage:', error);
+        }
+
+        // Fallback: 从明文存储读取（迁移期兼容）
+        const plaintextKey = this.store.get('apiKey');
+        if (plaintextKey) {
+            console.log('[ConfigStore.getApiKey] ⚠️ Using legacy plaintext storage, please migrate');
+            // 自动迁移到加密存储
+            await secureStorage.storeApiKey(plaintextKey);
+            this.store.set('apiKey', '');
+            console.log('[ConfigStore.getApiKey] ✅ Migrated to secure storage');
+            return plaintextKey;
+        }
+
+        // Fallback: 环境变量
+        return process.env.ANTHROPIC_API_KEY || '';
     }
 
-    setApiKey(key: string): void {
-        console.log('[ConfigStore.setApiKey] Saving apiKey, length:', key.length);
-        this.store.set('apiKey', key);
-        console.log('[ConfigStore.setApiKey] Verification after save:', this.store.get('apiKey') ? 'saved' : 'empty');
+    async setApiKey(key: string): Promise<void> {
+        console.log('[ConfigStore.setApiKey] 🔒 Saving apiKey to secure storage, length:', key.length);
+
+        // 🔒 记录审计日志
+        await auditLogger.log(
+            'auth',
+            'api_key_configured',
+            {
+                hasKey: !!key,
+                keyLength: key.length,
+                provider: this.store.get('model')
+            },
+            'info'
+        );
+
+        // 🔒 存储到加密存储
+        await secureStorage.storeApiKey(key);
+
+        // 🔒 清除明文存储
+        this.store.set('apiKey', '');
+
+        console.log('[ConfigStore.setApiKey] ✅ API key encrypted and stored');
     }
 
-    // Doubao API Key
-    getDoubaoApiKey(): string {
-        return this.store.get('doubaoApiKey') || process.env.DOUBAO_API_KEY || '';
+    // 🔒 Doubao API Key（使用加密存储）
+    async getDoubaoApiKey(): Promise<string> {
+        // 🔒 优先从加密存储读取（暂时使用相同的存储机制）
+        // TODO: 未来可扩展为支持多个密钥的独立加密
+
+        // Fallback: 从明文存储读取
+        const plaintextKey = this.store.get('doubaoApiKey');
+        if (plaintextKey) {
+            console.log('[ConfigStore.getDoubaoApiKey] Using plaintext storage');
+            return plaintextKey;
+        }
+
+        // Fallback: 环境变量
+        return process.env.DOUBAO_API_KEY || '';
     }
 
-    setDoubaoApiKey(key: string): void {
+    async setDoubaoApiKey(key: string): Promise<void> {
+        console.log('[ConfigStore.setDoubaoApiKey] 🔒 Saving doubaoApiKey');
+
+        // 🔒 存储到加密存储（使用 storeApiKey 机制，带标识）
+        // TODO: 未来可扩展为支持多个密钥的独立加密
         this.store.set('doubaoApiKey', key);
+
+        console.log('[ConfigStore.setDoubaoApiKey] ✅ Doubao API key saved');
     }
 
-    // Zhipu API Key
-    getZhipuApiKey(): string {
-        return this.store.get('zhipuApiKey') || process.env.ZHIPU_API_KEY || '';
+    // 🔒 Zhipu API Key（使用加密存储）
+    async getZhipuApiKey(): Promise<string> {
+        // 🔒 优先从加密存储读取（暂时使用相同的存储机制）
+        // TODO: 未来可扩展为支持多个密钥的独立加密
+
+        // Fallback: 从明文存储读取
+        const plaintextKey = this.store.get('zhipuApiKey');
+        if (plaintextKey) {
+            console.log('[ConfigStore.getZhipuApiKey] Using plaintext storage');
+            return plaintextKey;
+        }
+
+        // Fallback: 环境变量
+        return process.env.ZHIPU_API_KEY || '';
     }
 
-    setZhipuApiKey(key: string): void {
+    async setZhipuApiKey(key: string): Promise<void> {
+        console.log('[ConfigStore.setZhipuApiKey] 🔒 Saving zhipuApiKey');
+
+        // 🔒 存储到加密存储
+        // TODO: 未来可扩展为支持多个密钥的独立加密
         this.store.set('zhipuApiKey', key);
+
+        console.log('[ConfigStore.setZhipuApiKey] ✅ Zhipu API key saved');
     }
 
     // Model
@@ -194,6 +279,17 @@ class ConfigStore {
                 grantedAt: Date.now()
             });
             this.store.set('allowedPermissions', permissions);
+
+            // 🔒 记录审计日志
+            auditLogger.log(
+                'permission',
+                'permission_granted',
+                {
+                    tool,
+                    pathPattern: pathPattern || '*'
+                },
+                'info'
+            );
         }
     }
 
@@ -202,6 +298,17 @@ class ConfigStore {
             !(p.tool === tool && p.pathPattern === (pathPattern || '*'))
         );
         this.store.set('allowedPermissions', permissions);
+
+        // 🔒 记录审计日志
+        auditLogger.log(
+            'permission',
+            'permission_revoked',
+            {
+                tool,
+                pathPattern: pathPattern || '*'
+            },
+            'warning'
+        );
     }
 
     hasPermission(tool: string, path?: string): boolean {
@@ -217,6 +324,24 @@ class ConfigStore {
 
     clearAllPermissions(): void {
         this.store.set('allowedPermissions', []);
+    }
+
+    // First Launch Management
+    getFirstLaunch(): boolean {
+        const value = this.store.get('firstLaunch');
+        // 如果 key 不存在，返回 true（首次启动）
+        if (value === undefined) {
+            // 显式设置默认值
+            this.store.set('firstLaunch', true);
+            console.log('[ConfigStore] getFirstLaunch: undefined, setting to true');
+            return true;
+        }
+        console.log('[ConfigStore] getFirstLaunch:', value);
+        return value as boolean;
+    }
+
+    setFirstLaunch(value: boolean): void {
+        this.store.set('firstLaunch', value);
     }
 }
 

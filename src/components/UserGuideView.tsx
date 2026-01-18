@@ -1,0 +1,524 @@
+import { useState, useEffect } from 'react';
+import { Search, Type, PenTool, Image, Layout, BarChart, AlertCircle, CheckCircle, X } from 'lucide-react';
+import { ConfirmDialog } from './ConfirmDialog';
+
+interface UserGuideViewProps {
+    onClose: () => void;
+}
+
+interface WorkflowStep {
+    id: string;
+    name: string;
+    skill: string;
+    description: string;
+    icon: React.ReactNode;
+    command: string;
+}
+
+type SetupStepId = 'apikey' | 'folders' | 'workflow';
+
+interface SetupStatus {
+    hasApiKey: boolean;
+    hasAuthorizedFolders: boolean;
+    isSetupComplete: boolean;
+}
+
+const workflowSteps: WorkflowStep[] = [
+    {
+        id: '1',
+        name: '选题研究',
+        skill: 'topic-selector',
+        description: '追踪热点，推荐选题',
+        icon: <Search size={20} />,
+        command: '推荐当前热门选题'
+    },
+    {
+        id: '2',
+        name: '标题生成',
+        skill: 'title-generator',
+        description: '生成吸引人的标题',
+        icon: <Type size={20} />,
+        command: '生成标题 "主题" 10个'
+    },
+    {
+        id: '3',
+        name: '内容创作',
+        skill: 'wechat-writing',
+        description: 'AI 撰写完整文章',
+        icon: <PenTool size={20} />,
+        command: '帮我写一篇关于[主题]的文章'
+    },
+    {
+        id: '4',
+        name: 'AI 配图',
+        skill: 'image-generation',
+        description: '生成高质量配图',
+        icon: <Image size={20} />,
+        command: '生成配图 "描述"'
+    },
+    {
+        id: '5',
+        name: '智能排版',
+        skill: 'smart-layout',
+        description: '优化文章排版',
+        icon: <Layout size={20} />,
+        command: '优化排版'
+    },
+    {
+        id: '6',
+        name: '数据分析',
+        skill: 'data-analyzer',
+        description: '分析效果，优化策略',
+        icon: <BarChart size={20} />,
+        command: '分析我的文章数据'
+    }
+];
+
+export function UserGuideView({ onClose }: UserGuideViewProps) {
+    const [currentStep, setCurrentStep] = useState<SetupStepId>('apikey');
+    const [setupStatus, setSetupStatus] = useState<SetupStatus>({
+        hasApiKey: false,
+        hasAuthorizedFolders: false,
+        isSetupComplete: false
+    });
+    const [apiKeyInput, setApiKeyInput] = useState('');
+    const [isLoading, setIsLoading] = useState(true);
+    const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+
+    const handleCloseClick = () => {
+        setShowCloseConfirm(true);
+    };
+
+    const handleConfirmClose = () => {
+        setShowCloseConfirm(false);
+        // 延迟调用 onClose()，确保确认对话框已经完全关闭
+        setTimeout(() => {
+            onClose();
+        }, 100);
+    };
+
+    const handleCancelClose = () => {
+        setShowCloseConfirm(false);
+    };
+
+    // 检测配置状态
+    useEffect(() => {
+        console.log('[UserGuideView] Fetching setup status...');
+        window.ipcRenderer.invoke('config:get-setup-status')
+            .then((status: unknown) => {
+                console.log('[UserGuideView] Setup status received:', status);
+                const typedStatus = status as SetupStatus;
+                setSetupStatus(typedStatus);
+
+                // 根据配置状态决定显示哪个步骤
+                if (!typedStatus.hasApiKey) {
+                    setCurrentStep('apikey');
+                } else if (!typedStatus.hasAuthorizedFolders) {
+                    setCurrentStep('folders');
+                } else {
+                    setCurrentStep('workflow');
+                }
+            })
+            .catch((error) => {
+                console.error('[UserGuideView] Failed to get setup status:', error);
+                // 失败时默认显示 API Key 设置步骤
+                setCurrentStep('apikey');
+            })
+            .finally(() => {
+                setIsLoading(false);
+            });
+    }, []);
+
+    // 组件卸载时的清理逻辑
+    useEffect(() => {
+        // 清理函数
+        return () => {
+            console.log('[UserGuideView] Component unmounted');
+            // 可以在这里添加其他清理逻辑，比如清除定时器等
+        };
+    }, []);
+
+    const handleSaveApiKey = async () => {
+        if (!apiKeyInput.trim()) {
+            alert('请输入 API Key');
+            return;
+        }
+
+        try {
+            // 保存 API Key
+            await window.ipcRenderer.invoke('config:set-all', {
+                apiKey: apiKeyInput,
+            });
+
+            // 更新状态并跳转到下一步
+            setSetupStatus({ ...setupStatus, hasApiKey: true });
+            setCurrentStep('folders');
+        } catch (error) {
+            console.error('[UserGuideView] Failed to save API Key:', error);
+            alert('保存 API Key 失败，请重试');
+        }
+    };
+
+    const handleAuthorizeFolder = () => {
+        try {
+            // 发送事件到 App.tsx，请求打开设置页面的"权限"标签
+            window.dispatchEvent(new CustomEvent('open-settings', { detail: { tab: 'folders' } }));
+            // 延迟调用 onClose()，确保事件已经被处理
+            setTimeout(() => {
+                onClose();
+            }, 100);
+        } catch (error) {
+            console.error('[UserGuideView] Failed to authorize folder:', error);
+            alert('文件夹授权失败，请重试');
+        }
+    };
+
+    // 显示加载状态
+    if (isLoading) {
+        return (
+            <div className="h-full w-full bg-slate-50 relative">
+                <button
+                    onClick={handleCloseClick}
+                    className="absolute top-4 right-4 p-2 bg-white rounded-full shadow-sm hover:bg-slate-100 transition-colors"
+                    aria-label="关闭"
+                >
+                    <X size={20} className="text-slate-500" />
+                </button>
+                <div className="h-full w-full flex items-center justify-center">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                        <p className="text-slate-600">正在加载...</p>
+                    </div>
+                </div>
+                <ConfirmDialog
+                    isOpen={showCloseConfirm}
+                    title="确定要关闭配置引导吗？"
+                    message="完成配置后才能使用完整功能。您可以稍后在设置中继续配置。"
+                    confirmText="稍后配置"
+                    cancelText="继续配置"
+                    onConfirm={handleConfirmClose}
+                    onCancel={handleCancelClose}
+                />
+            </div>
+        );
+    }
+
+    // Step 1: API Key 设置
+    if (currentStep === 'apikey' && !setupStatus.hasApiKey) {
+        return (
+            <div className="h-full w-full bg-slate-50 overflow-y-auto relative">
+                <button
+                    onClick={handleCloseClick}
+                    className="absolute top-4 right-4 p-2 bg-white rounded-full shadow-sm hover:bg-slate-100 transition-colors"
+                    aria-label="关闭"
+                >
+                    <X size={20} className="text-slate-500" />
+                </button>
+                <div className="max-w-2xl mx-auto px-8 py-12">
+                    {/* 欢迎区域 */}
+                    <div className="text-center mb-10">
+                        <div className="flex justify-center mb-6">
+                            <img src="/logo_new.svg" alt="Logo" className="w-24 h-24 object-contain" />
+                        </div>
+                        <h1 className="text-4xl font-bold text-slate-800 mb-4">
+                            欢迎使用公众号运营牛马
+                        </h1>
+                        <p className="text-lg text-slate-600">
+                            开始使用前，需要先完成 API Key 配置
+                        </p>
+                    </div>
+
+                    {/* API Key 设置 */}
+                    <div className="bg-orange-50 border-2 border-orange-500 p-8 rounded-2xl shadow-lg">
+                        <div className="flex flex-col items-center text-center gap-6">
+                            <div className="p-4 bg-orange-100 rounded-full">
+                                <AlertCircle className="text-orange-600" size={48} />
+                            </div>
+
+                            <div className="flex-1 w-full">
+                                <h2 className="text-2xl font-bold text-orange-900 mb-4">
+                                    🔑 第一步：配置 API Key
+                                </h2>
+                                <p className="text-orange-800 text-base mb-6 leading-relaxed">
+                                    本应用使用智谱 AI（GLM-4.7）模型，需要配置 API Key 才能使用。
+                                </p>
+
+                                <div className="bg-white p-4 rounded-lg mb-6 text-left">
+                                    <p className="text-sm font-medium text-slate-700 mb-3">
+                                        如何获取智谱 AI API Key：
+                                    </p>
+                                    <ol className="text-xs text-slate-600 space-y-2 list-decimal list-inside">
+                                        <li>访问 <a href="https://open.bigmodel.cn" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">智谱 AI 开放平台</a></li>
+                                        <li>注册/登录账号，进入「API Key」页面</li>
+                                        <li>点击「生成 API Key」，复制生成的密钥</li>
+                                        <li>将密钥粘贴到下方输入框中</li>
+                                    </ol>
+                                </div>
+
+                                <input
+                                    type="password"
+                                    value={apiKeyInput}
+                                    onChange={(e) => setApiKeyInput(e.target.value)}
+                                    placeholder="粘贴您的 API Key（格式：xxx.xxx...）"
+                                    className="w-full px-4 py-3 border border-slate-300 rounded-lg mb-4 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                />
+                            </div>
+
+                            <button
+                                onClick={handleSaveApiKey}
+                                className="w-full bg-orange-500 text-white px-8 py-4 rounded-xl hover:bg-orange-600 transition-colors text-lg font-semibold shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all"
+                            >
+                                保存 API Key 并继续 →
+                            </button>
+
+                            <p className="text-xs text-orange-700">
+                                配置完成后，将进入文件夹授权步骤
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <ConfirmDialog
+                    isOpen={showCloseConfirm}
+                    title="确定要关闭配置引导吗？"
+                    message="完成配置后才能使用完整功能。您可以稍后在设置中继续配置。"
+                    confirmText="稍后配置"
+                    cancelText="继续配置"
+                    onConfirm={handleConfirmClose}
+                    onCancel={handleCancelClose}
+                />
+            </div>
+        );
+    }
+
+    // Step 2: 文件夹授权
+    if (currentStep === 'folders' && !setupStatus.hasAuthorizedFolders) {
+        return (
+            <div className="h-full w-full bg-slate-50 overflow-y-auto relative">
+                <button
+                    onClick={handleCloseClick}
+                    className="absolute top-4 right-4 p-2 bg-white rounded-full shadow-sm hover:bg-slate-100 transition-colors"
+                    aria-label="关闭"
+                >
+                    <X size={20} className="text-slate-500" />
+                </button>
+                <div className="max-w-2xl mx-auto px-8 py-12">
+                    {/* 欢迎区域 */}
+                    <div className="text-center mb-10">
+                        <div className="flex justify-center mb-6">
+                            <img src="/logo_new.svg" alt="Logo" className="w-24 h-24 object-contain" />
+                        </div>
+                        <h1 className="text-4xl font-bold text-slate-800 mb-4">
+                            欢迎使用公众号运营牛马
+                        </h1>
+                        <p className="text-lg text-slate-600">
+                            继续完成最后一步配置
+                        </p>
+                    </div>
+
+                    {/* API Key 成功提示 */}
+                    {setupStatus.hasApiKey && (
+                        <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-6 rounded-r-lg shadow-sm">
+                            <div className="flex items-center gap-3">
+                                <CheckCircle className="text-green-600 shrink-0" size={20} />
+                                <div>
+                                    <h3 className="font-bold text-green-800 mb-1">
+                                        ✅ API Key 已配置
+                                    </h3>
+                                    <p className="text-green-700 text-sm">
+                                        您已成功配置 API Key
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 强制引导：文件夹授权 */}
+                    <div className="bg-orange-50 border-2 border-orange-500 p-8 rounded-2xl shadow-lg">
+                        <div className="flex flex-col items-center text-center gap-6">
+                            <div className="p-4 bg-orange-100 rounded-full">
+                                <AlertCircle className="text-orange-600" size={48} />
+                            </div>
+
+                            <div className="flex-1">
+                                <h2 className="text-2xl font-bold text-orange-900 mb-4">
+                                    🔐 第二步：授权文件夹
+                                </h2>
+                                <p className="text-orange-800 text-base mb-6 leading-relaxed">
+                                    出于安全考虑，AI 需要您的授权才能访问文件系统。<br />
+                                    授权后，AI 才能为您创建项目、保存文章、生成配图。
+                                </p>
+
+                                <div className="bg-white p-4 rounded-lg mb-6">
+                                    <p className="text-sm text-slate-700 font-medium mb-2">授权后，AI 可以：</p>
+                                    <ul className="text-left text-sm text-slate-600 space-y-1">
+                                        <li className="flex items-center gap-2">
+                                            <span className="text-green-500">✓</span>
+                                            创建文章项目文件夹
+                                        </li>
+                                        <li className="flex items-center gap-2">
+                                            <span className="text-green-500">✓</span>
+                                            保存文章内容和配图
+                                        </li>
+                                        <li className="flex items-center gap-2">
+                                            <span className="text-green-500">✓</span>
+                                            管理创作资料
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={handleAuthorizeFolder}
+                                className="w-full bg-orange-500 text-white px-8 py-4 rounded-xl hover:bg-orange-600 transition-colors text-lg font-semibold shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all"
+                            >
+                                立即授权文件夹 →
+                            </button>
+
+                            <p className="text-xs text-orange-700">
+                                授权完成后，返回即可查看完整创作流程
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <ConfirmDialog
+                    isOpen={showCloseConfirm}
+                    title="确定要关闭配置引导吗？"
+                    message="完成配置后才能使用完整功能。您可以稍后在设置中继续配置。"
+                    confirmText="稍后配置"
+                    cancelText="继续配置"
+                    onConfirm={handleConfirmClose}
+                    onCancel={handleCancelClose}
+                />
+            </div>
+        );
+    }
+
+    // Step 3: 创作流程介绍
+    return (
+        <div className="h-full w-full bg-slate-50 overflow-y-auto relative">
+            <button
+                onClick={handleCloseClick}
+                className="absolute top-4 right-4 p-2 bg-white rounded-full shadow-sm hover:bg-slate-100 transition-colors"
+                aria-label="关闭"
+            >
+                <X size={20} className="text-slate-500" />
+            </button>
+            <div className="max-w-5xl mx-auto px-8 py-12">
+                {/* 欢迎区域 */}
+                <div className="text-center mb-10">
+                    <div className="flex justify-center mb-6">
+                        <img src="/logo_new.svg" alt="Logo" className="w-20 h-20 object-contain" />
+                    </div>
+                    <h1 className="text-4xl font-bold text-slate-800 mb-4">
+                        欢迎使用公众号运营牛马
+                    </h1>
+                    <p className="text-lg text-slate-600">
+                        你的 AI 写作助手，从选题到数据分析的全流程支持
+                    </p>
+                </div>
+
+                {/* 配置成功提示 */}
+                <div className="space-y-3 mb-8">
+                    {setupStatus.hasApiKey && (
+                        <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg shadow-sm">
+                            <div className="flex items-center gap-3">
+                                <CheckCircle className="text-green-600 shrink-0" size={20} />
+                                <div>
+                                    <h3 className="font-bold text-green-800 mb-1">
+                                        ✅ API Key 已配置
+                                    </h3>
+                                    <p className="text-green-700 text-sm">
+                                        您已成功配置智谱 AI API Key
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {setupStatus.hasAuthorizedFolders && (
+                        <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg shadow-sm">
+                            <div className="flex items-center gap-3">
+                                <CheckCircle className="text-green-600 shrink-0" size={20} />
+                                <div>
+                                    <h3 className="font-bold text-green-800 mb-1">
+                                        ✅ 文件夹已授权
+                                    </h3>
+                                    <p className="text-green-700 text-sm">
+                                        您已授权 AI 访问文件系统
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* 工作流可视化 */}
+                <div className="mb-10">
+                    <h2 className="text-2xl font-bold text-slate-800 mb-6 text-center">
+                        完整创作流程
+                    </h2>
+                    <p className="text-center text-slate-600 mb-6">
+                        从选题到数据分析，AI 全程协助
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {workflowSteps.map((step) => (
+                            <WorkflowCard key={step.id} step={step} />
+                        ))}
+                    </div>
+                </div>
+
+                {/* 开始使用按钮 */}
+                <div className="text-center pb-8">
+                    <button
+                        onClick={() => {
+                            // 延迟调用 onClose()，确保 IPC 调用已经开始处理
+                            setTimeout(() => {
+                                onClose();
+                            }, 100);
+                            // 标记首次启动已完成
+                            window.ipcRenderer.invoke('config:set-first-launch')
+                                .catch((error) => {
+                                    console.error('[UserGuideView] Failed to set first launch:', error);
+                                });
+                        }}
+                        className="bg-blue-600 text-white px-10 py-3.5 rounded-xl hover:bg-blue-700 transition-colors text-lg font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all"
+                    >
+                        开始使用 →
+                    </button>
+                    <p className="text-sm text-slate-500 mt-3">
+                        随时可以在设置中重新查看此引导
+                    </p>
+                </div>
+                <ConfirmDialog
+                    isOpen={showCloseConfirm}
+                    title="确定要关闭配置引导吗？"
+                    message="完成配置后才能使用完整功能。您可以稍后在设置中继续配置。"
+                    confirmText="稍后配置"
+                    cancelText="继续配置"
+                    onConfirm={handleConfirmClose}
+                    onCancel={handleCancelClose}
+                />
+            </div>
+        </div>
+    );
+}
+
+interface WorkflowCardProps {
+    step: WorkflowStep;
+}
+
+function WorkflowCard({ step }: WorkflowCardProps) {
+    return (
+        <div className="bg-white p-5 rounded-xl border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all cursor-default group">
+            <div className="flex items-center gap-3 mb-3">
+                <div className="p-2.5 bg-blue-50 rounded-lg text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                    {step.icon}
+                </div>
+                <h3 className="font-bold text-slate-800">{step.name}</h3>
+            </div>
+            <p className="text-sm text-slate-600 mb-3 leading-relaxed">{step.description}</p>
+            <code className="text-xs bg-slate-100 px-3 py-2 rounded text-slate-700 block font-mono border border-slate-200">
+                {step.command}
+            </code>
+        </div>
+    );
+}

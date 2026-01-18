@@ -3,8 +3,112 @@ import path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { pythonRuntime } from '../PythonRuntime';
+import { configStore } from '../../config/ConfigStore';
+import { permissionManager } from '../security/PermissionManager';
+import { auditLogger } from '../../security/AuditLogger';
 
 const execAsync = promisify(exec);
+
+// 🔒 命令执行安全配置
+
+// 命令白名单（仅允许安全命令）
+const ALLOWED_COMMANDS = [
+    // Python 相关
+    /^python\s+[\w\-./\\]+\.py(\s+[\w\-./\\]+)*$/i,
+    /^python3\s+[\w\-./\\]+\.py(\s+[\w\-./\\]+)*$/i,
+    /^[\w\-./\\]+\.py$/i,
+
+    // Node.js 相关
+    /^node\s+[\w\-./\\]+\.js(\s+[\w\-./\\]+)*$/i,
+    /^npm\s+(install|test|run|start)(\s+[\w@\-./\\]+)*$/i,
+    /^yarn\s+(add|install|test|run)(\s+[\w@\-./\\]+)*$/i,
+    /^pnpm\s+(add|install|test|run)(\s+[\w@\-./\\]+)*$/i,
+
+    // Git 相关
+    /^git\s+(status|log|diff|show|branch|checkout|clone|init|add|commit|push|pull|fetch|remote)(\s+[\w\-./\\]+)*$/i,
+
+    // 包管理器
+    /^pip\s+install(\s+[\w\-./\\]+)*$/i,
+    /^pip3\s+install(\s+[\w\-./\\]+)*$/i,
+    /^poetry\s+(add|install|update)(\s+[\w\-./\\]+)*$/i,
+
+    // 构建工具
+    /^make\s*$/i,
+    /^make\s+[\w-]+$/i,
+    /^npx\s+[\w@\-./\\]+(\s+[\w\-./\\]+)*$/i,
+
+    // 文件操作（只读）
+    /^cat\s+[\w\-./\\]+$/i,
+    /^ls\s*$/i,
+    /^ls\s+[\w\-./\\]+$/i,
+    /^dir\s*$/i,
+    /^dir\s+[\w\-./\\]+$/i,
+
+    // 系统信息
+    /^pwd$/i,
+    /^which\s+\w+$/i,
+    /^where\s+\w+$/i,
+    /^echo\s+[\w\s\-./\\]+$/i,
+
+    // 压缩解压
+    /^tar\s+(x|c)[zj]f\s+[\w\-./\\]+.*$/i,
+    /^unzip\s+[\w\-./\\]+.*$/i,
+    /^zip\s+[\w\-./\\]+.*$/i,
+
+    // 文本处理
+    /^grep\s+[\w\s\-./\\]+$/i,
+    /^head\s+[\w\-./\\]+.*$/i,
+    /^tail\s+[\w\-./\\]+.*$/i,
+    /^wc\s+[\w\-./\\]+.*$/i,
+];
+
+// 危险命令黑名单（永远阻止）
+const BLOCKED_COMMANDS = [
+    // 删除命令
+    /\brm\s+(?:-rf?\s+)?[/*~]/i,
+    /\bdel\s+(?:\/[SQs]*)?\s+[/*~]/i,
+    /\brmdir\s+/i,
+
+    // 管道和命令注入
+    /\bcurl\b.*\|/i,
+    /\bwget\b.*\|/i,
+    /\|.*\b(sh|bash|cmd|powershell)\b/i,
+
+    // 权限提升
+    /\bsudo\b/i,
+    /\bsu\b/i,
+    /\bdoas\b/i,
+
+    // 敏感文件访问
+    /\bcat\s+.*\/\.ssh\//i,
+    /\bcat\s+.*\/\.aws\//i,
+    /\bcat\s+.*\/\.env/i,
+    /\bcat\s+.*\/\.kube\//i,
+
+    // 系统破坏
+    /\bformat\s+c:/i,
+    /\bmkfs\./i,
+    /\bdd\s+if=/i,
+
+    // 配置修改
+    /\bchmod\s+.*777/i,
+    /\bchown\s+/i,
+
+    // 网络攻击
+    /\bnc\s+.*\s+-e/i,
+    /\bnetcat\s+.*\s+-e/i,
+    /\btelnet\b/i,
+
+    // 数据库操作
+    /\bdb_dump\s+/i,
+    /\bdb_drop\s+/i,
+    /\bsqlmap\b/i,
+
+    // 密码破解
+    /\bjohn\b/i,
+    /\bhashcat\b/i,
+    /\bhydra\b/i,
+];
 
 export const ReadFileSchema = {
     name: "read_file",
@@ -90,12 +194,57 @@ export class FileSystemTools {
     }
 
     async runCommand(args: { command: string, cwd?: string }, defaultCwd: string) {
+        const originalCommand = args.command.trim();
         const workingDir = args.cwd || defaultCwd;
         const timeout = 60000; // 60 second timeout
 
+        // 🔒 安全检查：命令长度限制
+        if (originalCommand.length > 1000) {
+            await auditLogger.log('security', 'command_blocked', { reason: 'too_long', command: originalCommand.substring(0, 100) }, 'warning');
+            return `Error: Command too long (max 1000 characters).\nCommand: ${originalCommand.substring(0, 100)}...`;
+        }
+
+        // 🔒 安全检查：黑名单检测
+        for (const pattern of BLOCKED_COMMANDS) {
+            if (pattern.test(originalCommand)) {
+                console.error(`[Security] ❌ Blocked dangerous command: ${originalCommand}`);
+                await auditLogger.log('security', 'command_blocked', { reason: 'blacklist', command: originalCommand }, 'error');
+                return `Error: Command blocked by security policy (dangerous operation).\nCommand: ${originalCommand}`;
+            }
+        }
+
+        // 🔒 安全检查：管道和重定向检测
+        if (/[|<>]/.test(originalCommand) && !/^cat\s+[\w\-./\\]+$/i.test(originalCommand)) {
+            console.error(`[Security] ❌ Blocked command with pipes/redirects: ${originalCommand}`);
+            await auditLogger.log('security', 'command_blocked', { reason: 'pipes_redirects', command: originalCommand }, 'warning');
+            return `Error: Pipes and redirections are not allowed for security reasons.\nCommand: ${originalCommand}`;
+        }
+
+        // 🔒 安全检查：白名单验证
+        const isAllowed = ALLOWED_COMMANDS.some(pattern => pattern.test(originalCommand));
+        if (!isAllowed) {
+            console.error(`[Security] ❌ Blocked command not in whitelist: ${originalCommand}`);
+            await auditLogger.log('security', 'command_blocked', { reason: 'not_whitelisted', command: originalCommand }, 'warning');
+            return `Error: Command not in whitelist. Allowed commands: Python, Node.js, Git, NPM, Yarn, Pip, file operations, and text processing tools.\nCommand: ${originalCommand}`;
+        }
+
+        // 🔒 安全检查：路径授权验证
+        if (args.cwd && !permissionManager.isPathAuthorized(args.cwd)) {
+            console.error(`[Security] ❌ Unauthorized working directory: ${args.cwd}`);
+            await auditLogger.log('security', 'command_blocked', { reason: 'unauthorized_path', path: args.cwd, command: originalCommand }, 'error');
+            return `Error: Working directory not authorized: ${args.cwd}\nPlease select a folder first.`;
+        }
+
         try {
-            let command = args.command;
+            let command = originalCommand;
             const env = { ...process.env };
+
+            // 自动注入豆包 API Key 到环境变量
+            const doubaoApiKey = configStore.get('doubaoApiKey');
+            if (doubaoApiKey) {
+                env.DOUBAO_API_KEY = doubaoApiKey;
+                console.log('[FileSystemTools] Injected DOUBAO_API_KEY into environment');
+            }
 
             // 检测是否是 Python 命令
             if (this.isPythonCommand(command)) {
@@ -116,13 +265,26 @@ export class FileSystemTools {
             }
 
             console.log(`[FileSystemTools] Executing command: ${command} in ${workingDir}`);
+
+            // 🔒 记录审计日志（命令执行开始）
+            await auditLogger.log(
+                'command',
+                'command_executed',
+                {
+                    command: originalCommand,
+                    workingDir,
+                    timeout
+                },
+                'info'
+            );
+
             const { stdout, stderr } = await execAsync(command, {
                 cwd: workingDir,
                 timeout: timeout,
                 maxBuffer: 1024 * 1024 * 10, // 10MB buffer
                 encoding: 'utf-8',
                 env: env, // 传递环境变量
-                shell: process.platform === 'win32' ? 'powershell.exe' : '/bin/bash'
+                shell: process.platform === 'win32' ? 'cmd.exe' : '/bin/bash'
             });
 
             let result = `Command executed in ${workingDir}:\n$ ${args.command}\n\n`;

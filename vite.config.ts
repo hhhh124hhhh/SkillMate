@@ -21,7 +21,9 @@ export default defineConfig({
                 'sqlite3',
                 'sequelize',
                 'better-sqlite3',
-                '@modelcontextprotocol/sdk'
+                '@modelcontextprotocol/sdk',
+                'electron-updater',
+                'electron-log'
               ],
             },
           },
@@ -52,7 +54,9 @@ export default defineConfig({
                 'sqlite3',
                 'sequelize',
                 'better-sqlite3',
-                '@modelcontextprotocol/sdk'
+                '@modelcontextprotocol/sdk',
+                'electron-updater',
+                'electron-log'
               ],
             },
           },

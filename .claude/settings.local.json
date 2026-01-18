@@ -24,7 +24,22 @@
       "Bash(npm run setup-python:*)",
       "Bash(Select-String:*)",
       "Bash(\"D:\\\\wechat-flowwork\\\\python-runtime\\\\python.exe\" -c \"import sys; sys.path.insert\\(0, r''D:\\\\wechat-flowwork\\\\python-runtime\\\\lib''\\); import openai, requests, PIL, yaml; print\\(''✓ All dependencies imported''\\); print\\(f''openai: {openai.__version__}''\\); print\\(f''requests: {requests.__version__}''\\); print\\(f''Pillow: {PIL.__version__}''\\); print\\(f''PyYAML: {yaml.__version__}''\\)\")",
-      "Bash(\"D:\\\\wechat-flowwork\\\\python-runtime\\\\python.exe\":*)"
+      "Bash(\"D:\\\\wechat-flowwork\\\\python-runtime\\\\python.exe\":*)",
+      "Bash(npm run lint)",
+      "Bash(npm run typecheck)",
+      "Bash(npm run)",
+      "Bash(git clone:*)",
+      "Bash(python:*)",
+      "Bash(npm run build)",
+      "Bash(npm run lint:*)",
+      "Skill(superpowers:systematic-debugging)",
+      "Bash(taskkill:*)",
+      "Bash(asar list:*)",
+      "Bash(find:*)",
+      "Bash(npm --version:*)",
+      "Bash(npm install:*)",
+      "Bash(npm view:*)",
+      "Bash(ping:*)"
     ]
   }
 }

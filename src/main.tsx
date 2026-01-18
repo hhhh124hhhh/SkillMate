@@ -23,12 +23,21 @@ if (!window.ipcRenderer) {
     invoke: (channel: string, ...args: any[]) => {
       console.log(`[Mock IPC] invoke: ${channel}`, args);
       // Return basic mocks for essential calls to prevent UI crashes
-      if (channel === 'config:get-all') return Promise.resolve({});
+      if (channel === 'config:get-safe') return Promise.resolve({}); // 🔒 Mock 安全配置获取
       if (channel === 'session:list') return Promise.resolve([]);
       if (channel === 'agent:get-authorized-folders') return Promise.resolve([]);
       if (channel === 'skills:list') return Promise.resolve([]);
       if (channel === 'permissions:list') return Promise.resolve([]);
       if (channel === 'mcp:get-config') return Promise.resolve('{}');
+      // Mock window control calls
+      if (channel === 'window:minimize') return Promise.resolve({ success: true, message: 'Window minimized' });
+      if (channel === 'window:maximize') return Promise.resolve({ success: true, message: 'Window maximized', isMaximized: true });
+      if (channel === 'window:close') return Promise.resolve({ success: true, message: 'Window hidden' });
+      // Mock setup status calls
+      if (channel === 'config:get-setup-status') return Promise.resolve({ hasApiKey: false, hasAuthorizedFolders: false, isSetupComplete: false });
+      if (channel === 'config:get-first-launch') return Promise.resolve(true);
+      if (channel === 'config:set-first-launch') return Promise.resolve(true);
+      if (channel === 'config:reset-first-launch') return Promise.resolve({ success: true });
       return Promise.resolve(null);
     }
   };

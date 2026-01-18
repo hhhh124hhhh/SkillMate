@@ -3,6 +3,7 @@ import { X, Settings, FolderOpen, Server, Check, Plus } from 'lucide-react';
 
 interface SettingsViewProps {
     onClose: () => void;
+    initialTab?: 'api' | 'folders' | 'advanced';
 }
 
 interface Config {
@@ -27,7 +28,7 @@ interface ToolPermission {
     grantedAt: number;
 }
 
-export function SettingsView({ onClose }: SettingsViewProps) {
+export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps) {
     const [config, setConfig] = useState<Config>({
         apiKey: '',
         doubaoApiKey: '',
@@ -44,7 +45,7 @@ export function SettingsView({ onClose }: SettingsViewProps) {
         }
     });
     const [saved, setSaved] = useState(false);
-    const [activeTab, setActiveTab] = useState<'api' | 'folders' | 'advanced'>('api');
+    const [activeTab, setActiveTab] = useState<'api' | 'folders' | 'advanced'>(initialTab);
     const [isRecordingShortcut, setIsRecordingShortcut] = useState(false);
 
     // Permissions State
@@ -67,13 +68,14 @@ export function SettingsView({ onClose }: SettingsViewProps) {
     };
 
     useEffect(() => {
-        window.ipcRenderer.invoke('config:get-all').then((cfg) => {
+        // 🔒 使用安全的配置获取（不包含 API Key）
+        window.ipcRenderer.invoke('config:get-safe').then((cfg) => {
             if (cfg) {
-                const loadedConfig = cfg as Config;
+                const loadedConfig = cfg as Partial<Config>;
                 // Ensure all properties are initialized to avoid uncontrolled input warning
                 const safeConfig = {
-                    apiKey: loadedConfig.apiKey || '',
-                    doubaoApiKey: loadedConfig.doubaoApiKey || '',
+                    apiKey: '', // 🔒 API Key 不从配置加载，保持为空
+                    doubaoApiKey: '', // 🔒 API Key 不从配置加载
                     apiUrl: loadedConfig.apiUrl || 'https://open.bigmodel.cn/api/anthropic',
                     model: loadedConfig.model || 'GLM-4.7',
                     authorizedFolders: loadedConfig.authorizedFolders || [],
@@ -210,6 +212,17 @@ export function SettingsView({ onClose }: SettingsViewProps) {
                                         placeholder="sk-..."
                                         className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-base text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                                     />
+                                    {/* 新增：获取 API Key 说明 */}
+                                    <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                        <p className="text-xs font-medium text-blue-900 mb-2">
+                                            如何获取智谱 AI API Key？
+                                        </p>
+                                        <ol className="text-xs text-blue-800 space-y-1 list-decimal list-inside">
+                                            <li>访问 <a href="https://open.bigmodel.cn" target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-900">智谱 AI 开放平台</a></li>
+                                            <li>注册/登录并进入「API Key」页面</li>
+                                            <li>生成并复制 API Key</li>
+                                        </ol>
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="block text-xs font-medium text-slate-700 mb-1.5 uppercase tracking-wider">豆包生图 API Key</label>
@@ -435,6 +448,30 @@ export function SettingsView({ onClose }: SettingsViewProps) {
                                             </button>
                                         </div>
                                     )}
+                                </div>
+
+                                {/* 新增分隔线 */}
+                                <div className="border-t border-slate-200 my-6"></div>
+
+                                {/* 新增：引导管理 */}
+                                <div className="space-y-3">
+                                    <p className="text-sm font-medium text-stone-700">引导管理</p>
+
+                                    <div className="flex items-center justify-between p-3 bg-white border border-stone-200 rounded-lg">
+                                        <div>
+                                            <p className="text-sm text-stone-700">查看用户引导</p>
+                                            <p className="text-xs text-stone-400">重新查看首次启动引导流程</p>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                window.dispatchEvent(new CustomEvent('open-user-guide'));
+                                                onClose();
+                                            }}
+                                            className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                                        >
+                                            查看引导
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div className="pt-4 border-t border-slate-100">
