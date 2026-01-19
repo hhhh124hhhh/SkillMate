@@ -8,6 +8,23 @@ export interface ToolPermission {
     grantedAt: number;      // Timestamp
 }
 
+export interface UserStyleConfig {
+    articles: string[];              // 用户文章路径列表
+    styleGuide: {
+        openingHabits: string[];      // 开头习惯
+        wordChoice: {
+            technicalLevel: number;   // 0-10
+            colloquialLevel: number;  // 0-10
+            humorLevel: number;       // 0-10
+        };
+        structureHabits: string[];    // 结构习惯
+        emotionalTone: string;        // 情感基调
+        fullAnalysis?: any;           // 完整分析结果（来自 style-learner）
+    };
+    lastUpdated: string;              // 最后更新时间
+    learningCount: number;            // 学习次数
+}
+
 export interface AppConfig {
     apiKey: string;
     doubaoApiKey?: string; // New field
@@ -24,6 +41,7 @@ export interface AppConfig {
         error: boolean;
         info: boolean;
     };
+    userStyleConfig?: UserStyleConfig;  // 个人风格配置
 }
 
 const defaults: AppConfig = {
@@ -41,6 +59,21 @@ const defaults: AppConfig = {
         workComplete: true,
         error: true,
         info: true
+    },
+    userStyleConfig: {
+        articles: [],
+        styleGuide: {
+            openingHabits: [],
+            wordChoice: {
+                technicalLevel: 5,
+                colloquialLevel: 5,
+                humorLevel: 5
+            },
+            structureHabits: [],
+            emotionalTone: ''
+        },
+        lastUpdated: '',
+        learningCount: 0
     }
 };
 
@@ -74,15 +107,31 @@ class ConfigStore {
 
     set<K extends keyof AppConfig>(key: K, value: AppConfig[K]): void {
         try {
-            console.log(`[ConfigStore.set] Setting ${key}:`, value);
+            // 特殊处理 authorizedFolders 的日志
+            if (key === 'authorizedFolders') {
+                console.log(`[ConfigStore.set] Setting authorizedFolders:`, {
+                    count: (value as string[]).length,
+                    folders: value
+                });
+            } else {
+                console.log(`[ConfigStore.set] Setting ${key}:`, value);
+            }
             this.store.set(key, value);
 
             // 验证保存
             const saved = this.store.get(key);
-            console.log(`[ConfigStore.set] Verification for ${key}:`, {
-                saved: JSON.stringify(saved),
-                equals: JSON.stringify(saved) === JSON.stringify(value)
-            });
+            if (key === 'authorizedFolders') {
+                console.log(`[ConfigStore.set] Verification for authorizedFolders:`, {
+                    savedCount: (saved as string[]).length,
+                    saved: saved,
+                    equals: JSON.stringify(saved) === JSON.stringify(value)
+                });
+            } else {
+                console.log(`[ConfigStore.set] Verification for ${key}:`, {
+                    saved: JSON.stringify(saved),
+                    equals: JSON.stringify(saved) === JSON.stringify(value)
+                });
+            }
         } catch (error) {
             console.error(`[ConfigStore.set] Failed to set ${key}:`, error);
             throw error;
@@ -95,7 +144,9 @@ class ConfigStore {
         console.log('[ConfigStore.getAll] Returning config:', {
             apiKey: data.apiKey ? '***' + data.apiKey.slice(-4) : 'empty',
             apiUrl: data.apiUrl,
-            model: data.model
+            model: data.model,
+            authorizedFoldersCount: data.authorizedFolders?.length || 0,
+            authorizedFolders: data.authorizedFolders
         });
         return data;
     }
@@ -342,6 +393,91 @@ class ConfigStore {
 
     setFirstLaunch(value: boolean): void {
         this.store.set('firstLaunch', value);
+    }
+
+    // ========== 个人风格配置管理 ==========
+
+    getUserStyleConfig(): UserStyleConfig | undefined {
+        return this.store.get('userStyleConfig');
+    }
+
+    setUserStyleConfig(config: UserStyleConfig): void {
+        console.log('[ConfigStore.setUserStyleConfig] Saving style config:', {
+            articleCount: config.articles.length,
+            learningCount: config.learningCount,
+            lastUpdated: config.lastUpdated
+        });
+        this.store.set('userStyleConfig', config);
+    }
+
+    addArticlePath(articlePath: string): void {
+        const config = this.getUserStyleConfig();
+        if (!config) {
+            console.warn('[ConfigStore.addArticlePath] userStyleConfig not initialized');
+            return;
+        }
+
+        if (!config.articles.includes(articlePath)) {
+            config.articles.push(articlePath);
+            this.setUserStyleConfig(config);
+            console.log('[ConfigStore.addArticlePath] Article path added:', articlePath);
+        }
+    }
+
+    removeArticlePath(articlePath: string): void {
+        const config = this.getUserStyleConfig();
+        if (!config) return;
+
+        config.articles = config.articles.filter(path => path !== articlePath);
+        this.setUserStyleConfig(config);
+        console.log('[ConfigStore.removeArticlePath] Article path removed:', articlePath);
+    }
+
+    updateStyleGuide(styleGuide: UserStyleConfig['styleGuide']): void {
+        const config = this.getUserStyleConfig();
+        if (!config) {
+            console.warn('[ConfigStore.updateStyleGuide] userStyleConfig not initialized');
+            return;
+        }
+
+        config.styleGuide = styleGuide;
+        config.lastUpdated = new Date().toISOString();
+        config.learningCount += 1;
+
+        this.setUserStyleConfig(config);
+        console.log('[ConfigStore.updateStyleGuide] Style guide updated, learning count:', config.learningCount);
+    }
+
+    incrementLearningCount(): void {
+        const config = this.getUserStyleConfig();
+        if (!config) return;
+
+        config.learningCount += 1;
+        config.lastUpdated = new Date().toISOString();
+
+        this.store.set('userStyleConfig', config);
+        console.log('[ConfigStore.incrementLearningCount] Learning count incremented:', config.learningCount);
+    }
+
+    clearStyleConfig(): void {
+        const defaultConfig: UserStyleConfig = {
+            articles: [],
+            styleGuide: {
+                openingHabits: [],
+                wordChoice: {
+                    technicalLevel: 5,
+                    colloquialLevel: 5,
+                    humorLevel: 5
+                },
+                structureHabits: [],
+                emotionalTone: ''
+            },
+            lastUpdated: '',
+            learningCount: 0
+        };
+
+        this.setUserStyleConfig(defaultConfig);
+        console.log('[ConfigStore.clearStyleConfig] Style config cleared');
     }
 }
 

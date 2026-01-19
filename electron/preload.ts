@@ -73,6 +73,14 @@ const ALLOWED_CHANNELS = [
   'config:reset-first-launch',
   'config:updated',               // 配置更新广播
 
+  // 个人风格配置
+  'config:get-style-config',
+  'config:save-article',
+  'config:analyze-style',
+  'config:update-style-guide',
+  'config:reanalyze-style',
+  'config:clear-style-config',
+
   // 快捷键
   'shortcut:update',
 

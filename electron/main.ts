@@ -363,6 +363,10 @@ ipcMain.handle('config:get-all', () => {
 // 🔒 安全配置获取（不包含 API Key 等敏感信息）
 ipcMain.handle('config:get-safe', () => {
   const config = configStore.getAll()
+  console.log('[config:get-safe] Current authorizedFolders from store:', {
+    count: config.authorizedFolders?.length || 0,
+    folders: config.authorizedFolders
+  })
   const safeConfig = {
     apiUrl: config.apiUrl,
     model: config.model,
@@ -373,6 +377,10 @@ ipcMain.handle('config:get-safe', () => {
     notificationTypes: config.notificationTypes,
     // ❌ 不返回: apiKey, doubaoApiKey, zhipuApiKey
   }
+  console.log('[config:get-safe] Returning safeConfig with authorizedFolders:', {
+    count: safeConfig.authorizedFolders?.length || 0,
+    folders: safeConfig.authorizedFolders
+  })
   return safeConfig
 })
 
@@ -384,56 +392,145 @@ ipcMain.handle('config:set-all', async (_, cfg) => {
     hasApiKey: !!cfg.apiKey
   })
 
-  if (cfg.apiKey !== undefined) {
-    await configStore.setApiKey(cfg.apiKey)
-    console.log('[config:set-all] Saved apiKey, length:', cfg.apiKey.length)
-  }
-  if (cfg.doubaoApiKey !== undefined) {
-    await configStore.setDoubaoApiKey(cfg.doubaoApiKey)
-    // Update .env file
-    updateEnvFile('DOUBAO_API_KEY', cfg.doubaoApiKey)
-  }
-  if (cfg.zhipuApiKey !== undefined) {
-    await configStore.setZhipuApiKey(cfg.zhipuApiKey)
-  }
-  if (cfg.apiUrl !== undefined) {
-    configStore.setApiUrl(cfg.apiUrl)
-    console.log('[config:set-all] Saved apiUrl:', cfg.apiUrl)
-  }
-  if (cfg.model !== undefined) {
-    configStore.setModel(cfg.model)
-    console.log('[config:set-all] Saved model:', cfg.model)
-  }
+  // 分别处理每个配置项，避免一个失败影响全部
+  const saveErrors: Array<{field: string, error: string}> = []
 
-  // 添加 authorizedFolders 日志
-  console.log('[config:set-all] Saving authorizedFolders:', {
-    count: cfg.authorizedFolders?.length || 0,
-    folders: cfg.authorizedFolders
-  });
-
+  // API Key
   try {
+    if (cfg.apiKey !== undefined) {
+      await configStore.setApiKey(cfg.apiKey)
+      console.log('[config:set-all] Saved apiKey, length:', cfg.apiKey.length)
+    }
+  } catch (error) {
+    const errorMsg = (error as Error).message
+    saveErrors.push({field: 'apiKey', error: errorMsg})
+    console.error('[config:set-all] Failed to save apiKey:', errorMsg)
+  }
+
+  // Doubao API Key
+  try {
+    if (cfg.doubaoApiKey !== undefined) {
+      await configStore.setDoubaoApiKey(cfg.doubaoApiKey)
+      // Update .env file
+      updateEnvFile('DOUBAO_API_KEY', cfg.doubaoApiKey)
+    }
+  } catch (error) {
+    const errorMsg = (error as Error).message
+    saveErrors.push({field: 'doubaoApiKey', error: errorMsg})
+    console.error('[config:set-all] Failed to save doubaoApiKey:', errorMsg)
+  }
+
+  // Zhipu API Key
+  try {
+    if (cfg.zhipuApiKey !== undefined) {
+      await configStore.setZhipuApiKey(cfg.zhipuApiKey)
+    }
+  } catch (error) {
+    const errorMsg = (error as Error).message
+    saveErrors.push({field: 'zhipuApiKey', error: errorMsg})
+    console.error('[config:set-all] Failed to save zhipuApiKey:', errorMsg)
+  }
+
+  // API URL
+  try {
+    if (cfg.apiUrl !== undefined) {
+      configStore.setApiUrl(cfg.apiUrl)
+      console.log('[config:set-all] Saved apiUrl:', cfg.apiUrl)
+    }
+  } catch (error) {
+    const errorMsg = (error as Error).message
+    saveErrors.push({field: 'apiUrl', error: errorMsg})
+    console.error('[config:set-all] Failed to save apiUrl:', errorMsg)
+  }
+
+  // Model
+  try {
+    if (cfg.model !== undefined) {
+      configStore.setModel(cfg.model)
+      console.log('[config:set-all] Saved model:', cfg.model)
+    }
+  } catch (error) {
+    const errorMsg = (error as Error).message
+    saveErrors.push({field: 'model', error: errorMsg})
+    console.error('[config:set-all] Failed to save model:', errorMsg)
+  }
+
+  // authorizedFolders（关键修复）
+  try {
+    console.log('[config:set-all] Saving authorizedFolders:', {
+      count: cfg.authorizedFolders?.length || 0,
+      folders: cfg.authorizedFolders
+    })
+
     configStore.set('authorizedFolders', cfg.authorizedFolders || [])
-    console.log('[config:set-all] authorizedFolders saved successfully');
+    console.log('[config:set-all] authorizedFolders saved successfully')
 
     // 验证保存
-    const savedFolders = configStore.get('authorizedFolders');
+    const savedFolders = configStore.get('authorizedFolders')
     console.log('[config:set-all] Verification - saved folders:', {
       count: savedFolders?.length || 0,
       folders: savedFolders
-    });
+    })
   } catch (error) {
-    console.error('[config:set-all] Failed to save authorizedFolders:', error);
+    const errorMsg = (error as Error).message
+    saveErrors.push({field: 'authorizedFolders', error: errorMsg})
+    console.error('[config:set-all] Failed to save authorizedFolders:', errorMsg)
   }
 
-  configStore.setNetworkAccess(cfg.networkAccess || false)
-  if (cfg.shortcut !== undefined) configStore.set('shortcut', cfg.shortcut)
+  // Network Access
+  try {
+    configStore.setNetworkAccess(cfg.networkAccess || false)
+  } catch (error) {
+    const errorMsg = (error as Error).message
+    saveErrors.push({field: 'networkAccess', error: errorMsg})
+    console.error('[config:set-all] Failed to save networkAccess:', errorMsg)
+  }
+
+  // Shortcut
+  try {
+    if (cfg.shortcut !== undefined) {
+      configStore.set('shortcut', cfg.shortcut)
+    }
+  } catch (error) {
+    const errorMsg = (error as Error).message
+    saveErrors.push({field: 'shortcut', error: errorMsg})
+    console.error('[config:set-all] Failed to save shortcut:', errorMsg)
+  }
+
+  // Notifications
+  try {
+    if (cfg.notifications !== undefined) {
+      configStore.set('notifications', cfg.notifications)
+    }
+  } catch (error) {
+    const errorMsg = (error as Error).message
+    saveErrors.push({field: 'notifications', error: errorMsg})
+    console.error('[config:set-all] Failed to save notifications:', errorMsg)
+  }
+
+  // Notification Types
+  try {
+    if (cfg.notificationTypes !== undefined) {
+      configStore.set('notificationTypes', cfg.notificationTypes)
+    }
+  } catch (error) {
+    const errorMsg = (error as Error).message
+    saveErrors.push({field: 'notificationTypes', error: errorMsg})
+    console.error('[config:set-all] Failed to save notificationTypes:', errorMsg)
+  }
+
+  // 汇总保存错误
+  if (saveErrors.length > 0) {
+    console.error('[config:set-all] Some fields failed to save:', saveErrors)
+  }
 
   // Verify save
   const savedConfig = configStore.getAll()
   console.log('[config:set-all] Verification after save:', {
     apiKey: savedConfig.apiKey ? '***' + savedConfig.apiKey.slice(-4) : 'empty',
     apiUrl: savedConfig.apiUrl,
-    model: savedConfig.model
+    model: savedConfig.model,
+    authorizedFoldersCount: savedConfig.authorizedFolders?.length || 0
   })
 
   // Reinitialize agent
@@ -444,6 +541,330 @@ ipcMain.handle('config:set-all', async (_, cfg) => {
     win.webContents.send('config:updated')
   })
   console.log('[config:set-all] Broadcasted config:updated event to all windows')
+
+  return {
+    success: saveErrors.length === 0,
+    errors: saveErrors
+  }
+})
+
+// ========== 个人风格配置 IPC 通道 ==========
+
+// 获取用户的风格配置
+ipcMain.handle('config:get-style-config', () => {
+  try {
+    const config = configStore.getUserStyleConfig()
+    console.log('[config:get-style-config] Returning style config:', {
+      articleCount: config?.articles.length || 0,
+      learningCount: config?.learningCount || 0,
+      hasStyleGuide: !!config?.styleGuide
+    })
+    return config || {
+      articles: [],
+      styleGuide: {
+        openingHabits: [],
+        wordChoice: { technicalLevel: 5, colloquialLevel: 5, humorLevel: 5 },
+        structureHabits: [],
+        emotionalTone: ''
+      },
+      lastUpdated: '',
+      learningCount: 0
+    }
+  } catch (error) {
+    console.error('[config:get-style-config] Error:', error)
+    return {
+      articles: [],
+      styleGuide: {
+        openingHabits: [],
+        wordChoice: { technicalLevel: 5, colloquialLevel: 5, humorLevel: 5 },
+        structureHabits: [],
+        emotionalTone: ''
+      },
+      lastUpdated: '',
+      learningCount: 0
+    }
+  }
+})
+
+// 保存用户文章
+ipcMain.handle('config:save-article', async (_event, { content, filename }: { content: string; filename: string }) => {
+  try {
+    const fs = await import('fs')
+    const path = await import('path')
+    const os = await import('os')
+
+    // 创建用户文章目录
+    const userArticlesDir = path.join(os.homedir(), 'wechatflowwork-user-data', 'user-articles')
+    await fs.promises.mkdir(userArticlesDir, { recursive: true })
+
+    // 保存文章
+    const articlePath = path.join(userArticlesDir, filename)
+    await fs.promises.writeFile(articlePath, content, 'utf-8')
+
+    // 添加到配置
+    configStore.addArticlePath(articlePath)
+
+    console.log('[config:save-article] Article saved:', articlePath)
+    return { success: true, path: articlePath }
+  } catch (error) {
+    const errorMsg = (error as Error).message
+    console.error('[config:save-article] Failed to save article:', errorMsg)
+    return { success: false, error: errorMsg }
+  }
+})
+
+// 分析用户文章风格
+ipcMain.handle('config:analyze-style', async (_event, { articlePaths }: { articlePaths: string[] }) => {
+  try {
+    console.log('[config:analyze-style] Analyzing', articlePaths.length, 'articles')
+
+    // 读取所有文章内容
+    const fs = await import('fs')
+    const articlesContent: string[] = []
+
+    for (const articlePath of articlePaths) {
+      try {
+        const content = await fs.promises.readFile(articlePath, 'utf-8')
+        articlesContent.push(content)
+      } catch (error) {
+        console.error(`[config:analyze-style] Failed to read article: ${articlePath}`, error)
+      }
+    }
+
+    if (articlesContent.length === 0) {
+      throw new Error('没有可用的文章内容')
+    }
+
+    // 合并文章内容（使用分隔符）
+    const articlesText = articlesContent.join('\n\n=== 文章分隔 ===\n\n')
+
+    // 调用 style-learner Python 脚本
+    const { spawn } = await import('child_process')
+    const path = await import('path')
+    const { app } = await import('electron')
+
+    // 解析 style-learner 脚本路径（与 SkillManager 保持一致）
+    let scriptPath: string
+    if (app.isPackaged) {
+      // 生产模式：尝试 resources/skills 或 skills
+      const possiblePath = path.join(process.resourcesPath, 'resources', 'skills', 'style-learner', 'scripts', 'style_learner.py')
+      const fallbackPath = path.join(process.resourcesPath, 'skills', 'style-learner', 'scripts', 'style_learner.py')
+      try {
+        const fs = await import('fs')
+        await fs.promises.access(possiblePath)
+        scriptPath = possiblePath
+      } catch {
+        scriptPath = fallbackPath
+      }
+    } else {
+      // 开发模式：使用项目根目录
+      scriptPath = path.join(process.cwd(), 'resources', 'skills', 'style-learner', 'scripts', 'style_learner.py')
+    }
+
+    console.log('[config:analyze-style] Calling style_learner.py at:', scriptPath)
+
+    const result = await new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
+      const python = spawn('python', [scriptPath], {
+        env: {
+          ...process.env,
+          PYTHONIOENCODING: 'utf-8'
+        }
+      })
+
+      let stdout = ''
+      let stderr = ''
+
+      python.stdout.on('data', (data) => {
+        stdout += data.toString()
+      })
+
+      python.stderr.on('data', (data) => {
+        stderr += data.toString()
+      })
+
+      python.on('close', (code) => {
+        if (code === 0) {
+          resolve({ stdout, stderr })
+        } else {
+          reject(new Error(`Python script exited with code ${code}: ${stderr}`))
+        }
+      })
+
+      python.on('error', (error) => {
+        reject(error)
+      })
+
+      // 发送文章内容到 stdin
+      python.stdin.write(JSON.stringify({
+        action: 'analyze_style',
+        articles: articlesText,
+        output_file: 'user-style-analysis.json'
+      }))
+      python.stdin.end()
+    })
+
+    // 解析 Python 脚本的输出
+    let analysisResult: any
+    try {
+      analysisResult = JSON.parse(result.stdout)
+    } catch (error) {
+      console.error('[config:analyze-style] Failed to parse Python output:', result.stdout)
+      throw new Error('解析分析结果失败')
+    }
+
+    if (analysisResult.status !== 'success') {
+      throw new Error(analysisResult.message || '分析失败')
+    }
+
+    // 保存分析结果到文件
+    const os = await import('os')
+    const userDataDir = path.join(os.homedir(), 'wechatflowwork-user-data')
+    await fs.promises.mkdir(userDataDir, { recursive: true })
+
+    const analysisPath = path.join(userDataDir, 'user-style-analysis.json')
+    await fs.promises.writeFile(analysisPath, JSON.stringify(analysisResult, null, 2), 'utf-8')
+
+    // 更新配置 - 从 style-learner 的结果中提取风格指南
+    const features = analysisResult.style_features || {}
+
+    // 转换 opening_style.patterns 对象为数组
+    const openingHabitsArray = features.opening_style?.patterns ?
+      Object.entries(features.opening_style.patterns)
+        .filter(([_, count]) => count > 0)
+        .map(([name, _]) => name) : []
+
+    const styleGuide = {
+      openingHabits: openingHabitsArray,
+      wordChoice: {
+        technicalLevel: features.language_style?.tone === '专业' ? 7 : 5,
+        colloquialLevel: features.language_style?.vocabulary?.includes('通俗') ? 7 : 5,
+        humorLevel: 5
+      },
+      structureHabits: [
+        features.content_structure?.structure || '未知',
+        `段落数: ${features.content_structure?.paragraph_count?.avg || 0}`,
+        `句长: ${features.language_style?.sentence_length?.avg || 0}字`
+      ],
+      emotionalTone: features.tone_style?.dominant_tone || features.emotion_style?.dominant_emotion || analysisResult.style_description || '',
+      // 新增：保存完整分析结果
+      fullAnalysis: features
+    }
+
+    configStore.updateStyleGuide(styleGuide)
+
+    // 适配结果格式以匹配 PersonalStyleTab 的 AnalysisResult 接口
+    const adaptedResult = {
+      openingHabits: {
+        patterns: Object.keys(features.opening_style?.patterns || {}),
+        distribution: features.opening_style?.patterns || {},
+        examples: []  // style-learner 不提供示例，返回空数组
+      },
+      wordChoice: {
+        technicalLevel: features.language_style?.tone === '专业' ? 7 : 5,
+        colloquialLevel: features.language_style?.vocabulary?.includes('通俗') ? 7 : 5,
+        humorLevel: 5,
+        frequentWords: {
+          colloquial: features.common_phrases_style?.colloquial || [],
+          emotional: features.emotion_style?.emotion_scores ? Object.keys(features.emotion_style.emotion_scores) : [],
+          technical: features.language_style?.keywords || []
+        }
+      },
+      structureHabits: {
+        mainPattern: features.content_structure?.structure || '未知',
+        distribution: features.content_structure?.paragraph_count ? {
+          '最小': features.content_structure.paragraph_count.min || 0,
+          '平均': features.content_structure.paragraph_count.avg || 0,
+          '最大': features.content_structure.paragraph_count.max || 0
+        } : {},
+        paragraphLength: features.content_structure?.paragraph_length || {},
+        sentenceLength: features.language_style?.sentence_length || {},
+        useSubheadings: false  // style-learner 没有这个字段，默认 false
+      },
+      emotionalExpression: {
+        dominantTone: features.tone_style?.dominant_tone || features.emotion_style?.dominant_emotion || '未知',
+        wordDensity: features.emotion_style?.emotion_intensity === '强' ? 30 : 15,  // 估算值
+        changePattern: features.emotion_style?.sentiment_trend || '稳定'
+      }
+    }
+
+    console.log('[config:analyze-style] Analysis complete')
+    return {
+      success: true,
+      result: adaptedResult,
+      analysisPath
+    }
+  } catch (error) {
+    const errorMsg = (error as Error).message
+    console.error('[config:analyze-style] Failed to analyze:', errorMsg)
+    return { success: false, error: errorMsg }
+  }
+})
+
+// 更新风格指南
+ipcMain.handle('config:update-style-guide', async (_event, { styleGuide }: { styleGuide: any }) => {
+  try {
+    configStore.updateStyleGuide(styleGuide)
+    console.log('[config:update-style-guide] Style guide updated')
+    return { success: true }
+  } catch (error) {
+    const errorMsg = (error as Error).message
+    console.error('[config:update-style-guide] Failed to update:', errorMsg)
+    return { success: false, error: errorMsg }
+  }
+})
+
+// 重新分析风格
+ipcMain.handle('config:reanalyze-style', async () => {
+  try {
+    const config = configStore.getUserStyleConfig()
+    if (!config || config.articles.length === 0) {
+      return {
+        success: false,
+        error: '没有找到用户文章，请先上传文章'
+      }
+    }
+
+    // 读取所有文章
+    const fs = await import('fs')
+    const articles: string[] = []
+
+    for (const articlePath of config.articles) {
+      try {
+        const content = await fs.promises.readFile(articlePath, 'utf-8')
+        articles.push(content)
+      } catch (error) {
+        console.warn('[config:reanalyze-style] Failed to read article:', articlePath)
+      }
+    }
+
+    if (articles.length === 0) {
+      return {
+        success: false,
+        error: '没有可用的文章内容'
+      }
+    }
+
+    // 重新分析
+    const result = await analyzeArticles(articles)
+    return result
+  } catch (error) {
+    const errorMsg = (error as Error).message
+    console.error('[config:reanalyze-style] Failed:', errorMsg)
+    return { success: false, error: errorMsg }
+  }
+})
+
+// 清除风格配置
+ipcMain.handle('config:clear-style-config', () => {
+  try {
+    configStore.clearStyleConfig()
+    console.log('[config:clear-style-config] Style config cleared')
+    return { success: true }
+  } catch (error) {
+    const errorMsg = (error as Error).message
+    console.error('[config:clear-style-config] Failed:', errorMsg)
+    return { success: false, error: errorMsg }
+  }
 })
 
 // 首次启动配置处理
@@ -1050,4 +1471,59 @@ setInterval(() => {
   if (floatingBallWin && !floatingBallWin.isDestroyed()) {
     floatingBallWin.setAlwaysOnTop(true, 'screen-saver')
   }
-}, 2000)
+})
+
+/**
+ * 分析文章风格（调用AI）
+ */
+async function analyzeArticles(articles: string[]): Promise<any> {
+  // TODO: 集成 AI API 进行风格分析
+  // 目前返回模拟数据
+  console.log('[analyzeArticles] Analyzing', articles.length, 'articles (AI integration pending)')
+
+  // 这里应该调用 AI API (如 Anthropic API) 进行风格分析
+  // 示例伪代码：
+  // const response = await anthropic.messages.create({
+  //   model: 'claude-sonnet-4-20250514',
+  //   max_tokens: 4096,
+  //   messages: [{
+  //     role: 'user',
+  //     content: generateStyleAnalysisPrompt(articles)
+  //   }]
+  // })
+  // return response.content
+
+  // 返回模拟数据
+  return {
+    success: true,
+    result: {
+      openingHabits: {
+        patterns: ['先讲故事', '先抛问题'],
+        distribution: { '先讲故事': 0.6, '先抛问题': 0.4 },
+        examples: articles.slice(0, 3).map((_, i) => `示例${i + 1}...`)
+      },
+      wordChoice: {
+        technicalLevel: 4,
+        colloquialLevel: 7,
+        humorLevel: 5,
+        frequentWords: {
+          colloquial: ['说实话', 'emm', '这事儿'],
+          emotional: ['震撼', '焦虑', '真香'],
+          technical: ['API', '前端']
+        }
+      },
+      structureHabits: {
+        mainPattern: '递进式',
+        distribution: { '递进式': 0.5, '总分总': 0.3, '其他': 0.2 },
+        paragraphLength: { '短': 0.6, '中': 0.3, '长': 0.1 },
+        sentenceLength: { '短': 0.7, '中': 0.25, '长': 0.05 },
+        useSubheadings: true
+      },
+      emotionalExpression: {
+        dominantTone: '反思 + 激励',
+        wordDensity: 8,
+        changePattern: '困惑 → 拒绝 → 接受 → 喜欢'
+      }
+    }
+  }
+}

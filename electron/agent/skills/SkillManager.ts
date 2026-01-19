@@ -52,6 +52,11 @@ export class SkillManager {
             return; // No skills directory
         }
 
+        // Track loading statistics
+        let successCount = 0;
+        let failureCount = 0;
+        const failedSkills: string[] = [];
+
         const files = await fs.readdir(this.skillsDir);
         for (const file of files) {
             const filePath = path.join(this.skillsDir, file);
@@ -65,24 +70,36 @@ export class SkillManager {
                 const skillMdPath = path.join(filePath, 'SKILL.md');
                 try {
                     await fs.access(skillMdPath);
-                    await this.parseSkill(skillMdPath);
-                } catch {
-                    // console.log(`No SKILL.md found in ${file}`);
+                    const success = await this.parseSkill(skillMdPath);
+                    if (success) successCount++; else failureCount++;
+                } catch (error) {
+                    console.warn(`[SkillManager] ⚠ No SKILL.md found in ${file}`);
+                    failureCount++;
+                    failedSkills.push(file);
                 }
             } else if (file.endsWith('.md')) {
                 // Support legacy single-file skills
-                await this.parseSkill(filePath);
+                const success = await this.parseSkill(filePath);
+                if (success) successCount++; else failureCount++;
             }
         }
-        console.log(`Loaded ${this.skills.size} skills`);
+
+        // Log loading summary
+        console.log(`[SkillManager] 📊 Loading summary: ${successCount} succeeded, ${failureCount} failed`);
+        if (failedSkills.length > 0) {
+            console.warn(`[SkillManager] ❌ Failed skills: ${failedSkills.join(', ')}`);
+        }
     }
 
-    private async parseSkill(filePath: string) {
+    private async parseSkill(filePath: string): Promise<boolean> {
         const startTime = Date.now();
         try {
             const content = await fs.readFile(filePath, 'utf-8');
             const parts = content.split('---');
-            if (parts.length < 3) return; // Invalid frontmatter structure
+            if (parts.length < 3) {
+                console.error(`[SkillManager] ❌ Invalid frontmatter structure in ${filePath}: Expected at least 3 '---' separators, found ${parts.length}`);
+                return false;
+            }
 
             const frontmatter = yaml.load(parts[1]) as {
                 name?: string;
@@ -118,11 +135,18 @@ export class SkillManager {
                     input_schema: frontmatter.input_schema || { type: 'object', properties: {} },
                     instructions: instructions
                 });
+                return true;
             } else {
-                console.warn(`[SkillManager] Invalid frontmatter in ${filePath}`);
+                // Enhanced error message with specific missing fields
+                const missingFields = [];
+                if (!frontmatter?.name) missingFields.push('name');
+                if (!frontmatter?.description) missingFields.push('description');
+                console.warn(`[SkillManager] ⚠ Invalid frontmatter in ${filePath}: Missing ${missingFields.join(', ')}`);
+                return false;
             }
         } catch (e) {
-            console.error(`Failed to load skill from ${filePath}`, e);
+            console.error(`[SkillManager] ❌ Failed to load skill from ${filePath}:`, e);
+            return false;
         }
     }
 
@@ -150,7 +174,35 @@ export class SkillManager {
             if (skill) skillName = alternativeName;
         }
 
-        if (!skill) return undefined;
+        // Try case-insensitive match if still not found
+        if (!skill) {
+            for (const [key, value] of this.skills.entries()) {
+                if (key.toLowerCase() === name.toLowerCase()) {
+                    skill = value;
+                    skillName = key;
+                    break;
+                }
+            }
+        }
+
+        // Try normalized match (remove all non-alphanumeric chars) if still not found
+        if (!skill) {
+            const normalizedInput = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+            for (const [key, value] of this.skills.entries()) {
+                const normalizedKey = key.toLowerCase().replace(/[^a-z0-9]/g, '');
+                if (normalizedKey === normalizedInput) {
+                    skill = value;
+                    skillName = key;
+                    console.log(`[SkillManager] 🔄 Matched ${name} to ${key} using normalized matching`);
+                    break;
+                }
+            }
+        }
+
+        if (!skill) {
+            console.warn(`[SkillManager] ⚠ Skill not found: ${name}. Available skills: ${Array.from(this.skills.keys()).join(', ')}`);
+            return undefined;
+        }
 
         // Return both instructions and the skill directory path
         const skillDir = path.join(this.skillsDir, skillName);

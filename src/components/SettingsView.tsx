@@ -1,9 +1,29 @@
 import { useState, useEffect } from 'react';
-import { X, Settings, FolderOpen, Server, Check, Plus } from 'lucide-react';
+import { X, Settings, FolderOpen, Server, Check, Plus, Sparkles } from 'lucide-react';
+import { PersonalStyleTab } from './PersonalStyleTab.js';
+
+// 路径规范化辅助函数（处理 Windows 路径格式差异）
+const normalizePath = (filePath: string): string => {
+    if (!filePath) return '';
+    // 移除首尾空格
+    let normalized = filePath.trim();
+    // 统一使用反斜杠（Windows 风格）
+    normalized = normalized.replace(/\//g, '\\');
+    // 移除末尾的反斜杠
+    normalized = normalized.replace(/\\+$/, '');
+    // Windows 不区分大小写，转为小写用于比较
+    return normalized.toLowerCase();
+};
+
+// 检查路径是否已存在（忽略大小写和斜杠格式）
+const isFolderInList = (folder: string, folderList: string[]): boolean => {
+    const normalized = normalizePath(folder);
+    return folderList.some(f => normalizePath(f) === normalized);
+};
 
 interface SettingsViewProps {
     onClose: () => void;
-    initialTab?: 'api' | 'folders' | 'advanced';
+    initialTab?: 'api' | 'folders' | 'advanced' | 'personalStyle';
 }
 
 interface Config {
@@ -45,8 +65,9 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
         }
     });
     const [saved, setSaved] = useState(false);
-    const [activeTab, setActiveTab] = useState<'api' | 'folders' | 'advanced'>(initialTab);
+    const [activeTab, setActiveTab] = useState<'api' | 'folders' | 'advanced' | 'personalStyle'>(initialTab);
     const [isRecordingShortcut, setIsRecordingShortcut] = useState(false);
+    const [lastAddedFolder, setLastAddedFolder] = useState<string | null>(null); // 用于高亮最新添加的文件夹
 
     // Permissions State
     const [permissions, setPermissions] = useState<ToolPermission[]>([]);
@@ -175,11 +196,25 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
     };
 
     const handleSave = async () => {
-        console.log('[SettingsView.handleSave] Saving config:', {
+        console.log('[SettingsView.handleSave] === Starting save ===');
+        console.log('[SettingsView.handleSave] Full config object:', config);
+        console.log('[SettingsView.handleSave] authorizedFolders:', config.authorizedFolders);
+        console.log('[SettingsView.handleSave] authorizedFolders count:', config.authorizedFolders?.length);
+
+        const configToSend = {
+            apiKey: config.apiKey,
+            doubaoApiKey: config.doubaoApiKey,
+            apiUrl: config.apiUrl,
+            model: config.model,
             authorizedFolders: config.authorizedFolders,
-            authorizedFoldersCount: config.authorizedFolders?.length
-        });
-        await window.ipcRenderer.invoke('config:set-all', config);
+            networkAccess: config.networkAccess,
+            shortcut: config.shortcut,
+            notifications: config.notifications,
+            notificationTypes: config.notificationTypes
+        };
+        console.log('[SettingsView.handleSave] Sending config to IPC:', configToSend);
+
+        await window.ipcRenderer.invoke('config:set-all', configToSend);
         setSaved(true);
         setTimeout(() => {
             setSaved(false);
@@ -192,14 +227,36 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
             console.log('[SettingsView.addFolder] Invoking dialog:select-folder...');
             const result = await window.ipcRenderer.invoke('dialog:select-folder') as string | null;
             console.log('[SettingsView.addFolder] Selected folder:', result);
-            const currentFolders = config.authorizedFolders || [];
-            if (result && !currentFolders.includes(result)) {
-                const newFolders = [...currentFolders, result];
-                console.log('[SettingsView.addFolder] New folders:', newFolders);
-                setConfig({ ...config, authorizedFolders: newFolders });
-            } else if (result && currentFolders.includes(result)) {
-                console.log('[SettingsView.addFolder] Folder already in list:', result);
+
+            if (!result) {
+                console.log('[SettingsView.addFolder] No folder selected (user canceled)');
+                return;
             }
+
+            const currentFolders = config.authorizedFolders || [];
+
+            // 使用新的去重逻辑（忽略大小写和斜杠格式）
+            if (isFolderInList(result, currentFolders)) {
+                console.log('[SettingsView.addFolder] Folder already in list:', result);
+                alert('该文件夹已在授权列表中');
+                return;
+            }
+
+            // 添加新文件夹（保持原始路径格式）
+            const newFolders = [...currentFolders, result];
+            console.log('[SettingsView.addFolder] Adding folder. New list:', newFolders);
+
+            // 确保状态更新
+            setConfig(prev => ({
+                ...prev,
+                authorizedFolders: newFolders
+            }));
+
+            // 高亮最新添加的文件夹（3秒后取消高亮）
+            setLastAddedFolder(result);
+            setTimeout(() => setLastAddedFolder(null), 3000);
+
+            console.log('[SettingsView.addFolder] Folder added successfully:', result);
         } catch (error) {
             console.error('[SettingsView.addFolder] Error:', error);
             alert('打开文件夹选择对话框失败：' + (error as Error).message);
@@ -235,6 +292,7 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
                     {[
                         { id: 'api' as const, label: '通用', icon: <Settings size={14} /> },
                         { id: 'folders' as const, label: '权限', icon: <FolderOpen size={14} /> },
+                        { id: 'personalStyle' as const, label: '个人风格', icon: <Sparkles size={14} /> },
                         { id: 'advanced' as const, label: '高级', icon: <Settings size={14} /> },
                     ].map(tab => (
                         <button
@@ -352,11 +410,15 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
                                         {(config.authorizedFolders || []).map((folder, idx) => (
                                             <div
                                                 key={idx}
-                                                className="flex items-center justify-between p-3 bg-white border border-stone-200 rounded-lg group"
+                                                className={`flex items-center justify-between p-3 bg-white border rounded-lg group transition-all ${
+                                                    folder === lastAddedFolder
+                                                        ? 'border-green-400 bg-green-50'
+                                                        : 'border-stone-200'
+                                                }`}
                                             >
                                                 <div className="flex items-center gap-3 overflow-hidden">
-                                                    <FolderOpen size={16} className="text-stone-400 shrink-0" />
-                                                    <span className="text-sm font-mono text-stone-600 truncate">
+                                                    <FolderOpen size={16} className={`shrink-0 ${folder === lastAddedFolder ? 'text-green-600' : 'text-stone-400'}`} />
+                                                    <span className={`text-sm font-mono truncate ${folder === lastAddedFolder ? 'text-green-700' : 'text-stone-600'}`}>
                                                         {folder}
                                                     </span>
                                                 </div>
@@ -379,6 +441,10 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
                                     添加文件夹
                                 </button>
 
+                                <div className="text-xs text-slate-500 mt-2 text-center">
+                                    💡 提示：添加文件夹后请点击"保存设置"按钮以保存更改
+                                </div>
+
                                 <div className="pt-4 border-t border-slate-100">
                                     <button
                                         onClick={handleSave}
@@ -393,6 +459,10 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
                                     </button>
                                 </div>
                             </>
+                        )}
+
+                        {activeTab === 'personalStyle' && (
+                            <PersonalStyleTab onConfigChange={() => {/* 配置变化时的回调 */}} />
                         )}
 
                         {activeTab === 'advanced' && (
