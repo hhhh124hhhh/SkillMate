@@ -1,0 +1,32 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "description": "文件系统访问 - 允许AI访问指定目录的文件",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "ALLOWED_PATH"],
+      "env": {}
+    },
+    "fetch": {
+      "description": "网页抓取 - 允许AI获取网页内容",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-fetch"],
+      "env": {}
+    },
+    "brave-search": {
+      "description": "网页搜索 - 使用Brave搜索API（需要API Key）",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-brave-search"],
+      "env": {
+        "BRAVE_API_KEY": "YOUR_BRAVE_API_KEY_HERE"
+      }
+    },
+    "github": {
+      "description": "GitHub集成 - 访问仓库、问题、PR等（需要GitHub Token）",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "YOUR_GITHUB_TOKEN_HERE"
+      }
+    }
+  }
+}

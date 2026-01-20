@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Square, ArrowUp, ChevronDown, ChevronUp, Download, FolderOpen, MessageCircle, Zap, AlertTriangle, Check, X, Settings, History, Plus, Trash2, PenTool, Search, Layout, Type, FileUp, FileText, FileSpreadsheet, Braces, Eye, Image } from 'lucide-react';
+import { Square, ArrowUp, ChevronDown, ChevronUp, Download, FolderOpen, MessageCircle, Zap, AlertTriangle, Check, X, Settings, History, Plus, Trash2, PenTool, Search, Layout, Type, FileUp, FileText, FileSpreadsheet, Braces, Eye, Image, Code, FileSearch, Wrench, Lightbulb } from 'lucide-react';
 import { MarkdownRenderer } from './MarkdownRenderer.js';
 import { FilePreview } from './FilePreview.js';
 import Anthropic from '@anthropic-ai/sdk';
@@ -875,7 +875,7 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
                                     onPaste={handlePaste}
-                                    placeholder={mode === 'chat' ? "输入消息或拖放文件... (Ctrl+L 聚焦)" : workingDir ? "开始干活：找热门选题、批量生成标题、快速写作、文章排版... (Ctrl+L 聚焦)" : "请先选择工作目录"}
+                                    placeholder={mode === 'chat' ? "输入消息或拖放文件... (Ctrl+L 聚焦)" : workingDir ? "输入任务或问题，例如：帮我分析这个文件、生成代码、优化性能等 (Ctrl+L 聚焦)" : "开始使用 AI Agent"}
                                     className="flex-1 bg-transparent text-slate-800 placeholder:text-slate-400 py-3 text-sm focus:outline-none"
                                     disabled={isProcessing}
                                 />
@@ -1079,18 +1079,18 @@ function EmptyState({ onAction }: { mode: Mode, workingDir: string | null, onAct
             </div>
             <div className="space-y-3 max-w-md">
                 <h2 className="text-2xl font-bold text-slate-800 tracking-tight">
-                    公众号运营牛马
+                    AI Agent Desktop
                 </h2>
                 <p className="text-slate-500 text-sm leading-relaxed">
-                    嗨，我是你的私人运营牛马！不止是聊天，更是真正能帮你干活的运营助手，开始干活吧，从选题到发布全流程搞定～
+                    嗨，我是你的 AI 助手！我可以帮你编写代码、分析数据、创建内容、管理文件等各种任务，让工作更高效～
                 </p>
             </div>
             <div className="grid grid-cols-2 gap-3 w-full max-w-lg px-4">
                 {[
-                    { icon: Search, label: '找热门选题', action: '帮我找一些热门选题', color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-200' },
-                    { icon: Type, label: '批量标题', action: '帮我生成10个吸引人的标题', color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-200' },
-                    { icon: PenTool, label: '快速写作', action: '帮我快速写一篇运营文章', color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-200' },
-                    { icon: Layout, label: '文章排版', action: '帮我排版这篇文章', color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-200' }
+                    { icon: Code, label: '代码生成', action: '帮我生成一个函数，功能是：[描述你的需求]', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200' },
+                    { icon: FileSearch, label: '代码分析', action: '分析这个代码的功能和改进建议', color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-200' },
+                    { icon: Wrench, label: '问题诊断', action: '帮我调试这段代码，找出错误原因', color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200' },
+                    { icon: Lightbulb, label: '方案设计', action: '帮我设计一个解决方案，需求是：[描述需求]', color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200' }
                 ].map((item, i) => (
                     <button
                         key={i}

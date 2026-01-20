@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
-import { X, Settings, FolderOpen, Server, Check, Plus } from 'lucide-react';
+import { X, Settings, FolderOpen, Server, Check, Plus, Code, Palette } from 'lucide-react';
+import { SkillsEditor } from './SkillsEditor.js';
+import { MCPConfigEditor } from './MCPConfigEditor.js';
+import { QuickActionsEditor } from './QuickActionsEditor.js';
 
 interface SettingsViewProps {
     onClose: () => void;
-    initialTab?: 'api' | 'folders' | 'advanced';
+    initialTab?: 'api' | 'folders' | 'advanced' | 'skills' | 'mcp' | 'quickactions';
 }
 
 interface Config {
@@ -45,7 +48,7 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
         }
     });
     const [saved, setSaved] = useState(false);
-    const [activeTab, setActiveTab] = useState<'api' | 'folders' | 'advanced'>(initialTab);
+    const [activeTab, setActiveTab] = useState<'api' | 'folders' | 'advanced' | 'skills' | 'mcp' | 'quickactions'>(initialTab);
     const [isRecordingShortcut, setIsRecordingShortcut] = useState(false);
 
     // Permissions State
@@ -235,6 +238,9 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
                     {[
                         { id: 'api' as const, label: '通用', icon: <Settings size={14} /> },
                         { id: 'folders' as const, label: '权限', icon: <FolderOpen size={14} /> },
+                        { id: 'skills' as const, label: '技能管理', icon: <Code size={14} /> },
+                        { id: 'mcp' as const, label: 'MCP 配置', icon: <Server size={14} /> },
+                        { id: 'quickactions' as const, label: '快捷操作', icon: <Palette size={14} /> },
                         { id: 'advanced' as const, label: '高级', icon: <Settings size={14} /> },
                     ].map(tab => (
                         <button
@@ -547,6 +553,18 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
                                     </button>
                                 </div>
                             </>
+                        )}
+
+                        {activeTab === 'skills' && (
+                            <SkillsEditor onClose={onClose} />
+                        )}
+
+                        {activeTab === 'mcp' && (
+                            <MCPConfigEditor onClose={onClose} />
+                        )}
+
+                        {activeTab === 'quickactions' && (
+                            <QuickActionsEditor onClose={onClose} />
                         )}
                     </div>
                 </div>

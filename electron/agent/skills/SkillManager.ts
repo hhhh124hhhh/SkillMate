@@ -1,5 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
+import os from 'os';
 import yaml from 'js-yaml';
 import { app } from 'electron';
 import { SkillEncryption, EncryptedSkillData } from '../../security/SkillEncryption.js';
@@ -46,15 +47,28 @@ export class SkillManager {
         await this.initializeDefaults(); // Ensure defaults are installed before loading
 
         this.skills.clear();
+
+        // 1. Load user skills first (higher priority)
+        const userSkillsDir = path.join(os.homedir(), '.aiagent', 'skills');
+        await this.loadSkillsFromDirectory(userSkillsDir, 'user');
+
+        // 2. Load builtin skills (lower priority, can be overridden)
+        await this.loadSkillsFromDirectory(this.skillsDir, 'builtin');
+
+        console.log(`[SkillManager] Loaded ${this.skills.size} skills total`);
+    }
+
+    private async loadSkillsFromDirectory(dir: string, source: 'user' | 'builtin') {
         try {
-            await fs.access(this.skillsDir);
+            await fs.access(dir);
         } catch {
-            return; // No skills directory
+            console.log(`[SkillManager] ${source} skills directory not found: ${dir}`);
+            return;
         }
 
-        const files = await fs.readdir(this.skillsDir);
+        const files = await fs.readdir(dir);
         for (const file of files) {
-            const filePath = path.join(this.skillsDir, file);
+            const filePath = path.join(dir, file);
             let stats;
             try {
                 stats = await fs.stat(filePath);
@@ -65,19 +79,18 @@ export class SkillManager {
                 const skillMdPath = path.join(filePath, 'SKILL.md');
                 try {
                     await fs.access(skillMdPath);
-                    await this.parseSkill(skillMdPath);
+                    await this.parseSkill(skillMdPath, source);
                 } catch {
                     // console.log(`No SKILL.md found in ${file}`);
                 }
             } else if (file.endsWith('.md')) {
                 // Support legacy single-file skills
-                await this.parseSkill(filePath);
+                await this.parseSkill(filePath, source);
             }
         }
-        console.log(`Loaded ${this.skills.size} skills`);
     }
 
-    private async parseSkill(filePath: string) {
+    private async parseSkill(filePath: string, source: 'user' | 'builtin' = 'builtin') {
         const startTime = Date.now();
         try {
             const content = await fs.readFile(filePath, 'utf-8');
@@ -111,7 +124,7 @@ export class SkillManager {
 
             if (frontmatter && frontmatter.name && frontmatter.description) {
                 const loadTime = Date.now() - startTime;
-                console.log(`[SkillManager] ✅ Loaded ${frontmatter.name} (desc: ${frontmatter.description}, inst len: ${instructions.length}, load time: ${loadTime}ms)`);
+                console.log(`[SkillManager] ✅ Loaded [${source}] ${frontmatter.name} (desc: ${frontmatter.description}, inst len: ${instructions.length}, load time: ${loadTime}ms)`);
                 this.skills.set(frontmatter.name, {
                     name: frontmatter.name,
                     description: frontmatter.description,

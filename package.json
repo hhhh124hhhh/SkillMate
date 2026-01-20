@@ -1,11 +1,11 @@
 {
-  "name": "wechat-flowwork",
+  "name": "ai-agent-desktop",
   "private": true,
   "version": "1.0.0",
-  "description": "WeChat_Flowwork - 激发人性的公众号创作AI助手 · 内置16个创作技能，下载即用，开箱即用",
+  "description": "AI Agent Desktop - 开源AI Agent教学项目，学习如何构建Electron + AI桌面应用",
   "author": {
-    "name": "WeChat_Flowwork Team",
-    "email": "support@wechatflowwork.com"
+    "name": "AI Agent Desktop Team",
+    "email": "support@aiagent.desktop"
   },
   "repository": {
     "type": "git",
@@ -83,8 +83,8 @@
   },
   "main": "dist-electron/main.js",
   "build": {
-    "appId": "com.wechatflowwork.app",
-    "productName": "WeChat_Flowwork",
+    "appId": "com.aiagent.desktop",
+    "productName": "AI Agent Desktop",
     "directories": {
       "output": "release"
     },

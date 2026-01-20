@@ -741,14 +741,41 @@ ipcMain.handle('skills:get', async (_, skillId: string) => {
   }
 });
 
-ipcMain.handle('skills:save', async () => {
-  // [Security] Skills modification disabled for stability
-  return { success: false, error: '技能编辑功能已禁用 (Skills Locked)' };
+ipcMain.handle('skills:save', async (_event, skillId: string, content: string) => {
+  try {
+    const userSkillsDir = path.join(os.homedir(), '.aiagent', 'skills');
+    await fs.mkdir(userSkillsDir, { recursive: true });
+
+    const skillPath = path.join(userSkillsDir, skillId, 'SKILL.md');
+    await fs.mkdir(path.dirname(skillPath), { recursive: true });
+    await fs.writeFile(skillPath, content, 'utf-8');
+
+    console.log(`[skills:save] Saved skill: ${skillId}`);
+    return { success: true };
+  } catch (error) {
+    console.error('[skills:save] Error:', error);
+    return { success: false, error: (error as Error).message };
+  }
 });
 
-ipcMain.handle('skills:delete', async () => {
-  // [Security] Skills deletion disabled for stability
-  return { success: false, error: '技能删除功能已禁用 (Skills Locked)' };
+ipcMain.handle('skills:delete', async (_event, skillId: string) => {
+  try {
+    const userSkillsDir = path.join(os.homedir(), '.aiagent', 'skills');
+    const skillPath = path.join(userSkillsDir, skillId);
+
+    await fs.rm(skillPath, { recursive: true, force: true });
+    console.log(`[skills:delete] Deleted skill: ${skillId}`);
+
+    // Reload skills
+    if (agent) {
+      await agent.skillManager.loadSkills();
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('[skills:delete] Error:', error);
+    return { success: false, error: (error as Error).message };
+  }
 });
 
 // Notification handlers

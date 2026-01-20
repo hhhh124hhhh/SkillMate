@@ -3,6 +3,7 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import path from 'path';
 import fs from 'fs/promises';
+import os from 'os';
 // app import removed
 
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'];
@@ -23,14 +24,10 @@ export class MCPClientService {
     private configPath: string;
 
     constructor() {
-        // Dev mode: read from project root mcp.json for easy development
-        // Production mode: read from builtin config in asar bundle (user cannot modify)
-        if (VITE_DEV_SERVER_URL) {
-            this.configPath = path.join(process.env.APP_ROOT || process.cwd(), 'mcp.json');
-        } else {
-            // Production: read from asar bundle (user cannot modify)
-            this.configPath = path.join(__dirname, 'builtin-mcp-config.json');
-        }
+        // Always read from user config directory
+        const configDir = path.join(os.homedir(), '.aiagent');
+        this.configPath = path.join(configDir, 'mcp.json');
+
         console.log('[MCPClientService] Using config path:', this.configPath);
     }
 
@@ -40,20 +37,24 @@ export class MCPClientService {
             const content = await fs.readFile(this.configPath, 'utf-8');
             config = JSON.parse(content);
         } catch (e) {
-            // In production mode, builtin config must exist
-            if (!VITE_DEV_SERVER_URL) {
-                console.error('[MCPClientService] Fatal: Failed to read builtin MCP config:', e);
-                return;
+            // Create default config from template
+            console.log('[MCPClientService] Creating default MCP config from template');
+            const templatePath = path.join(process.env.APP_ROOT || process.cwd(), 'resources', 'mcp-templates.json');
+
+            try {
+                const template = await fs.readFile(templatePath, 'utf-8');
+                await fs.mkdir(path.dirname(this.configPath), { recursive: true });
+                await fs.writeFile(this.configPath, template, 'utf-8');
+                config = JSON.parse(template);
+                console.log('[MCPClientService] Created default config from template');
+            } catch (templateError) {
+                console.error('[MCPClientService] Failed to load template:', templateError);
             }
-            // In dev mode, create default config if not exists
-            console.log('[MCPClientService] Creating default MCP config');
         }
 
         if (!config.mcpServers) {
             config.mcpServers = {};
         }
-
-        // Default config logic for MiniMax removed
 
         for (const [key, serverConfig] of Object.entries(config.mcpServers || {})) {
             await this.connectToServer(key, serverConfig);

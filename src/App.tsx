@@ -124,7 +124,7 @@ function App() {
       >
         <div className="flex items-center gap-2" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
           <img src="/logo_new.svg" alt="Logo" className="w-6 h-6 object-contain" />
-          <span className="font-semibold text-slate-700 text-sm tracking-tight">公众号运营牛马</span>
+          <span className="font-semibold text-slate-700 text-sm tracking-tight">AI Agent Desktop</span>
         </div>
 
         <div className="flex items-center gap-1 z-50" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>

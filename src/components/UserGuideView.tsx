@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Type, PenTool, Image, Layout, BarChart, AlertCircle, CheckCircle, X } from 'lucide-react';
+import { Settings, Code, Server, Shield, Zap, AlertCircle, CheckCircle, X } from 'lucide-react';
 import { ConfirmDialog } from './ConfirmDialog.js';
 
 interface UserGuideViewProps {
@@ -26,51 +26,51 @@ interface SetupStatus {
 const workflowSteps: WorkflowStep[] = [
     {
         id: '1',
-        name: '选题研究',
-        skill: 'topic-selector',
-        description: '追踪热点，推荐选题',
-        icon: <Search size={20} />,
-        command: '推荐当前热门选题'
+        name: '环境配置',
+        skill: 'env-setup',
+        description: '配置开发环境和依赖',
+        icon: <Settings size={20} />,
+        command: '检查开发环境'
     },
     {
         id: '2',
-        name: '标题生成',
-        skill: 'title-generator',
-        description: '生成吸引人的标题',
-        icon: <Type size={20} />,
-        command: '生成标题 "主题" 10个'
+        name: 'API Key 设置',
+        skill: 'api-config',
+        description: '配置 AI 模型访问',
+        icon: <Settings size={20} />,
+        command: '配置 API Key'
     },
     {
         id: '3',
-        name: '内容创作',
-        skill: 'wechat-writing',
-        description: 'AI 撰写完整文章',
-        icon: <PenTool size={20} />,
-        command: '帮我写一篇关于[主题]的文章'
+        name: '技能系统',
+        skill: 'skills-system',
+        description: '理解技能扩展机制',
+        icon: <Code size={20} />,
+        command: '查看可用技能'
     },
     {
         id: '4',
-        name: 'AI 配图',
-        skill: 'image-generation',
-        description: '生成高质量配图',
-        icon: <Image size={20} />,
-        command: '生成配图 "描述"'
+        name: 'MCP 集成',
+        skill: 'mcp-integration',
+        description: '集成外部工具服务',
+        icon: <Server size={20} />,
+        command: '配置 MCP 服务'
     },
     {
         id: '5',
-        name: '智能排版',
-        skill: 'smart-layout',
-        description: '优化文章排版',
-        icon: <Layout size={20} />,
-        command: '优化排版'
+        name: '权限管理',
+        skill: 'permissions',
+        description: '管理文件和系统权限',
+        icon: <Shield size={20} />,
+        command: '查看权限设置'
     },
     {
         id: '6',
-        name: '数据分析',
-        skill: 'data-analyzer',
-        description: '分析效果，优化策略',
-        icon: <BarChart size={20} />,
-        command: '分析我的文章数据'
+        name: '开始使用',
+        skill: 'getting-started',
+        description: '运行你的第一个 Agent',
+        icon: <Zap size={20} />,
+        command: '启动 Agent'
     }
 ];
 
@@ -262,7 +262,7 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
                             <img src="/logo_new.svg" alt="Logo" className="w-24 h-24 object-contain" />
                         </div>
                         <h1 className="text-4xl font-bold text-slate-800 mb-4">
-                            欢迎使用公众号运营牛马
+                            欢迎使用 AI Agent Desktop
                         </h1>
                         <p className="text-lg text-slate-600">
                             开始使用前，需要先完成 API Key 配置
@@ -281,17 +281,17 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
                                     🔑 第一步：配置 API Key
                                 </h2>
                                 <p className="text-orange-800 text-base mb-6 leading-relaxed">
-                                    本应用使用智谱 AI（GLM-4.7）模型，需要配置 API Key 才能使用。
+                                    本应用使用 Anthropic Claude AI，需要配置 API Key 才能使用。
                                 </p>
 
                                 <div className="bg-white p-4 rounded-lg mb-6 text-left">
                                     <p className="text-sm font-medium text-slate-700 mb-3">
-                                        如何获取智谱 AI API Key：
+                                        如何获取 Anthropic API Key：
                                     </p>
                                     <ol className="text-xs text-slate-600 space-y-2 list-decimal list-inside">
-                                        <li>访问 <a href="https://open.bigmodel.cn" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">智谱 AI 开放平台</a></li>
-                                        <li>注册/登录账号，进入「API Key」页面</li>
-                                        <li>点击「生成 API Key」，复制生成的密钥</li>
+                                        <li>访问 <a href="https://console.anthropic.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Anthropic Console</a></li>
+                                        <li>注册/登录 Anthropic 账号</li>
+                                        <li>进入「API Keys」页面，创建并复制 API Key</li>
                                         <li>将密钥粘贴到下方输入框中</li>
                                     </ol>
                                 </div>
@@ -350,7 +350,7 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
                             <img src="/logo_new.svg" alt="Logo" className="w-24 h-24 object-contain" />
                         </div>
                         <h1 className="text-4xl font-bold text-slate-800 mb-4">
-                            欢迎使用公众号运营牛马
+                            欢迎使用 AI Agent Desktop
                         </h1>
                         <p className="text-lg text-slate-600">
                             继续完成最后一步配置
@@ -387,7 +387,7 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
                                 </h2>
                                 <p className="text-orange-800 text-base mb-6 leading-relaxed">
                                     出于安全考虑，AI 需要您的授权才能访问文件系统。<br />
-                                    授权后，AI 才能为您创建项目、保存文章、生成配图。
+                                    授权后，AI 才能为您创建文件、读取数据、管理项目。
                                 </p>
 
                                 <div className="bg-white p-4 rounded-lg mb-6">
@@ -395,15 +395,15 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
                                     <ul className="text-left text-sm text-slate-600 space-y-1">
                                         <li className="flex items-center gap-2">
                                             <span className="text-green-500">✓</span>
-                                            创建文章项目文件夹
+                                            创建和编辑文件
                                         </li>
                                         <li className="flex items-center gap-2">
                                             <span className="text-green-500">✓</span>
-                                            保存文章内容和配图
+                                            读取项目数据
                                         </li>
                                         <li className="flex items-center gap-2">
                                             <span className="text-green-500">✓</span>
-                                            管理创作资料
+                                            管理项目目录
                                         </li>
                                     </ul>
                                 </div>
@@ -460,10 +460,10 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
                         <img src="/logo_new.svg" alt="Logo" className="w-20 h-20 object-contain" />
                     </div>
                     <h1 className="text-4xl font-bold text-slate-800 mb-4">
-                        欢迎使用公众号运营牛马
+                        欢迎使用 AI Agent Desktop
                     </h1>
                     <p className="text-lg text-slate-600">
-                        你的 AI 写作助手，从选题到数据分析的全流程支持
+                        学习如何构建现代化的 AI 助手应用
                     </p>
                 </div>
 
@@ -478,7 +478,7 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
                                         ✅ API Key 已配置
                                     </h3>
                                     <p className="text-green-700 text-sm">
-                                        您已成功配置智谱 AI API Key
+                                        您已成功配置 Anthropic API Key
                                     </p>
                                 </div>
                             </div>
@@ -504,10 +504,10 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
                 {/* 工作流可视化 */}
                 <div className="mb-10">
                     <h2 className="text-2xl font-bold text-slate-800 mb-6 text-center">
-                        完整创作流程
+                        AI Agent 开发流程
                     </h2>
                     <p className="text-center text-slate-600 mb-6">
-                        从选题到数据分析，AI 全程协助
+                        从环境配置到运行 Agent，完整学习路径
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {workflowSteps.map((step) => (
