@@ -850,7 +850,7 @@ def analyze_style(articles_text: str) -> Dict[str, Any]:
     articles = parse_articles(articles_text)
 
     if len(articles) < 10:
-        print(f"⚠️ 警告：只有{len(articles)}篇文章，建议至少10篇文章")
+        sys.stderr.write(f"⚠️ 警告：只有{len(articles)}篇文章，建议至少10篇文章\n")
 
     # 分析各个维度
     title_style = analyze_title_style(articles)
@@ -1977,3 +1977,36 @@ def handler(args: Dict[str, Any]) -> Dict[str, Any]:
 
 
 
+
+
+if __name__ == "__main__":
+    import sys
+
+    # 从 stdin 读取 JSON 输入
+    try:
+        input_data = sys.stdin.read()
+        if not input_data:
+            print(json.dumps({
+                "status": "error",
+                "message": "没有输入数据"
+            }))
+            sys.exit(1)
+
+        args = json.loads(input_data)
+        result = handler(args)
+
+        # 输出结果到 stdout
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+
+    except json.JSONDecodeError as e:
+        print(json.dumps({
+            "status": "error",
+            "message": f"JSON 解析失败: {e}"
+        }))
+        sys.exit(1)
+    except Exception as e:
+        print(json.dumps({
+            "status": "error",
+            "message": f"执行失败: {e}"
+        }))
+        sys.exit(1)

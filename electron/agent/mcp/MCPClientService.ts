@@ -159,13 +159,45 @@ export class MCPClientService {
             const currentDate = this.getCurrentDate();
             const prompt = args.prompt as string || '';
 
-            // Inject current date into prompt if not already present
-            if (!prompt.includes('202') && !prompt.includes('当前日期')) {
+            // 🔍 Detailed logging for diagnosis
+            console.log(`[MCPClientService] 📥 Received tool call: ${serverName}__${toolName}`);
+            console.log(`[MCPClientService] 📝 Original prompt (first 150 chars): ${prompt.substring(0, 150)}...`);
+
+            // Precise date detection using regex to avoid false positives
+            // Only skip injection if prompt contains a complete date format
+            const hasCompleteDate = /\d{4}年\d{1,2}月\d{1,2}日/.test(prompt);  // "2026年01月16日"
+            const hasDashDate = /\d{4}-\d{1,2}-\d{1,2}/.test(prompt);           // "2026-01-16"
+            const hasSlashDate = /\d{4}\/\d{1,2}\/\d{1,2}/.test(prompt);       // "2026/01/16"
+            const hasKeyword = prompt.includes('当前日期');                      // "当前日期" keyword
+            const hasPrefixedDate = /当前日期：\d{4}年/.test(prompt);          // "当前日期：2026年"
+
+            const hasDateAlready = hasCompleteDate || hasDashDate || hasSlashDate || hasKeyword || hasPrefixedDate;
+
+            // 🔍 Log detection results
+            console.log(`[MCPClientService] 🔍 Date detection results:`);
+            console.log(`  - Complete date (YYYY年MM月DD日): ${hasCompleteDate}`);
+            console.log(`  - Dash date (YYYY-MM-DD): ${hasDashDate}`);
+            console.log(`  - Slash date (YYYY/MM/DD): ${hasSlashDate}`);
+            console.log(`  - Keyword '当前日期': ${hasKeyword}`);
+            console.log(`  - Prefixed date: ${hasPrefixedDate}`);
+            console.log(`  - Final decision (hasDateAlready): ${hasDateAlready}`);
+
+            if (!hasDateAlready) {
                 modifiedArgs = {
                     ...args,
                     prompt: `【当前日期：${currentDate}】\n\n${prompt}`
                 };
-                console.log(`[MCPClientService] Auto-injected current date: ${currentDate}`);
+                console.log(`[MCPClientService] ✅ Auto-injected current date: ${currentDate}`);
+                console.log(`[MCPClientService] 📤 Final prompt (first 150 chars): ${modifiedArgs.prompt.substring(0, 150)}...`);
+            } else {
+                const reason = [];
+                if (hasCompleteDate) reason.push('complete date format');
+                if (hasDashDate) reason.push('dash date format');
+                if (hasSlashDate) reason.push('slash date format');
+                if (hasKeyword) reason.push('"当前日期" keyword');
+                if (hasPrefixedDate) reason.push('prefixed date format');
+                console.log(`[MCPClientService] ⏭️ Skipping injection, reason: ${reason.join(', ')}`);
+                console.log(`[MCPClientService] 📤 Prompt unchanged (first 150 chars): ${prompt.substring(0, 150)}...`);
             }
         }
 

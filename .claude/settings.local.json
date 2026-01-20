@@ -43,7 +43,19 @@
       "Bash(tasklist:*)",
       "Bash(netstat:*)",
       "Bash(curl:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(git pull:*)",
+      "Bash(git stash:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(if:*)",
+      "Bash(then echo \"exists\")",
+      "Bash(else echo \"not_exists\")",
+      "Bash(fi:*)",
+      "Bash(copy:*)",
+      "Bash(git reset:*)",
+      "Bash(git rm:*)"
     ]
   }
 }

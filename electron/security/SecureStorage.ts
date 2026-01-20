@@ -128,11 +128,14 @@ export class SecureStorage {
   /**
    * 安全存储 API Key
    *
-   * @param key - API Key
+   * @param key - API Key（空字符串时清除密钥）
    */
   async storeApiKey(key: string): Promise<void> {
+    // 允许空字符串（用户可能清除 API Key）
     if (!key || key.trim().length === 0) {
-      throw new Error('[SecureStorage] Cannot store empty API key')
+      console.log('[SecureStorage] Clearing API key (empty value provided)')
+      await this.clearApiKey()
+      return
     }
 
     try {

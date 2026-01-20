@@ -54,7 +54,6 @@
   },
   "devDependencies": {
     "@types/dotenv": "^6.1.1",
-    "cross-env": "^7.0.3",
     "@types/js-yaml": "^4.0.9",
     "@types/react": "^18.2.64",
     "@types/react-dom": "^18.2.21",
@@ -63,6 +62,7 @@
     "@typescript-eslint/parser": "^7.1.1",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.23",
+    "cross-env": "^7.0.3",
     "electron": "^30.0.1",
     "electron-builder": "^24.13.3",
     "electron-log": "^5.1.2",
@@ -118,7 +118,9 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ]
     }
