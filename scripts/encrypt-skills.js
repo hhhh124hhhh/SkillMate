@@ -14,8 +14,8 @@
  * NODE_ENV=development - 开发模式（跳过加密）
  */
 
-const path = require('path');
-const fs = require('fs/promises');
+import path from 'path';
+import fs from 'fs/promises';
 
 // 技能目录路径
 const SKILLS_DIR = path.join(__dirname, '..', 'resources', 'skills');

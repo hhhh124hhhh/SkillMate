@@ -167,7 +167,9 @@ except ImportError as e:
                 // 清理临时脚本
                 try {
                     await fs.unlink(testScriptPath);
-                } catch {}
+                } catch {
+                    // 忽略清理错误
+                }
 
                 console.log('[PythonRuntime] Process exited with code:', code);
                 console.log('[PythonRuntime] stdout:', output);
@@ -186,7 +188,9 @@ except ImportError as e:
                 // 清理临时脚本
                 try {
                     await fs.unlink(testScriptPath);
-                } catch {}
+                } catch {
+                    // 忽略清理错误
+                }
                 console.error('[PythonRuntime] ✗ Failed to spawn Python process:', err);
                 reject(err);
             });
