@@ -1,0 +1,153 @@
+{
+  "description": "批量技能集成列表模板",
+  "version": "1.0.0",
+  "skills": [
+    {
+      "name": "pdf-processor",
+      "source": "./temp/skills/pdf",
+      "description": "PDF处理工具 - 提取文本、合并、拆分PDF文档",
+      "category": "document-processing",
+      "priority": "high"
+    },
+    {
+      "name": "xlsx-analyzer",
+      "source": "./temp/skills/xlsx",
+      "description": "Excel数据分析工具 - 公式计算、数据可视化",
+      "category": "document-processing",
+      "priority": "high"
+    },
+    {
+      "name": "docx-editor",
+      "source": "./temp/skills/docx",
+      "description": "Word文档创建、编辑、格式化",
+      "category": "document-processing",
+      "priority": "high"
+    },
+    {
+      "name": "pptx-generator",
+      "source": "./temp/skills/pptx",
+      "description": "PowerPoint演示文稿生成",
+      "category": "document-processing",
+      "priority": "high"
+    },
+    {
+      "name": "csv-analyzer",
+      "source": "./temp/skills/csv",
+      "description": "CSV数据分析、统计报告",
+      "category": "document-processing",
+      "priority": "medium"
+    },
+    {
+      "name": "frontend-design",
+      "source": "./temp/skills/frontend-design",
+      "description": "UI/UX设计、前端组件生成",
+      "category": "design-creative",
+      "priority": "high"
+    },
+    {
+      "name": "canvas-design",
+      "source": "./temp/skills/canvas-design",
+      "description": "创建PNG/PDF设计作品",
+      "category": "design-creative",
+      "priority": "medium"
+    },
+    {
+      "name": "algorithmic-art",
+      "source": "./temp/skills/algorithmic-art",
+      "description": "使用p5.js生成算法艺术",
+      "category": "design-creative",
+      "priority": "medium"
+    },
+    {
+      "name": "brand-guidelines",
+      "source": "./temp/skills/brand-guidelines",
+      "description": "应用品牌规范到设计作品",
+      "category": "design-creative",
+      "priority": "low"
+    },
+    {
+      "name": "skill-creator",
+      "source": "./temp/skills/skill-creator",
+      "description": "技能创建向导 - 快速生成新技能模板",
+      "category": "development-tools",
+      "priority": "high"
+    },
+    {
+      "name": "webapp-testing",
+      "source": "./temp/skills/webapp-testing",
+      "description": "Web应用测试（Playwright）",
+      "category": "development-tools",
+      "priority": "high"
+    },
+    {
+      "name": "mcp-builder",
+      "source": "./temp/skills/mcp-builder",
+      "description": "MCP服务器构建工具",
+      "category": "development-tools",
+      "priority": "medium"
+    },
+    {
+      "name": "brainstorming",
+      "source": "./temp/skills/brainstorming",
+      "description": "头脑风暴 - 需求探索和方案设计",
+      "category": "development-workflow",
+      "priority": "high"
+    },
+    {
+      "name": "test-driven-development",
+      "source": "./temp/skills/tdd",
+      "description": "TDD工作流程 - 测试先行的开发模式",
+      "category": "development-workflow",
+      "priority": "high"
+    },
+    {
+      "name": "systematic-debugging",
+      "source": "./temp/skills/debugging",
+      "description": "系统化调试 - 结构化问题排查",
+      "category": "development-workflow",
+      "priority": "high"
+    },
+    {
+      "name": "verification-before-completion",
+      "source": "./temp/skills/verification",
+      "description": "完成前验证 - 质量检查清单",
+      "category": "development-workflow",
+      "priority": "medium"
+    },
+    {
+      "name": "using-git-worktrees",
+      "source": "./temp/skills/git-worktrees",
+      "description": "Git工作树管理 - 并行开发多分支",
+      "category": "git-workflow",
+      "priority": "medium"
+    },
+    {
+      "name": "requesting-code-review",
+      "source": "./temp/skills/request-review",
+      "description": "请求代码审查",
+      "category": "git-workflow",
+      "priority": "medium"
+    },
+    {
+      "name": "receiving-code-review",
+      "source": "./temp/skills/receive-review",
+      "description": "接收审查反馈并实施",
+      "category": "git-workflow",
+      "priority": "medium"
+    },
+    {
+      "name": "context-fundamentals",
+      "source": "./temp/skills/context",
+      "description": "上下文基础 - 理解和使用上下文",
+      "category": "context-engineering",
+      "priority": "low"
+    },
+    {
+      "name": "internal-comms",
+      "source": "./temp/skills/internal-comms",
+      "description": "状态报告、新闻稿等内部通信",
+      "category": "internal-communications",
+      "priority": "low"
+    }
+  ]
+}
