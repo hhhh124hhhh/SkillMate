@@ -9,6 +9,7 @@ import { configStore } from '../config/ConfigStore.js';
 import { notificationService } from '../services/NotificationService.js';
 import { promptInjectionDefense } from '../security/PromptInjectionDefense.js';
 import { dlp } from '../data-loss-prevention/DataLossPrevention.js';
+import { CommandRegistry, SlashCommandParser, ShortcutManager } from './commands/index.js';
 import os from 'os';
 
 
@@ -32,6 +33,11 @@ export class AgentRuntime {
 
     private model: string;
 
+    // 命令系统
+    public commandRegistry: CommandRegistry;
+    public slashParser: SlashCommandParser;
+    public shortcutManager: ShortcutManager;
+
     constructor(apiKey: string, window: BrowserWindow, model: string = 'claude-3-5-sonnet-20241022', apiUrl: string = 'https://api.anthropic.com') {
         this.anthropic = new Anthropic({ apiKey, baseURL: apiUrl });
         this.model = model;
@@ -39,6 +45,12 @@ export class AgentRuntime {
         this.fsTools = new FileSystemTools();
         this.skillManager = new SkillManager();
         this.mcpService = new MCPClientService();
+
+        // 初始化命令系统
+        this.commandRegistry = new CommandRegistry(this);
+        this.slashParser = new SlashCommandParser(this.commandRegistry);
+        this.shortcutManager = new ShortcutManager(window, this.commandRegistry);
+
         // Note: IPC handlers are now registered in main.ts, not here
     }
 
@@ -54,10 +66,54 @@ export class AgentRuntime {
         try {
             await this.skillManager.loadSkills();
             await this.mcpService.loadClients();
-            console.log('AgentRuntime initialized (Skills & MCP loaded)');
+
+            // 初始化命令系统
+            await this.initializeCommands();
+
+            console.log('AgentRuntime initialized (Skills & MCP & Commands loaded)');
         } catch (error) {
             console.error('Failed to initialize AgentRuntime:', error);
         }
+    }
+
+    /**
+     * 初始化命令系统
+     */
+    private async initializeCommands() {
+        console.log('[CommandSystem] Initializing commands...');
+
+        // 1. 从技能注册命令
+        const tools = this.skillManager.getTools();
+        // 将 Anthropic.Tool 格式转换为技能定义格式
+        const skillDefinitions = Array.isArray(tools) ? tools : [];
+
+        this.commandRegistry.registerFromSkills(skillDefinitions as any);
+
+        // 2. 从MCP工具注册命令
+        const mcpTools = await this.mcpService.getTools();
+        this.commandRegistry.registerFromMCPTools(mcpTools);
+
+        // 3. 注册系统命令
+        this.commandRegistry.registerSystemCommands();
+
+        // 4. 注册快捷键
+        // 命令面板快捷键
+        this.shortcutManager.register({
+            id: 'command-palette',
+            accelerator: 'Ctrl+Shift+P',
+            action: () => {
+                console.log('[CommandSystem] Opening command palette');
+                this.broadcast('command-palette:toggle');
+            },
+            description: '打开命令面板'
+        });
+
+        // 从命令注册表加载所有快捷键
+        const commands = this.commandRegistry.getAll();
+        this.shortcutManager.registerFromCommands(commands);
+
+        console.log(`[CommandSystem] Initialized ${this.commandRegistry.getAll().length} commands`);
+        console.log(`[CommandSystem] Registered ${this.shortcutManager.getAllBindings().length} shortcuts`);
     }
 
     public removeWindow(win: BrowserWindow) {
@@ -491,7 +547,7 @@ You are a capable and helpful AI assistant. Help users accomplish their goals ef
                                         result = 'User denied the command execution.';
                                     }
                                 } else {
-                                    const skillInfo = this.skillManager.getSkillInfo(toolUse.name);
+                                    const skillInfo = await this.skillManager.getSkillInfo(toolUse.name);
                                     console.log(`[Runtime] Skill ${toolUse.name} info found? ${!!skillInfo} (len: ${skillInfo?.instructions?.length})`);
                                     if (skillInfo) {
                                         // Return skill content following official Claude Code Skills pattern

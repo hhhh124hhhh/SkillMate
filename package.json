@@ -1,7 +1,7 @@
 {
   "name": "ai-agent-desktop",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "AI Agent Desktop - 开源AI Agent教学项目，学习如何构建Electron + AI桌面应用",
   "author": {
     "name": "AI Agent Desktop Team",
