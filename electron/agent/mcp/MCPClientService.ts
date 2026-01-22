@@ -6,8 +6,6 @@ import fs from 'fs/promises';
 import os from 'os';
 // app import removed
 
-const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'];
-
 export interface MCPServerConfig {
     name: string;
     type?: 'stdio' | 'streamableHttp';
@@ -121,8 +119,19 @@ export class MCPClientService {
                 timeout: 120000,  // 2 分钟超时（本地启动很快，但留个保险）
                 maxTotalTimeout: 180000  // 最大总超时 3 分钟
             });
+
+            // 保存客户端引用
             this.clients.set(name, client);
-            console.log(`Connected to MCP server: ${name}`);
+
+            // 安全地记录日志 - 捕获 EPIPE 错误
+            try {
+                console.log(`Connected to MCP server: ${name}`);
+            } catch (logError) {
+                // 忽略日志错误，可能是进程已终止
+                if ((logError as NodeJS.ErrnoException).code !== 'EPIPE') {
+                    console.error(`Failed to log connection success for ${name}:`, logError);
+                }
+            }
         } catch (e) {
             console.error(`Failed to connect to MCP server ${name}:`, e);
         }
@@ -188,7 +197,7 @@ export class MCPClientService {
                     prompt: `【当前日期：${currentDate}】\n\n${prompt}`
                 };
                 console.log(`[MCPClientService] ✅ Auto-injected current date: ${currentDate}`);
-                console.log(`[MCPClientService] 📤 Final prompt (first 150 chars): ${modifiedArgs.prompt.substring(0, 150)}...`);
+                console.log(`[MCPClientService] 📤 Final prompt (first 150 chars): ${(modifiedArgs.prompt as string).substring(0, 150)}...`);
             } else {
                 const reason = [];
                 if (hasCompleteDate) reason.push('complete date format');
