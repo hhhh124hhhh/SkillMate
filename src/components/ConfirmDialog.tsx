@@ -10,10 +10,10 @@ interface ConfirmationRequest {
 
 interface ConfirmDialogProps {
     // 模式 1: 工具操作确认
-    request: ConfirmationRequest | null;
-    onConfirm: ((id: string, remember: boolean, tool: string, path?: string) => void) | (() => void);
-    onDeny: ((id: string) => void) | (() => void);
-    
+    request?: ConfirmationRequest | null;
+    onConfirm?: ((id: string, remember: boolean, tool: string, path?: string) => void) | (() => void);
+    onDeny?: ((id: string) => void) | (() => void);
+
     // 模式 2: 简单确认对话框
     isOpen?: boolean;
     title?: string;
@@ -160,7 +160,7 @@ export function ConfirmDialog({
                             if (typeof onCancel === 'function') {
                                 onCancel();
                             } else if (typeof onDeny === 'function') {
-                                onDeny();
+                                (onDeny as () => void)();
                             }
                         }}
                         className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-secondary text-muted-foreground rounded-xl hover:bg-secondary/80 transition-colors font-medium"
@@ -170,7 +170,7 @@ export function ConfirmDialog({
                     <button
                         onClick={() => {
                             if (typeof onConfirm === 'function') {
-                                onConfirm();
+                                (onConfirm as () => void)();
                             }
                         }}
                         className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors font-medium"

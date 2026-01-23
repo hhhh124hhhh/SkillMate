@@ -41,41 +41,46 @@ export function UpdateNotification() {
 
   useEffect(() => {
     // 监听更新事件
-    const handleUpdateAvailable = (_event: unknown, info: UpdateInfo) => {
+    const handleUpdateAvailable = (info: { version: string }) => {
       setState({
         visible: true,
         status: 'downloading',
-        info
+        info: { version: info.version }
       })
     }
 
-    const handleUpdateDownloaded = (_event: unknown, info: UpdateInfo) => {
+    const handleUpdateDownloaded = (info: { version: string }) => {
       setState({
         visible: true,
         status: 'downloaded',
-        info
+        info: { version: info.version }
       })
     }
 
-    const handleUpdateProgress = (_event: unknown, progress: { percent: number; transferred: string; total: string; bytesPerSecond: string }) => {
+    const handleUpdateProgress = (progress: number) => {
       setState(prev => ({
         ...prev,
         visible: true,
         status: 'downloading',
-        progress
+        progress: {
+          percent: progress,
+          transferred: '',
+          total: '',
+          bytesPerSecond: ''
+        }
       }))
     }
 
-    const handleUpdateNotAvailable = (_event: unknown, info: { version: string }) => {
+    const handleUpdateNotAvailable = () => {
       // 不显示"无更新"通知，静默处理
-      console.log('[Update] Already up to date:', info.version)
+      console.log('[Update] Already up to date')
     }
 
-    const handleUpdateError = (_event: unknown, error: { message: string; name: string }) => {
+    const handleUpdateError = (error: string) => {
       setState({
         visible: true,
         status: 'error',
-        error
+        error: { message: error, name: 'UpdateError' }
       })
 
       // 3秒后自动隐藏错误提示
@@ -85,21 +90,11 @@ export function UpdateNotification() {
     }
 
     // 注册事件监听器
-    if (window.api?.onUpdateAvailable) {
-      window.api.onUpdateAvailable(handleUpdateAvailable)
-    }
-    if (window.api?.onUpdateDownloaded) {
-      window.api.onUpdateDownloaded(handleUpdateDownloaded)
-    }
-    if (window.api?.onUpdateProgress) {
-      window.api.onUpdateProgress(handleUpdateProgress)
-    }
-    if (window.api?.onUpdateNotAvailable) {
-      window.api.onUpdateNotAvailable(handleUpdateNotAvailable)
-    }
-    if (window.api?.onUpdateError) {
-      window.api.onUpdateError(handleUpdateError)
-    }
+    window.api?.onUpdateAvailable?.(handleUpdateAvailable)
+    window.api?.onUpdateDownloaded?.(handleUpdateDownloaded)
+    window.api?.onUpdateProgress?.(handleUpdateProgress)
+    window.api?.onUpdateNotAvailable?.(handleUpdateNotAvailable)
+    window.api?.onUpdateError?.(handleUpdateError)
 
     // 清理函数
     return () => {
@@ -112,11 +107,11 @@ export function UpdateNotification() {
   }
 
   const handleCheckForUpdates = async () => {
-    await window.api?.invoke('update:check')
+    await window.api?.invoke?.('update:check')
   }
 
   const handleInstallNow = async () => {
-    await window.api?.invoke('update:install')
+    await window.api?.invoke?.('update:install')
   }
 
   if (!state.visible) return null

@@ -15,6 +15,23 @@ import {
     Eye
 } from 'lucide-react';
 
+// 类型断言辅助函数
+function assertNumber(value: unknown): number {
+    if (typeof value !== 'number' || isNaN(value)) {
+        console.warn('Expected number, got:', value);
+        return 0;
+    }
+    return value;
+}
+
+function assertString(value: unknown): string {
+    if (typeof value !== 'string') {
+        console.warn('Expected string, got:', value);
+        return '';
+    }
+    return value;
+}
+
 interface UserStyleConfig {
     articles: string[];
     styleGuide: {
@@ -284,16 +301,18 @@ export function PersonalStyleTab({ onConfigChange }: PersonalStyleTabProps) {
 `;
             if (analysis.title_style?.patterns) {
                 const titlePatterns = Object.entries(analysis.title_style.patterns)
-                    .filter(([_, count]) => count > 0)
-                    .sort((a, b) => b[1] - a[1]);
+                    .filter(([_, count]) => assertNumber(count) > 0)
+                    .sort((a, b) => assertNumber(b[1]) - assertNumber(a[1]));
 
                 if (titlePatterns.length > 0) {
                     markdown += `### 常用模式
 
 `;
                     titlePatterns.forEach(([pattern, count]) => {
-                        const percent = Math.round(count / cfg.articles.length * 100);
-                        markdown += `- **${pattern}**：${count}篇文章使用（${percent}%）\n`;
+                        const countNum = assertNumber(count);
+                        const patternStr = assertString(pattern);
+                        const percent = Math.round(countNum / cfg.articles.length * 100);
+                        markdown += `- **${patternStr}**：${countNum}篇文章使用（${percent}%）\n`;
                     });
 
                     markdown += `\n平均长度：${analysis.title_style.length?.avg || 0}字\n`;
@@ -311,19 +330,21 @@ export function PersonalStyleTab({ onConfigChange }: PersonalStyleTabProps) {
 `;
             if (analysis.opening_style?.patterns) {
                 const openingPatterns = Object.entries(analysis.opening_style.patterns)
-                    .filter(([_, count]) => count > 0)
-                    .sort((a, b) => b[1] - a[1]);
+                    .filter(([_, count]) => assertNumber(count) > 0)
+                    .sort((a, b) => assertNumber(b[1]) - assertNumber(a[1]));
 
                 if (openingPatterns.length > 0) {
                     markdown += `### 常用模式
 
 `;
                     openingPatterns.forEach(([pattern, count]) => {
-                        const percent = Math.round(count / cfg.articles.length * 100);
-                        markdown += `- **${pattern}**：${count}篇文章（${percent}%）\n`;
+                        const patternStr = assertString(pattern);
+                        const countNum = assertNumber(count);
+                        const percent = Math.round(countNum / cfg.articles.length * 100);
+                        markdown += `- **${patternStr}**：${countNum}篇文章（${percent}%）\n`;
                     });
                     markdown += `\n基调风格：${analysis.opening_style.tone || '未知'}\n`;
-                    markdown += `平均长度：${analysis.opening_style.length?.avg || 0}字\n`;
+                    markdown += `平均长度：${assertNumber(analysis.opening_style.length?.avg) || 0}字\n`;
                 } else {
                     markdown += `暂无明显模式\n`;
                 }
@@ -370,16 +391,18 @@ export function PersonalStyleTab({ onConfigChange }: PersonalStyleTabProps) {
 `;
             if (analysis.ending_style?.patterns) {
                 const endingPatterns = Object.entries(analysis.ending_style.patterns)
-                    .filter(([_, count]) => count > 0)
-                    .sort((a, b) => b[1] - a[1]);
+                    .filter(([_, count]) => assertNumber(count) > 0)
+                    .sort((a, b) => assertNumber(b[1]) - assertNumber(a[1]));
 
                 if (endingPatterns.length > 0) {
                     markdown += `### 常用模式\n\n`;
                     endingPatterns.forEach(([pattern, count]) => {
-                        const percent = Math.round(count / cfg.articles.length * 100);
-                        markdown += `- **${pattern}**：${count}篇文章（${percent}%）\n`;
+                        const patternStr = assertString(pattern);
+                        const countNum = assertNumber(count);
+                        const percent = Math.round(countNum / cfg.articles.length * 100);
+                        markdown += `- **${patternStr}**：${countNum}篇文章（${percent}%）\n`;
                     });
-                    markdown += `\n平均长度：${analysis.ending_style.length?.avg || 0}字\n`;
+                    markdown += `\n平均长度：${assertNumber(analysis.ending_style.length?.avg) || 0}字\n`;
                 } else {
                     markdown += `暂无明显模式\n`;
                 }
@@ -395,14 +418,16 @@ export function PersonalStyleTab({ onConfigChange }: PersonalStyleTabProps) {
 
                 if (analysis.tone_style.tone_scores) {
                     const topTones = Object.entries(analysis.tone_style.tone_scores)
-                        .filter(([_, score]) => score > 0)
-                        .sort((a, b) => b[1] - a[1])
+                        .filter(([_, score]) => assertNumber(score) > 0)
+                        .sort((a, b) => assertNumber(b[1]) - assertNumber(a[1]))
                         .slice(0, 5);
 
                     if (topTones.length > 0) {
                         markdown += `\n### 语气分布\n\n`;
                         topTones.forEach(([tone, score]) => {
-                            markdown += `- ${tone}：${score}次\n`;
+                            const toneStr = assertString(tone);
+                            const scoreNum = assertNumber(score);
+                            markdown += `- ${toneStr}：${scoreNum}次\n`;
                         });
                     }
                 }
@@ -424,15 +449,18 @@ export function PersonalStyleTab({ onConfigChange }: PersonalStyleTabProps) {
 
 `;
                 const devices = Object.entries(analysis.rhetorical_devices_style.devices || {})
-                    .filter(([_, count]) => count > 0)
-                    .sort((a, b) => b[1] - a[1]);
+                    .filter(([_, count]) => assertNumber(count) > 0)
+                    .sort((a, b) => assertNumber(b[1]) - assertNumber(a[1]));
 
                 if (devices.length > 0) {
                     markdown += `常用修辞：\n\n`;
                     devices.forEach(([device, count]) => {
-                        markdown += `- **${device}**：${count}次\n`;
+                        const deviceStr = assertString(device);
+                        const countNum = assertNumber(count);
+                        markdown += `- **${deviceStr}**：${countNum}次\n`;
                     });
-                    markdown += `\n修辞密度：${analysis.rhetorical_devices_style.density?.toFixed(2) || 0}个/千字\n`;
+                    const density = analysis.rhetorical_devices_style.density;
+                    markdown += `\n修辞密度：${typeof density === 'number' ? density.toFixed(2) : 0}个/千字\n`;
                 } else {
                     markdown += `暂无明显修辞手法\n`;
                 }
@@ -446,11 +474,11 @@ export function PersonalStyleTab({ onConfigChange }: PersonalStyleTabProps) {
 
 `;
             const topTitlePattern = analysis.title_style?.patterns ?
-                Object.entries(analysis.title_style.patterns).sort((a, b) => b[1] - a[1])[0]?.[0] : null;
+                assertString(Object.entries(analysis.title_style.patterns).sort((a, b) => assertNumber(b[1]) - assertNumber(a[1]))[0]?.[0]) : null;
             const topOpeningPattern = analysis.opening_style?.patterns ?
-                Object.entries(analysis.opening_style.patterns).sort((a, b) => b[1] - a[1])[0]?.[0] : null;
+                assertString(Object.entries(analysis.opening_style.patterns).sort((a, b) => assertNumber(b[1]) - assertNumber(a[1]))[0]?.[0]) : null;
             const topEndingPattern = analysis.ending_style?.patterns ?
-                Object.entries(analysis.ending_style.patterns).sort((a, b) => b[1] - a[1])[0]?.[0] : null;
+                assertString(Object.entries(analysis.ending_style.patterns).sort((a, b) => assertNumber(b[1]) - assertNumber(a[1]))[0]?.[0]) : null;
 
             markdown += `1. **标题**：优先使用${topTitlePattern || '吸引人'}的方式\n`;
             markdown += `2. **开头**：使用${topOpeningPattern || '引人入胜'}的方式开头\n`;

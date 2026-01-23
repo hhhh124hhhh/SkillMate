@@ -4,7 +4,6 @@
  */
 
 import { SkillManager } from './electron/agent/skills/SkillManager.js';
-import readline from 'readline';
 
 async function demoSkills() {
     console.log('========================================');

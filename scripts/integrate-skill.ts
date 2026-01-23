@@ -187,7 +187,7 @@ function convertAnthropicSkill(sourcePath: string, targetPath: string): void {
     throw new Error(`SKILL.md not found in ${sourcePath}`);
   }
 
-  let content = fs.readFileSync(sourceSkillPath, 'utf-8');
+  const content = fs.readFileSync(sourceSkillPath, 'utf-8');
 
   // 检查是否已经是项目格式
   const { frontmatter } = parseFrontmatter(content);
@@ -257,14 +257,14 @@ function generateDependencyGuide(skillName: string, dependencies: string[]): str
   }
 
   const guide = [
-    `## 依赖要求`,
-    ``,
-    `此技能需要以下 Python 依赖：`,
-    ``,
-    ````bash`,
+    '## 依赖要求',
+    '',
+    '此技能需要以下 Python 依赖：',
+    '',
+    '```bash',
     `pip install ${dependencies.join(' ')}`,
-    `````,
-    ``
+    '```',
+    ''
   ];
 
   return guide.join('\n');

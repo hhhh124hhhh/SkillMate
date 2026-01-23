@@ -8,7 +8,7 @@ export interface IpcRendererApi {
     send(channel: string, ...args: unknown[]): void;
     invoke(channel: string, ...args: unknown[]): Promise<unknown>;
     // Internal listener management (for browser dev mode)
-    _listeners?: Record<string, Set<Function>>;
+    _listeners?: Record<string, Set<(...args: unknown[]) => void>>;
     emit?(channel: string, ...args: unknown[]): void;
 }
 

@@ -229,7 +229,7 @@ export function SkillsEditor({ onClose }: SkillsEditorProps) {
     } catch (error) {
       console.error('Failed to load templates:', error);
     }
-  }, [skills]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [skills]);
 
   const handleEdit = async (skill: Skill) => {
     if (skill.isBuiltin) {
@@ -396,7 +396,7 @@ description: 新技能描述
       return generateFullContent();
     }
     return skillContent;
-  }, [activeTab, generateFullContent, skillContent]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeTab, generateFullContent, skillContent]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 backdrop-blur-sm p-4">
