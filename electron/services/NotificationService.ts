@@ -1,4 +1,5 @@
 import { Notification, app } from 'electron';
+import log from 'electron-log';
 import { configStore } from '../config/ConfigStore.js';
 
 export type NotificationType = 'success' | 'error' | 'info' | 'warning';
@@ -15,7 +16,7 @@ export class NotificationService {
   private enabled: boolean;
 
   constructor() {
-    this.enabled = configStore.get('notifications', true);
+    this.enabled = configStore.get('notifications') ?? true;
   }
 
   /**
@@ -23,7 +24,7 @@ export class NotificationService {
    */
   public sendNotification(options: NotificationOptions): Notification | null {
     if (!this.enabled) {
-      console.log('[NotificationService] Notifications are disabled');
+      log.log('[NotificationService] Notifications are disabled');
       return null;
     }
 
@@ -46,7 +47,7 @@ export class NotificationService {
 
       return notification;
     } catch (error) {
-      console.error('[NotificationService] Failed to send notification:', error);
+      log.error('[NotificationService] Failed to send notification:', error);
       return null;
     }
   }
@@ -54,7 +55,7 @@ export class NotificationService {
   /**
    * 发送工作完成通知
    */
-  public sendWorkCompleteNotification(taskType: string, result?: string): Notification | null {
+  public sendWorkCompleteNotification(taskType: string, _result?: string): Notification | null {
     const titles = [
       '牛马工作完成！',
       '任务搞定啦！',
@@ -109,7 +110,7 @@ export class NotificationService {
    */
   public setEnabled(enabled: boolean): void {
     this.enabled = enabled;
-    configStore.set('notificationsEnabled', enabled);
+    configStore.set('notifications', enabled);
   }
 
   /**

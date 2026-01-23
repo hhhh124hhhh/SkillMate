@@ -2,6 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import log from 'electron-log';
 import { pythonRuntime } from '../PythonRuntime.js';
 import { configStore } from '../../config/ConfigStore.js';
 import { permissionManager } from '../security/PermissionManager.js';
@@ -207,7 +208,7 @@ export class FileSystemTools {
         // 🔒 安全检查：黑名单检测
         for (const pattern of BLOCKED_COMMANDS) {
             if (pattern.test(originalCommand)) {
-                console.error(`[Security] ❌ Blocked dangerous command: ${originalCommand}`);
+                log.error(`[Security] ❌ Blocked dangerous command: ${originalCommand}`);
                 await auditLogger.log('security', 'command_blocked', { reason: 'blacklist', command: originalCommand }, 'error');
                 return `Error: Command blocked by security policy (dangerous operation).\nCommand: ${originalCommand}`;
             }
@@ -215,7 +216,7 @@ export class FileSystemTools {
 
         // 🔒 安全检查：管道和重定向检测
         if (/[|<>]/.test(originalCommand) && !/^cat\s+[\w\-./\\]+$/i.test(originalCommand)) {
-            console.error(`[Security] ❌ Blocked command with pipes/redirects: ${originalCommand}`);
+            log.error(`[Security] ❌ Blocked command with pipes/redirects: ${originalCommand}`);
             await auditLogger.log('security', 'command_blocked', { reason: 'pipes_redirects', command: originalCommand }, 'warning');
             return `Error: Pipes and redirections are not allowed for security reasons.\nCommand: ${originalCommand}`;
         }
@@ -223,14 +224,14 @@ export class FileSystemTools {
         // 🔒 安全检查：白名单验证
         const isAllowed = ALLOWED_COMMANDS.some(pattern => pattern.test(originalCommand));
         if (!isAllowed) {
-            console.error(`[Security] ❌ Blocked command not in whitelist: ${originalCommand}`);
+            log.error(`[Security] ❌ Blocked command not in whitelist: ${originalCommand}`);
             await auditLogger.log('security', 'command_blocked', { reason: 'not_whitelisted', command: originalCommand }, 'warning');
             return `Error: Command not in whitelist. Allowed commands: Python, Node.js, Git, NPM, Yarn, Pip, file operations, and text processing tools.\nCommand: ${originalCommand}`;
         }
 
         // 🔒 安全检查：路径授权验证
         if (args.cwd && !permissionManager.isPathAuthorized(args.cwd)) {
-            console.error(`[Security] ❌ Unauthorized working directory: ${args.cwd}`);
+            log.error(`[Security] ❌ Unauthorized working directory: ${args.cwd}`);
             await auditLogger.log('security', 'command_blocked', { reason: 'unauthorized_path', path: args.cwd, command: originalCommand }, 'error');
             return `Error: Working directory not authorized: ${args.cwd}\nPlease select a folder first.`;
         }
@@ -243,7 +244,7 @@ export class FileSystemTools {
             const doubaoApiKey = configStore.get('doubaoApiKey');
             if (doubaoApiKey) {
                 env.DOUBAO_API_KEY = doubaoApiKey;
-                console.log('[FileSystemTools] Injected DOUBAO_API_KEY into environment');
+                log.log('[FileSystemTools] Injected DOUBAO_API_KEY into environment');
             }
 
             // 检测是否是 Python 命令
@@ -260,11 +261,11 @@ export class FileSystemTools {
                     // 添加 PYTHONPATH 环境变量
                     Object.assign(env, pythonRuntime.getEnvironment());
 
-                    console.log(`[FileSystemTools] Using bundled Python: ${bundledPython}`);
+                    log.log(`[FileSystemTools] Using bundled Python: ${bundledPython}`);
                 }
             }
 
-            console.log(`[FileSystemTools] Executing command: ${command} in ${workingDir}`);
+            log.log(`[FileSystemTools] Executing command: ${command} in ${workingDir}`);
 
             // 🔒 记录审计日志（命令执行开始）
             await auditLogger.log(

@@ -8,6 +8,8 @@
  * 符合《个人信息保护法》《数据安全法》要求
  */
 
+import log from 'electron-log';
+
 export interface SensitiveDataMatch {
   type: string
   category: 'pii' | 'credential'
@@ -159,7 +161,7 @@ export class DataLossPrevention {
     let redacted = text
 
     // 扫描 PII
-    for (const [key, config] of Object.entries(this.PII_PATTERNS)) {
+    for (const [, config] of Object.entries(this.PII_PATTERNS)) {
       const matches = this.findMatches(text, config.pattern, config)
 
       for (const match of matches) {
@@ -172,7 +174,7 @@ export class DataLossPrevention {
     }
 
     // 扫描凭证
-    for (const [key, config] of Object.entries(this.CREDENTIAL_PATTERNS)) {
+    for (const [, config] of Object.entries(this.CREDENTIAL_PATTERNS)) {
       const matches = this.findMatches(text, config.pattern, config)
 
       for (const match of matches) {
@@ -242,7 +244,7 @@ export class DataLossPrevention {
     const result = this.scanSensitiveData(output)
 
     if (result.hasSensitiveData) {
-      console.warn('[DLP] 检测到敏感信息并已过滤:', {
+      log.warn('[DLP] 检测到敏感信息并已过滤:', {
         categories: result.categories,
         count: result.findings.length
       })

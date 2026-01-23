@@ -223,8 +223,7 @@ export class PromptInjectionDefense {
 
     // 计算匹配次数
     let matchCount = 0
-    let match: RegExpExecArray | null
-    while ((match = pattern.exec(input)) !== null && matchCount < 10) {
+    while (pattern.exec(input) !== null && matchCount < 10) {
       matchCount++
     }
 

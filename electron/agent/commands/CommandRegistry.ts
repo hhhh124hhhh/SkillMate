@@ -12,6 +12,7 @@ import {
   MCPToolEnhanced,
   CommandParameter
 } from './types.js';
+import log from 'electron-log';
 
 export class CommandRegistry {
   private commands: Map<string, CommandDefinition> = new Map();
@@ -26,18 +27,18 @@ export class CommandRegistry {
    */
   register(command: CommandDefinition): void {
     if (this.commands.has(command.id)) {
-      console.warn(`[CommandRegistry] Command ${command.id} already registered, overwriting`);
+      log.warn(`[CommandRegistry] Command ${command.id} already registered, overwriting`);
     }
 
     this.commands.set(command.id, command);
-    console.log(`[CommandRegistry] Registered command: ${command.id} (${command.type})`);
+    log.log(`[CommandRegistry] Registered command: ${command.id} (${command.type})`);
   }
 
   /**
    * 批量注册技能命令
    */
   registerFromSkills(skills: SkillDefinitionExtended[]): void {
-    console.log(`[CommandRegistry] Registering ${skills.length} skills...`);
+    log.log(`[CommandRegistry] Registering ${skills.length} skills...`);
 
     skills.forEach(skill => {
       // 推断分类
@@ -59,7 +60,7 @@ export class CommandRegistry {
         execute: async (params) => {
           // 技能命令需要用户输入，这里只是将技能ID填充到输入框
           // 实际执行由 AgentRuntime 处理
-          console.log(`[CommandRegistry] Executing skill: ${skill.name}`, params);
+          log.log(`[CommandRegistry] Executing skill: ${skill.name}`, params);
           // 通过 AgentRuntime 的广播机制通知UI
           if (this.agentRuntime) {
             this.agentRuntime.notifyCommandExecution?.(skill.name, params);
@@ -74,7 +75,7 @@ export class CommandRegistry {
    * 批量注册MCP工具命令
    */
   registerFromMCPTools(tools: MCPToolEnhanced[]): void {
-    console.log(`[CommandRegistry] Registering ${tools.length} MCP tools...`);
+    log.log(`[CommandRegistry] Registering ${tools.length} MCP tools...`);
 
     tools.forEach(tool => {
       // 提取工具名称（移除命名空间前缀）
@@ -93,7 +94,7 @@ export class CommandRegistry {
         icon: 'Server',
         params: this.convertInputSchemaToParams(tool.input_schema),
         execute: async (params) => {
-          console.log(`[CommandRegistry] Executing MCP tool: ${tool.name}`, params);
+          log.log(`[CommandRegistry] Executing MCP tool: ${tool.name}`, params);
           // 通过 MCPClientService 调用工具
           if (this.agentRuntime?.mcpService) {
             const result = await this.agentRuntime.mcpService.callTool(tool.name, params);
@@ -121,7 +122,7 @@ export class CommandRegistry {
       icon: 'Plus',
       shortcut: 'Ctrl+Shift+N',
       execute: async () => {
-        console.log('[CommandRegistry] Executing: new-session');
+        log.log('[CommandRegistry] Executing: new-session');
         if (this.agentRuntime) {
           this.agentRuntime.clearHistory();
           // 通知所有窗口会话已重置
@@ -140,7 +141,7 @@ export class CommandRegistry {
       category: CommandCategory.SYSTEM,
       icon: 'Settings',
       execute: async () => {
-        console.log('[CommandRegistry] Executing: open-settings');
+        log.log('[CommandRegistry] Executing: open-settings');
         // 通过IPC通知UI打开设置
         if (this.agentRuntime) {
           this.agentRuntime.broadcast?.('settings:open');
@@ -203,12 +204,12 @@ export class CommandRegistry {
    * 通过ID获取命令
    */
   get(id: string): CommandDefinition | undefined {
-    console.log('[CommandRegistry] Getting command:', JSON.stringify(id));
-    console.log('[CommandRegistry] Total commands in registry:', this.commands.size);
-    console.log('[CommandRegistry] Available IDs:', Array.from(this.commands.keys()));
+    log.log('[CommandRegistry] Getting command:', JSON.stringify(id));
+    log.log('[CommandRegistry] Total commands in registry:', this.commands.size);
+    log.log('[CommandRegistry] Available IDs:', Array.from(this.commands.keys()));
 
     const result = this.commands.get(id);
-    console.log('[CommandRegistry] Get result:', result ? 'FOUND' : 'NOT FOUND');
+    log.log('[CommandRegistry] Get result:', result ? 'FOUND' : 'NOT FOUND');
     return result;
   }
 

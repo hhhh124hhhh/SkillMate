@@ -15,6 +15,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { app } from 'electron';
+import log from 'electron-log';
 
 export interface AuditLogEntry {
   timestamp: string
@@ -75,14 +76,14 @@ export class AuditLogger {
       await fs.appendFile(this.currentLogFile, logLine, 'utf-8');
 
       // 根据严重级别输出到控制台
-      const logMethod = severity === 'error' ? console.error :
-                       severity === 'warning' ? console.warn :
-                       console.log;
+      const logMethod = severity === 'error' ? log.error :
+                       severity === 'warning' ? log.warn :
+                       log.info;
 
       logMethod(`[Audit] ${type.toUpperCase()} - ${action}`, entry);
 
     } catch (error) {
-      console.error('[AuditLogger] Failed to write log:', error);
+      log.error('[AuditLogger] Failed to write log:', error);
     }
   }
 
@@ -109,7 +110,7 @@ export class AuditLogger {
     try {
       await fs.mkdir(this.logDir, { recursive: true });
     } catch (error) {
-      console.error('[AuditLogger] Failed to create log directory:', error);
+      log.error('[AuditLogger] Failed to create log directory:', error);
     }
   }
 
@@ -129,14 +130,14 @@ export class AuditLogger {
         // 重命名当前文件
         await fs.rename(this.currentLogFile, newLogFile);
 
-        console.log(`[AuditLogger] Rotated log file: ${newLogFile}`);
+        log.log(`[AuditLogger] Rotated log file: ${newLogFile}`);
       }
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         // 文件不存在，无需轮换
         return;
       }
-      console.error('[AuditLogger] Failed to check log rotation:', error);
+      log.error('[AuditLogger] Failed to check log rotation:', error);
     }
   }
 
@@ -156,11 +157,11 @@ export class AuditLogger {
 
         if (age > maxAge) {
           await fs.unlink(filePath);
-          console.log(`[AuditLogger] Deleted old log file: ${file}`);
+          log.log(`[AuditLogger] Deleted old log file: ${file}`);
         }
       }
     } catch (error) {
-      console.error('[AuditLogger] Failed to cleanup old logs:', error);
+      log.error('[AuditLogger] Failed to cleanup old logs:', error);
     }
   }
 
@@ -202,7 +203,7 @@ export class AuditLogger {
 
             allLogs.push(entry);
           } catch (parseError) {
-            console.error('[AuditLogger] Failed to parse log line:', parseError);
+            log.error('[AuditLogger] Failed to parse log line:', parseError);
           }
         }
       }
@@ -214,7 +215,7 @@ export class AuditLogger {
 
       return allLogs;
     } catch (error) {
-      console.error('[AuditLogger] Failed to query logs:', error);
+      log.error('[AuditLogger] Failed to query logs:', error);
       return [];
     }
   }
@@ -258,7 +259,7 @@ export class AuditLogger {
 
       return stats;
     } catch (error) {
-      console.error('[AuditLogger] Failed to get stats:', error);
+      log.error('[AuditLogger] Failed to get stats:', error);
       return {
         totalLogs: 0,
         totalSize: 0,
@@ -276,11 +277,10 @@ export const auditLogger = new AuditLogger();
  * 设置审计钩子（自动记录关键操作）
  */
 export function setupAuditHooks(): void {
-  console.log('[AuditLogger] Setting up audit hooks...');
+  log.log('[AuditLogger] Setting up audit hooks...');
 
   // API Key 配置审计
-  const originalSetApiKey = auditLogger.log.bind(auditLogger);
   // 注意：实际钩子需要在 ConfigStore 等模块中集成
 
-  console.log('[AuditLogger] ✓ Audit hooks ready');
+  log.log('[AuditLogger] ✓ Audit hooks ready');
 }

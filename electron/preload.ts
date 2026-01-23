@@ -1,9 +1,10 @@
 import { ipcRenderer, contextBridge, IpcRendererEvent } from 'electron'
+import log from 'electron-log'
 
 // 🔍 设置明确的 Electron 标记（在 contextBridge 之前）
 window.__IS_ELECTRON__ = true
-console.log('✅ [Preload] Electron preload script loaded')
-console.log('✅ [Preload] Set __IS_ELECTRON__ = true')
+log.info('✅ [Preload] Electron preload script loaded')
+log.info('✅ [Preload] Set __IS_ELECTRON__ = true')
 
 // 🔒 IPC 通道白名单（仅允许渲染进程访问这些通道）
 const ALLOWED_CHANNELS = [
@@ -135,7 +136,7 @@ function isChannelAllowed(channel: string): boolean {
 // 🔒 安全的 invoke 方法（带白名单验证）
 function secureInvoke(channel: string, ...args: unknown[]) {
   if (!isChannelAllowed(channel)) {
-    console.error(`[Security] ❌ Blocked unauthorized IPC invoke: ${channel}`)
+    log.error(`[Security] ❌ Blocked unauthorized IPC invoke: ${channel}`)
     throw new Error(`Unauthorized IPC channel: ${channel}`)
   }
   return ipcRenderer.invoke(channel, ...args)
@@ -144,7 +145,7 @@ function secureInvoke(channel: string, ...args: unknown[]) {
 // 🔒 安全的 send 方法
 function secureSend(channel: string, ...args: unknown[]) {
   if (!isChannelAllowed(channel)) {
-    console.error(`[Security] ❌ Blocked unauthorized IPC send: ${channel}`)
+    log.error(`[Security] ❌ Blocked unauthorized IPC send: ${channel}`)
     return
   }
   return ipcRenderer.send(channel, ...args)
@@ -156,7 +157,7 @@ function secureOn(
   listener: (event: IpcRendererEvent, ...args: unknown[]) => void
 ) {
   if (!isChannelAllowed(channel)) {
-    console.error(`[Security] ❌ Blocked unauthorized IPC listener: ${channel}`)
+    log.error(`[Security] ❌ Blocked unauthorized IPC listener: ${channel}`)
     throw new Error(`Unauthorized IPC channel: ${channel}`)
   }
   const subscription = (_event: IpcRendererEvent, ...eventArgs: unknown[]) =>
@@ -170,7 +171,7 @@ function secureOn(
 // 🔒 安全的 off 方法
 function secureOff(channel: string, listener: (...args: unknown[]) => void) {
   if (!isChannelAllowed(channel)) {
-    console.error(`[Security] ❌ Blocked unauthorized IPC off: ${channel}`)
+    log.error(`[Security] ❌ Blocked unauthorized IPC off: ${channel}`)
     return
   }
   return ipcRenderer.off(channel, listener)
@@ -189,4 +190,4 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
 
 // 🚀 暴露 Electron 环境标记（让渲染进程能检测到是 Electron 环境）
 contextBridge.exposeInMainWorld('__IS_ELECTRON__', true)
-console.log('✅ [Preload] Exposed __IS_ELECTRON__ to renderer')
+log.log('✅ [Preload] Exposed __IS_ELECTRON__ to renderer')

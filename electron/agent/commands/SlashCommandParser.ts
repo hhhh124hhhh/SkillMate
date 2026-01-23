@@ -5,6 +5,7 @@
 
 import type { ParsedCommand } from './types.js';
 import { CommandRegistry } from './CommandRegistry.js';
+import log from 'electron-log';
 
 export class SlashCommandParser {
   private registry: CommandRegistry;
@@ -19,24 +20,24 @@ export class SlashCommandParser {
    * @returns 解析结果或null（如果不是slash command）
    */
   parse(input: string): ParsedCommand | null {
-    console.log('[SlashCommandParser] Input:', JSON.stringify(input));
+    log.log('[SlashCommandParser] Input:', JSON.stringify(input));
 
     const trimmed = input.trim();
-    console.log('[SlashCommandParser] Trimmed:', JSON.stringify(trimmed));
-    console.log('[SlashCommandParser] Starts with /:', trimmed.startsWith('/'));
+    log.log('[SlashCommandParser] Trimmed:', JSON.stringify(trimmed));
+    log.log('[SlashCommandParser] Starts with /:', trimmed.startsWith('/'));
 
     // 1. 检测 slash command
     if (!trimmed.startsWith('/')) {
-      console.log('[SlashCommandParser] Not a slash command, returning null');
+      log.log('[SlashCommandParser] Not a slash command, returning null');
       return null;
     }
 
     // 2. 提取命令部分（去掉 /）
     const content = trimmed.slice(1).trim();
-    console.log('[SlashCommandParser] Content after removing /:', JSON.stringify(content));
+    log.log('[SlashCommandParser] Content after removing /:', JSON.stringify(content));
 
     if (!content) {
-      console.log('[SlashCommandParser] Empty content, returning null');
+      log.log('[SlashCommandParser] Empty content, returning null');
       return null; // 只有斜杠，没有命令
     }
 
@@ -44,33 +45,33 @@ export class SlashCommandParser {
     const parts = content.split(/\s+/);
     const commandName = parts[0];
     const args = parts.slice(1);
-    console.log('[SlashCommandParser] Command name:', JSON.stringify(commandName));
-    console.log('[SlashCommandParser] Args:', args);
+    log.log('[SlashCommandParser] Command name:', JSON.stringify(commandName));
+    log.log('[SlashCommandParser] Args:', args);
 
     // 4. 查找匹配的命令
-    console.log('[SlashCommandParser] Attempting to get command from registry...');
+    log.log('[SlashCommandParser] Attempting to get command from registry...');
     // 尝试直接匹配ID
     let command = this.registry.get(commandName);
-    console.log('[SlashCommandParser] Direct lookup result:', command ? 'FOUND' : 'NOT FOUND');
+    log.log('[SlashCommandParser] Direct lookup result:', command ? 'FOUND' : 'NOT FOUND');
 
     // 如果没找到，尝试模糊搜索
     if (!command) {
-      console.log('[SlashCommandParser] Trying fuzzy search...');
+      log.log('[SlashCommandParser] Trying fuzzy search...');
       const matches = this.registry.search({ query: commandName, limit: 1 });
-      console.log('[SlashCommandParser] Fuzzy search results:', matches.length);
+      log.log('[SlashCommandParser] Fuzzy search results:', matches.length);
       if (matches.length > 0) {
         command = matches[0];
-        console.log('[SlashCommandParser] Using fuzzy match:', command.id);
+        log.log('[SlashCommandParser] Using fuzzy match:', command.id);
       }
     }
 
     if (!command) {
-      console.log('[SlashCommandParser] Command not found, returning null');
-      console.log('[SlashCommandParser] Available commands:', this.registry.getAll().map(c => c.id));
+      log.log('[SlashCommandParser] Command not found, returning null');
+      log.log('[SlashCommandParser] Available commands:', this.registry.getAll().map(c => c.id));
       return null; // 未找到匹配的命令
     }
 
-    console.log('[SlashCommandParser] Command found:', command.id, 'Type:', command.type);
+    log.log('[SlashCommandParser] Command found:', command.id, 'Type:', command.type);
 
     // 5. 解析参数
     const params = this.parseParams(command, args);
@@ -78,7 +79,7 @@ export class SlashCommandParser {
     // 6. 计算剩余输入
     const remainingInput = args.join(' ');
 
-    console.log('[SlashCommandParser] Parsed successfully:', { commandId: command.id, remainingInput });
+    log.log('[SlashCommandParser] Parsed successfully:', { commandId: command.id, remainingInput });
 
     return {
       command,

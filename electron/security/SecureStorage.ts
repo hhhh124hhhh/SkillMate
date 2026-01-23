@@ -3,6 +3,7 @@ import os from 'os'
 import { app } from 'electron'
 import fs from 'fs/promises'
 import path from 'path'
+import log from 'electron-log'
 
 /**
  * 🔒 安全存储管理器
@@ -19,7 +20,6 @@ export class SecureStorage {
   private algorithm = 'aes-256-gcm'
   private keyLength = 32 // 256 bits
   private ivLength = 16 // 128 bits
-  private authTagLength = 16 // 128 bits
 
   /**
    * 生成派生密钥（基于机器 ID + 应用 ID）
@@ -32,14 +32,15 @@ export class SecureStorage {
     const appId = 'com.wechatflowwork.app'
     const salt = crypto.createHash('sha256').update(machineId + appId).digest()
 
-    // 使用 HKDF 派生密钥
-    return crypto.hkdfSync(
+    // 使用 HKDF 派生密钥，确保返回 Buffer
+    const derivedArrayBuffer = crypto.hkdfSync(
       'sha256',
       Buffer.from(machineId),
       salt,
       Buffer.from(appId),
       this.keyLength
     )
+    return Buffer.from(derivedArrayBuffer);
   }
 
   /**
@@ -48,17 +49,11 @@ export class SecureStorage {
    * 优先使用 Electron 的 machineId API，失败则使用操作系统特征
    */
   private getMachineId(): string {
-    try {
-      // 优先使用 Electron 的 machineId（基于硬件特征生成）
-      const { machineId } = require('electron')
-      return machineId()
-    } catch {
-      // 备选方案：基于操作系统特征（仅用于开发模式）
-      const platform = os.platform()
-      const hostname = os.hostname()
-      const cpus = os.cpus()[0]?.model || 'unknown'
-      return `${platform}-${hostname}-${cpus}`
-    }
+    // 降级方案：基于操作系统特征
+    const platform = os.platform()
+    const hostname = os.hostname()
+    const cpus = os.cpus()[0]?.model || 'unknown'
+    return `${platform}-${hostname}-${cpus}`
   }
 
   /**
@@ -79,7 +74,7 @@ export class SecureStorage {
     let encrypted = cipher.update(plaintext, 'utf8', 'hex')
     encrypted += cipher.final('hex')
 
-    const authTag = cipher.getAuthTag()
+    const authTag = (cipher as any).getAuthTag()
 
     return {
       encrypted,
@@ -107,7 +102,7 @@ export class SecureStorage {
       this.algorithm,
       key,
       Buffer.from(iv, 'hex')
-    )
+    ) as any;
 
     decipher.setAuthTag(Buffer.from(authTag, 'hex'))
 
@@ -133,7 +128,7 @@ export class SecureStorage {
   async storeApiKey(key: string): Promise<void> {
     // 允许空字符串（用户可能清除 API Key）
     if (!key || key.trim().length === 0) {
-      console.log('[SecureStorage] Clearing API key (empty value provided)')
+      log.log('[SecureStorage] Clearing API key (empty value provided)')
       await this.clearApiKey()
       return
     }
@@ -158,9 +153,9 @@ export class SecureStorage {
         mode: 0o600  // 仅所有者可读写
       })
 
-      console.log('[SecureStorage] ✅ API key encrypted and stored securely')
+      log.log('[SecureStorage] ✅ API key encrypted and stored securely')
     } catch (error) {
-      console.error('[SecureStorage] ❌ Failed to store API key:', error)
+      log.error('[SecureStorage] ❌ Failed to store API key:', error)
       throw error
     }
   }
@@ -184,22 +179,22 @@ export class SecureStorage {
     try {
       const content = await fs.readFile(configPath, 'utf-8')
       const encryptedConfig = JSON.parse(content)
-      const { apiKey, encryptedAt, version } = encryptedConfig
+      const { apiKey, encryptedAt } = encryptedConfig
 
       // 检查加密数据是否过期（可选，例如 1 年）
       const maxAge = 365 * 24 * 60 * 60 * 1000
       if (encryptedAt && Date.now() - encryptedAt > maxAge) {
-        console.warn('[SecureStorage] ⚠️ Encrypted API key is too old, please re-enter')
+        log.warn('[SecureStorage] ⚠️ Encrypted API key is too old, please re-enter')
         return ''
       }
 
       // 解密 API Key
       const decryptedKey = this.decrypt(apiKey.encrypted, apiKey.authTag, apiKey.iv)
 
-      console.log('[SecureStorage] ✅ API key decrypted successfully')
+      log.log('[SecureStorage] ✅ API key decrypted successfully')
       return decryptedKey
     } catch (error) {
-      console.error('[SecureStorage] ❌ Failed to decrypt API key:', error)
+      log.error('[SecureStorage] ❌ Failed to decrypt API key:', error)
       return ''
     }
   }
@@ -212,10 +207,10 @@ export class SecureStorage {
 
     try {
       await fs.unlink(configPath)
-      console.log('[SecureStorage] ✅ API key cleared')
+      log.log('[SecureStorage] ✅ API key cleared')
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-        console.error('[SecureStorage] ❌ Failed to clear API key:', error)
+        log.error('[SecureStorage] ❌ Failed to clear API key:', error)
       }
     }
   }

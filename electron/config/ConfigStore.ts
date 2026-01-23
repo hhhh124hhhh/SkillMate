@@ -1,4 +1,5 @@
 import Store from 'electron-store';
+import log from 'electron-log';
 import { secureStorage } from '../security/SecureStorage.js';
 import { auditLogger } from '../security/AuditLogger.js';
 
@@ -34,6 +35,7 @@ export interface AppConfig {
     authorizedFolders: string[];
     networkAccess: boolean;
     shortcut: string;
+    shortcuts?: Record<string, string>;  // 快捷键绑定配置
     allowedPermissions: ToolPermission[];
     notifications: boolean;
     notificationTypes: {
@@ -53,6 +55,7 @@ const defaults: AppConfig = {
     authorizedFolders: [],
     networkAccess: true, // "Open and use" implies network should be on
     shortcut: 'Alt+Space',
+    shortcuts: {},  // 快捷键绑定配置
     allowedPermissions: [],
     notifications: true,
     notificationTypes: {
@@ -89,11 +92,11 @@ class ConfigStore {
         // 🔒 确保 firstLaunch 字段存在（修复默认值问题）
         if (this.store.get('firstLaunch') === undefined) {
             this.store.set('firstLaunch', true);
-            console.log('[ConfigStore] Initialized firstLaunch to true');
+            log.log('[ConfigStore] Initialized firstLaunch to true');
         }
 
-        console.log('[ConfigStore] Initialized with path:', this.store.path);
-        console.log('[ConfigStore] Current config on init:', {
+        log.log('[ConfigStore] Initialized with path:', this.store.path);
+        log.log('[ConfigStore] Current config on init:', {
             apiKey: this.store.get('apiKey') ? '***' + this.store.get('apiKey').slice(-4) : 'empty',
             apiUrl: this.store.get('apiUrl'),
             model: this.store.get('model'),
@@ -109,31 +112,31 @@ class ConfigStore {
         try {
             // 特殊处理 authorizedFolders 的日志
             if (key === 'authorizedFolders') {
-                console.log(`[ConfigStore.set] Setting authorizedFolders:`, {
+                log.log(`[ConfigStore.set] Setting authorizedFolders:`, {
                     count: (value as string[]).length,
                     folders: value
                 });
             } else {
-                console.log(`[ConfigStore.set] Setting ${key}:`, value);
+                log.log(`[ConfigStore.set] Setting ${key}:`, value);
             }
             this.store.set(key, value);
 
             // 验证保存
             const saved = this.store.get(key);
             if (key === 'authorizedFolders') {
-                console.log(`[ConfigStore.set] Verification for authorizedFolders:`, {
+                log.log(`[ConfigStore.set] Verification for authorizedFolders:`, {
                     savedCount: (saved as string[]).length,
                     saved: saved,
                     equals: JSON.stringify(saved) === JSON.stringify(value)
                 });
             } else {
-                console.log(`[ConfigStore.set] Verification for ${key}:`, {
+                log.log(`[ConfigStore.set] Verification for ${key}:`, {
                     saved: JSON.stringify(saved),
                     equals: JSON.stringify(saved) === JSON.stringify(value)
                 });
             }
         } catch (error) {
-            console.error(`[ConfigStore.set] Failed to set ${key}:`, error);
+            log.error(`[ConfigStore.set] Failed to set ${key}:`, error);
             throw error;
         }
     }
@@ -141,7 +144,7 @@ class ConfigStore {
     getAll(): AppConfig {
         // electron-store v11: use .store to access all data
         const data = this.store.store as AppConfig;
-        console.log('[ConfigStore.getAll] Returning config:', {
+        log.log('[ConfigStore.getAll] Returning config:', {
             apiKey: data.apiKey ? '***' + data.apiKey.slice(-4) : 'empty',
             apiUrl: data.apiUrl,
             model: data.model,
@@ -163,21 +166,21 @@ class ConfigStore {
         try {
             const secureKey = await secureStorage.getApiKey();
             if (secureKey) {
-                console.log('[ConfigStore.getApiKey] ✅ Retrieved from secure storage');
+                log.log('[ConfigStore.getApiKey] ✅ Retrieved from secure storage');
                 return secureKey;
             }
         } catch (error) {
-            console.warn('[ConfigStore.getApiKey] ⚠️ Failed to read from secure storage:', error);
+            log.warn('[ConfigStore.getApiKey] ⚠️ Failed to read from secure storage:', error);
         }
 
         // Fallback: 从明文存储读取（迁移期兼容）
         const plaintextKey = this.store.get('apiKey');
         if (plaintextKey) {
-            console.log('[ConfigStore.getApiKey] ⚠️ Using legacy plaintext storage, please migrate');
+            log.log('[ConfigStore.getApiKey] ⚠️ Using legacy plaintext storage, please migrate');
             // 自动迁移到加密存储
             await secureStorage.storeApiKey(plaintextKey);
             this.store.set('apiKey', '');
-            console.log('[ConfigStore.getApiKey] ✅ Migrated to secure storage');
+            log.log('[ConfigStore.getApiKey] ✅ Migrated to secure storage');
             return plaintextKey;
         }
 
@@ -186,7 +189,7 @@ class ConfigStore {
     }
 
     async setApiKey(key: string): Promise<void> {
-        console.log('[ConfigStore.setApiKey] 🔒 Saving apiKey to secure storage, length:', key.length);
+        log.log('[ConfigStore.setApiKey] 🔒 Saving apiKey to secure storage, length:', key.length);
 
         // 🔒 记录审计日志
         await auditLogger.log(
@@ -206,7 +209,7 @@ class ConfigStore {
         // 🔒 清除明文存储
         this.store.set('apiKey', '');
 
-        console.log('[ConfigStore.setApiKey] ✅ API key encrypted and stored');
+        log.log('[ConfigStore.setApiKey] ✅ API key encrypted and stored');
     }
 
     // 🔒 Doubao API Key（使用加密存储）
@@ -217,7 +220,7 @@ class ConfigStore {
         // Fallback: 从明文存储读取
         const plaintextKey = this.store.get('doubaoApiKey');
         if (plaintextKey) {
-            console.log('[ConfigStore.getDoubaoApiKey] Using plaintext storage');
+            log.log('[ConfigStore.getDoubaoApiKey] Using plaintext storage');
             return plaintextKey;
         }
 
@@ -226,13 +229,13 @@ class ConfigStore {
     }
 
     async setDoubaoApiKey(key: string): Promise<void> {
-        console.log('[ConfigStore.setDoubaoApiKey] 🔒 Saving doubaoApiKey');
+        log.log('[ConfigStore.setDoubaoApiKey] 🔒 Saving doubaoApiKey');
 
         // 🔒 存储到加密存储（使用 storeApiKey 机制，带标识）
         // TODO: 未来可扩展为支持多个密钥的独立加密
         this.store.set('doubaoApiKey', key);
 
-        console.log('[ConfigStore.setDoubaoApiKey] ✅ Doubao API key saved');
+        log.log('[ConfigStore.setDoubaoApiKey] ✅ Doubao API key saved');
     }
 
     // 🔒 Zhipu API Key（使用加密存储）
@@ -243,7 +246,7 @@ class ConfigStore {
         // Fallback: 从明文存储读取
         const plaintextKey = this.store.get('zhipuApiKey');
         if (plaintextKey) {
-            console.log('[ConfigStore.getZhipuApiKey] Using plaintext storage');
+            log.log('[ConfigStore.getZhipuApiKey] Using plaintext storage');
             return plaintextKey;
         }
 
@@ -252,13 +255,13 @@ class ConfigStore {
     }
 
     async setZhipuApiKey(key: string): Promise<void> {
-        console.log('[ConfigStore.setZhipuApiKey] 🔒 Saving zhipuApiKey');
+        log.log('[ConfigStore.setZhipuApiKey] 🔒 Saving zhipuApiKey');
 
         // 🔒 存储到加密存储
         // TODO: 未来可扩展为支持多个密钥的独立加密
         this.store.set('zhipuApiKey', key);
 
-        console.log('[ConfigStore.setZhipuApiKey] ✅ Zhipu API key saved');
+        log.log('[ConfigStore.setZhipuApiKey] ✅ Zhipu API key saved');
     }
 
     // Model
@@ -384,10 +387,10 @@ class ConfigStore {
         if (value === undefined) {
             // 显式设置默认值
             this.store.set('firstLaunch', true);
-            console.log('[ConfigStore] getFirstLaunch: undefined, setting to true');
+            log.log('[ConfigStore] getFirstLaunch: undefined, setting to true');
             return true;
         }
-        console.log('[ConfigStore] getFirstLaunch:', value);
+        log.log('[ConfigStore] getFirstLaunch:', value);
         return value as boolean;
     }
 
@@ -402,7 +405,7 @@ class ConfigStore {
     }
 
     setUserStyleConfig(config: UserStyleConfig): void {
-        console.log('[ConfigStore.setUserStyleConfig] Saving style config:', {
+        log.log('[ConfigStore.setUserStyleConfig] Saving style config:', {
             articleCount: config.articles.length,
             learningCount: config.learningCount,
             lastUpdated: config.lastUpdated
@@ -413,14 +416,14 @@ class ConfigStore {
     addArticlePath(articlePath: string): void {
         const config = this.getUserStyleConfig();
         if (!config) {
-            console.warn('[ConfigStore.addArticlePath] userStyleConfig not initialized');
+            log.warn('[ConfigStore.addArticlePath] userStyleConfig not initialized');
             return;
         }
 
         if (!config.articles.includes(articlePath)) {
             config.articles.push(articlePath);
             this.setUserStyleConfig(config);
-            console.log('[ConfigStore.addArticlePath] Article path added:', articlePath);
+            log.log('[ConfigStore.addArticlePath] Article path added:', articlePath);
         }
     }
 
@@ -430,13 +433,13 @@ class ConfigStore {
 
         config.articles = config.articles.filter(path => path !== articlePath);
         this.setUserStyleConfig(config);
-        console.log('[ConfigStore.removeArticlePath] Article path removed:', articlePath);
+        log.log('[ConfigStore.removeArticlePath] Article path removed:', articlePath);
     }
 
     updateStyleGuide(styleGuide: UserStyleConfig['styleGuide']): void {
         const config = this.getUserStyleConfig();
         if (!config) {
-            console.warn('[ConfigStore.updateStyleGuide] userStyleConfig not initialized');
+            log.warn('[ConfigStore.updateStyleGuide] userStyleConfig not initialized');
             return;
         }
 
@@ -445,7 +448,7 @@ class ConfigStore {
         config.learningCount += 1;
 
         this.setUserStyleConfig(config);
-        console.log('[ConfigStore.updateStyleGuide] Style guide updated, learning count:', config.learningCount);
+        log.log('[ConfigStore.updateStyleGuide] Style guide updated, learning count:', config.learningCount);
     }
 
     incrementLearningCount(): void {
@@ -456,7 +459,7 @@ class ConfigStore {
         config.lastUpdated = new Date().toISOString();
 
         this.store.set('userStyleConfig', config);
-        console.log('[ConfigStore.incrementLearningCount] Learning count incremented:', config.learningCount);
+        log.log('[ConfigStore.incrementLearningCount] Learning count incremented:', config.learningCount);
     }
 
     clearStyleConfig(): void {
@@ -477,7 +480,7 @@ class ConfigStore {
         };
 
         this.setUserStyleConfig(defaultConfig);
-        console.log('[ConfigStore.clearStyleConfig] Style config cleared');
+        log.log('[ConfigStore.clearStyleConfig] Style config cleared');
     }
 }
 

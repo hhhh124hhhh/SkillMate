@@ -1,4 +1,5 @@
 import { BrowserWindow } from 'electron';
+import log from 'electron-log';
 
 interface SearchResult {
     title: string;
@@ -63,7 +64,7 @@ export class WebSearchProvider {
             });
 
             const searchUrl = `https://cn.bing.com/search?q=${encodeURIComponent(query)}`;
-            console.log(`[WebSearch] Navigating to: ${searchUrl}`);
+            log.log(`[WebSearch] Navigating to: ${searchUrl}`);
             
             await win.loadURL(searchUrl, { userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' });
 
@@ -93,11 +94,11 @@ export class WebSearchProvider {
                 })()
             `);
 
-            console.log(`[WebSearch] Found ${results.length} results`);
+            log.log(`[WebSearch] Found ${results.length} results`);
             return results.slice(0, limit);
 
         } catch (e) {
-            console.error('[WebSearch] Error:', e);
+            log.error('[WebSearch] Error:', e);
             return [];
         } finally {
             if (win) {

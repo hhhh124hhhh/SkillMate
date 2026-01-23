@@ -18,6 +18,8 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as yaml from 'yaml';
 import { app } from 'electron';
+import * as os from 'os';
+import log from 'electron-log';
 
 /**
  * 加密后的技能数据结构
@@ -41,8 +43,20 @@ export class SkillEncryption {
   constructor() {
     // 获取机器 ID（生产环境）或使用开发 ID（开发环境）
     this.machineId = app.isPackaged
-      ? app.getMachineId()
+      ? this.getMachineIdSync()
       : 'development-machine-id';
+  }
+
+  /**
+   * 同步获取机器唯一 ID
+   */
+  private getMachineIdSync(): string {
+    // 降级方案：基于操作系统特征
+    const hash = crypto.createHash('sha256');
+    hash.update(os.hostname());
+    hash.update(os.platform());
+    hash.update(os.arch());
+    return hash.digest('hex');
   }
 
   /**
@@ -66,7 +80,7 @@ export class SkillEncryption {
       32  // 256 位密钥
     );
 
-    return key;
+    return Buffer.from(key);
   }
 
   /**
@@ -153,7 +167,7 @@ export class SkillEncryption {
   public async encryptSkillFile(filePath: string): Promise<void> {
     // 开发模式不加密
     if (!this.isProduction()) {
-      console.log(`[SkillEncryption] 开发模式跳过加密: ${filePath}`);
+      log.log(`[SkillEncryption] 开发模式跳过加密: ${filePath}`);
       return;
     }
 
@@ -167,12 +181,12 @@ export class SkillEncryption {
         throw new Error(`文件格式错误（缺少 YAML frontmatter）: ${filePath}`);
       }
 
-      const frontmatter = yaml.load(parts[1]) as any;
+      const frontmatter = yaml.parse(parts[1]) as any;
       const instructions = parts.slice(2).join('---').trim();
 
       // 检查是否已经加密
       if (frontmatter?.encryption) {
-        console.log(`[SkillEncryption] 文件已加密，跳过: ${filePath}`);
+        log.log(`[SkillEncryption] 文件已加密，跳过: ${filePath}`);
         return;
       }
 
@@ -188,9 +202,9 @@ export class SkillEncryption {
       // 写回文件
       await fs.writeFile(filePath, newContent, 'utf-8');
 
-      console.log(`[SkillEncryption] ✅ 加密成功: ${filePath}`);
+      log.log(`[SkillEncryption] ✅ 加密成功: ${filePath}`);
     } catch (error) {
-      console.error(`[SkillEncryption] ❌ 加密失败: ${filePath}`, error);
+      log.error(`[SkillEncryption] ❌ 加密失败: ${filePath}`, error);
       throw error;
     }
   }
@@ -202,7 +216,7 @@ export class SkillEncryption {
    * @returns 加密的文件数量
    */
   public async encryptSkillsDirectory(skillsDir: string): Promise<number> {
-    console.log(`[SkillEncryption] 开始批量加密目录: ${skillsDir}`);
+    log.log(`[SkillEncryption] 开始批量加密目录: ${skillsDir}`);
 
     let encryptedCount = 0;
     let skippedCount = 0;
@@ -231,7 +245,7 @@ export class SkillEncryption {
 
       const skillFiles = await walkDir(skillsDir);
 
-      console.log(`[SkillEncryption] 找到 ${skillFiles.length} 个技能文件`);
+      log.log(`[SkillEncryption] 找到 ${skillFiles.length} 个技能文件`);
 
       // 逐个加密
       for (const filePath of skillFiles) {
@@ -239,15 +253,15 @@ export class SkillEncryption {
           await this.encryptSkillFile(filePath);
           encryptedCount++;
         } catch (error) {
-          console.error(`[SkillEncryption] 加密失败: ${filePath}`, error);
+          log.error(`[SkillEncryption] 加密失败: ${filePath}`, error);
           skippedCount++;
         }
       }
 
-      console.log(`[SkillEncryption] ✅ 批量加密完成: ${encryptedCount} 个成功, ${skippedCount} 个跳过`);
+      log.log(`[SkillEncryption] ✅ 批量加密完成: ${encryptedCount} 个成功, ${skippedCount} 个跳过`);
       return encryptedCount;
     } catch (error) {
-      console.error(`[SkillEncryption] ❌ 批量加密失败:`, error);
+      log.error(`[SkillEncryption] ❌ 批量加密失败:`, error);
       throw error;
     }
   }
@@ -262,7 +276,7 @@ export class SkillEncryption {
     try {
       const content = await fs.readFile(filePath, 'utf-8');
       const parts = content.split('---');
-      const frontmatter = yaml.load(parts[1]) as any;
+      const frontmatter = yaml.parse(parts[1]) as any;
 
       // 检查是否加密
       if (frontmatter?.encryption) {
@@ -285,7 +299,7 @@ export class SkillEncryption {
         return parts.slice(2).join('---').trim();
       }
     } catch (error) {
-      console.error(`[SkillEncryption] 解密失败: ${filePath}`, error);
+      log.error(`[SkillEncryption] 解密失败: ${filePath}`, error);
       throw error;
     }
   }
@@ -295,7 +309,7 @@ export class SkillEncryption {
    */
   public clearCache(): void {
     this.cache.clear();
-    console.log('[SkillEncryption] 缓存已清空');
+    log.log('[SkillEncryption] 缓存已清空');
   }
 
   /**

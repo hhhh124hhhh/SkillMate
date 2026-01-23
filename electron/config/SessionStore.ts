@@ -1,6 +1,7 @@
 import Store from 'electron-store';
 import { v4 as uuidv4 } from 'uuid';
 import Anthropic from '@anthropic-ai/sdk';
+import log from 'electron-log';
 
 export interface Session {
     id: string;
@@ -28,15 +29,15 @@ class SessionStore {
             name: 'opencowork-sessions',
             defaults
         });
-        console.log('[SessionStore] Initialized with path:', this.store.path);
-        console.log('[SessionStore] Current sessions:', this.store.get('sessions')?.length || 0);
-        console.log('[SessionStore] Current session ID:', this.store.get('currentSessionId'));
+        log.log('[SessionStore] Initialized with path:', this.store.path);
+        log.log('[SessionStore] Current sessions:', this.store.get('sessions')?.length || 0);
+        log.log('[SessionStore] Current session ID:', this.store.get('currentSessionId'));
     }
 
     // Get all sessions (summary only, without full messages for list view)
     getSessions(): Omit<Session, 'messages'>[] {
         const sessions = this.store.get('sessions') || [];
-        console.log('[SessionStore] getSessions: returning', sessions.length, 'sessions');
+        log.log('[SessionStore] getSessions: returning', sessions.length, 'sessions');
         return sessions.map(s => ({
             id: s.id,
             title: s.title,
@@ -64,7 +65,7 @@ class SessionStore {
         sessions.unshift(session); // Add to beginning
         this.store.set('sessions', sessions);
         this.store.set('currentSessionId', session.id);
-        console.log('[SessionStore] createSession: created session', session.id, 'with title:', session.title);
+        log.log('[SessionStore] createSession: created session', session.id, 'with title:', session.title);
         return session;
     }
 

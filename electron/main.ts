@@ -4,6 +4,7 @@ import path from 'node:path'
 import os from 'node:os'
 import fs from 'node:fs'
 import dotenv from 'dotenv'
+import log from 'electron-log'
 import { AgentRuntime } from './agent/AgentRuntime.js'
 import { pythonRuntime } from './agent/PythonRuntime.js'
 import { configStore } from './config/ConfigStore.js'
@@ -40,20 +41,20 @@ function updateEnvFile(key: string, value: string) {
       if (regex.test(content)) {
         // Replace existing value
         content = content.replace(regex, `${key}=${value}`)
-        console.log(`[updateEnvFile] Updated ${key} in .env file`)
+        log.log(`[updateEnvFile] Updated ${key} in .env file`)
       } else {
         // Add new value
         content += `\n${key}=${value}`
-        console.log(`[updateEnvFile] Added ${key} to .env file`)
+        log.log(`[updateEnvFile] Added ${key} to .env file`)
       }
       
       fs.writeFileSync(envPath, content)
-      console.log(`[updateEnvFile] Saved ${key} to .env file`)
+      log.log(`[updateEnvFile] Saved ${key} to .env file`)
     } else {
-      console.log(`[updateEnvFile] .env file not found at ${envPath}`)
+      log.log(`[updateEnvFile] .env file not found at ${envPath}`)
     }
   } catch (error) {
-    console.error(`[updateEnvFile] Failed to update .env file:`, error)
+    log.error(`[updateEnvFile] Failed to update .env file:`, error)
   }
 }
 
@@ -112,18 +113,18 @@ app.whenReady().then(async () => {
   if (app.isPackaged) {
     app.setAsDefaultProtocolClient('wechatflowwork')
   } else {
-    console.log('Skipping protocol registration in Dev mode.')
+    log.log('Skipping protocol registration in Dev mode.')
   }
 
   // 🔒 0. 初始化审计日志系统
-  console.log('[Main] Initializing audit logger...')
+  log.log('[Main] Initializing audit logger...')
   setupAuditHooks()
 
   // 设置定期清理任务（每天凌晨 2 点清理过期日志）
   setInterval(async () => {
     const now = new Date()
     if (now.getHours() === 2 && now.getMinutes() === 0) {
-      console.log('[Main] Running scheduled log cleanup...')
+      log.log('[Main] Running scheduled log cleanup...')
       await auditLogger.cleanupOldLogs()
     }
   }, 60 * 1000) // 每分钟检查一次
@@ -143,19 +144,19 @@ app.whenReady().then(async () => {
     'info'
   )
 
-  console.log('[Main] ✓ Audit logger ready')
+  log.log('[Main] ✓ Audit logger ready')
 
   // 0. Initialize Python runtime FIRST
-  console.log('[Main] Initializing Python runtime...')
+  log.log('[Main] Initializing Python runtime...')
   const pythonReady = await pythonRuntime.initialize();
 
   if (!pythonReady) {
-    console.warn('[Main] ⚠ Python runtime not available, AI skills will not work');
+    log.warn('[Main] ⚠ Python runtime not available, AI skills will not work');
     if (!app.isPackaged) {
-      console.error('[Main] Please run "npm run setup-python" first to use AI skills!');
+      log.error('[Main] Please run "npm run setup-python" first to use AI skills!');
     }
   } else {
-    console.log('[Main] ✓ Python runtime ready');
+    log.log('[Main] ✓ Python runtime ready');
   }
 
   // 1. Setup IPC handlers FIRST
@@ -168,10 +169,10 @@ app.whenReady().then(async () => {
 
   // 🔒 2.5. 初始化更新管理器（仅生产环境）
   if (process.env.NODE_ENV === 'production' && mainWin) {
-    console.log('[Main] Initializing update manager...')
+    log.log('[Main] Initializing update manager...')
     updateManager = new UpdateManager(mainWin)
     updateManager.scheduleAutoCheck()
-    console.log('[Main] ✓ Update manager ready')
+    log.log('[Main] ✓ Update manager ready')
   }
 
   // 3. Initialize agent AFTER windows are created
@@ -200,7 +201,7 @@ app.whenReady().then(async () => {
     mainWin?.show()
   }
 
-  console.log('WeChat_Flowwork started. Press Alt+Space to toggle floating ball.')
+  log.log('WeChat_Flowwork started. Press Alt+Space to toggle floating ball.')
 })
 
 
@@ -220,7 +221,7 @@ ipcMain.handle('agent:abort', () => {
 ipcMain.handle('agent:confirm-response', (_, { id, approved, remember, tool, path }: { id: string, approved: boolean, remember?: boolean, tool?: string, path?: string }) => {
   if (approved && remember && tool) {
     configStore.addPermission(tool, path)
-    console.log(`[Permission] Saved: ${tool} for path: ${path || '*'}`)
+    log.log(`[Permission] Saved: ${tool} for path: ${path || '*'}`)
   }
   agent?.handleConfirmResponse(id, approved)
 })
@@ -313,10 +314,10 @@ ipcMain.handle('fs:save-temp-file', async (_event, { name, data }: { name: strin
     const filePath = path.join(tmpDir, name)
     fs.writeFileSync(filePath, Buffer.from(data))
 
-    console.log(`[fs:save-temp-file] Saved temp file: ${filePath}`)
+    log.log(`[fs:save-temp-file] Saved temp file: ${filePath}`)
     return { success: true, path: filePath }
   } catch (error) {
-    console.error('[fs:save-temp-file] Failed to save temp file:', error)
+    log.error('[fs:save-temp-file] Failed to save temp file:', error)
     return { success: false, error: (error as Error).message }
   }
 })
@@ -325,10 +326,10 @@ ipcMain.handle('fs:save-temp-file', async (_event, { name, data }: { name: strin
 ipcMain.handle('fs:read-file', async (_event, filePath: string) => {
   try {
     const content = fs.readFileSync(filePath, 'utf-8')
-    console.log(`[fs:read-file] Read file: ${filePath}`)
+    log.log(`[fs:read-file] Read file: ${filePath}`)
     return content
   } catch (error) {
-    console.error('[fs:read-file] Failed to read file:', error)
+    log.error('[fs:read-file] Failed to read file:', error)
     throw new Error(`无法读取文件：${(error as Error).message}`)
   }
 })
@@ -356,14 +357,14 @@ ipcMain.handle('agent:set-working-dir', (_, folderPath: string) => {
 
 ipcMain.handle('config:get-all', () => {
   const config = configStore.getAll()
-  console.log('[config:get-all] Returning config:', { ...config, apiKey: config.apiKey ? '***' + config.apiKey.slice(-4) : 'empty' })
+  log.log('[config:get-all] Returning config:', { ...config, apiKey: config.apiKey ? '***' + config.apiKey.slice(-4) : 'empty' })
   return config
 })
 
 // 🔒 安全配置获取（不包含 API Key 等敏感信息）
 ipcMain.handle('config:get-safe', () => {
   const config = configStore.getAll()
-  console.log('[config:get-safe] Current authorizedFolders from store:', {
+  log.log('[config:get-safe] Current authorizedFolders from store:', {
     count: config.authorizedFolders?.length || 0,
     folders: config.authorizedFolders
   })
@@ -377,7 +378,7 @@ ipcMain.handle('config:get-safe', () => {
     notificationTypes: config.notificationTypes,
     // ❌ 不返回: apiKey, doubaoApiKey, zhipuApiKey
   }
-  console.log('[config:get-safe] Returning safeConfig with authorizedFolders:', {
+  log.log('[config:get-safe] Returning safeConfig with authorizedFolders:', {
     count: safeConfig.authorizedFolders?.length || 0,
     folders: safeConfig.authorizedFolders
   })
@@ -385,7 +386,7 @@ ipcMain.handle('config:get-safe', () => {
 })
 
 ipcMain.handle('config:set-all', async (_, cfg) => {
-  console.log('[config:set-all] Received config:', {
+  log.log('[config:set-all] Received config:', {
     apiKey: cfg.apiKey ? '***' + cfg.apiKey.slice(-4) : 'empty',
     apiUrl: cfg.apiUrl,
     model: cfg.model,
@@ -399,12 +400,12 @@ ipcMain.handle('config:set-all', async (_, cfg) => {
   try {
     if (cfg.apiKey !== undefined) {
       await configStore.setApiKey(cfg.apiKey)
-      console.log('[config:set-all] Saved apiKey, length:', cfg.apiKey.length)
+      log.log('[config:set-all] Saved apiKey, length:', cfg.apiKey.length)
     }
   } catch (error) {
     const errorMsg = (error as Error).message
     saveErrors.push({field: 'apiKey', error: errorMsg})
-    console.error('[config:set-all] Failed to save apiKey:', errorMsg)
+    log.error('[config:set-all] Failed to save apiKey:', errorMsg)
   }
 
   // Doubao API Key
@@ -417,7 +418,7 @@ ipcMain.handle('config:set-all', async (_, cfg) => {
   } catch (error) {
     const errorMsg = (error as Error).message
     saveErrors.push({field: 'doubaoApiKey', error: errorMsg})
-    console.error('[config:set-all] Failed to save doubaoApiKey:', errorMsg)
+    log.error('[config:set-all] Failed to save doubaoApiKey:', errorMsg)
   }
 
   // Zhipu API Key
@@ -428,53 +429,53 @@ ipcMain.handle('config:set-all', async (_, cfg) => {
   } catch (error) {
     const errorMsg = (error as Error).message
     saveErrors.push({field: 'zhipuApiKey', error: errorMsg})
-    console.error('[config:set-all] Failed to save zhipuApiKey:', errorMsg)
+    log.error('[config:set-all] Failed to save zhipuApiKey:', errorMsg)
   }
 
   // API URL
   try {
     if (cfg.apiUrl !== undefined) {
       configStore.setApiUrl(cfg.apiUrl)
-      console.log('[config:set-all] Saved apiUrl:', cfg.apiUrl)
+      log.log('[config:set-all] Saved apiUrl:', cfg.apiUrl)
     }
   } catch (error) {
     const errorMsg = (error as Error).message
     saveErrors.push({field: 'apiUrl', error: errorMsg})
-    console.error('[config:set-all] Failed to save apiUrl:', errorMsg)
+    log.error('[config:set-all] Failed to save apiUrl:', errorMsg)
   }
 
   // Model
   try {
     if (cfg.model !== undefined) {
       configStore.setModel(cfg.model)
-      console.log('[config:set-all] Saved model:', cfg.model)
+      log.log('[config:set-all] Saved model:', cfg.model)
     }
   } catch (error) {
     const errorMsg = (error as Error).message
     saveErrors.push({field: 'model', error: errorMsg})
-    console.error('[config:set-all] Failed to save model:', errorMsg)
+    log.error('[config:set-all] Failed to save model:', errorMsg)
   }
 
   // authorizedFolders（关键修复）
   try {
-    console.log('[config:set-all] Saving authorizedFolders:', {
+    log.log('[config:set-all] Saving authorizedFolders:', {
       count: cfg.authorizedFolders?.length || 0,
       folders: cfg.authorizedFolders
     })
 
     configStore.set('authorizedFolders', cfg.authorizedFolders || [])
-    console.log('[config:set-all] authorizedFolders saved successfully')
+    log.log('[config:set-all] authorizedFolders saved successfully')
 
     // 验证保存
     const savedFolders = configStore.get('authorizedFolders')
-    console.log('[config:set-all] Verification - saved folders:', {
+    log.log('[config:set-all] Verification - saved folders:', {
       count: savedFolders?.length || 0,
       folders: savedFolders
     })
   } catch (error) {
     const errorMsg = (error as Error).message
     saveErrors.push({field: 'authorizedFolders', error: errorMsg})
-    console.error('[config:set-all] Failed to save authorizedFolders:', errorMsg)
+    log.error('[config:set-all] Failed to save authorizedFolders:', errorMsg)
   }
 
   // Network Access
@@ -483,7 +484,7 @@ ipcMain.handle('config:set-all', async (_, cfg) => {
   } catch (error) {
     const errorMsg = (error as Error).message
     saveErrors.push({field: 'networkAccess', error: errorMsg})
-    console.error('[config:set-all] Failed to save networkAccess:', errorMsg)
+    log.error('[config:set-all] Failed to save networkAccess:', errorMsg)
   }
 
   // Shortcut
@@ -494,7 +495,7 @@ ipcMain.handle('config:set-all', async (_, cfg) => {
   } catch (error) {
     const errorMsg = (error as Error).message
     saveErrors.push({field: 'shortcut', error: errorMsg})
-    console.error('[config:set-all] Failed to save shortcut:', errorMsg)
+    log.error('[config:set-all] Failed to save shortcut:', errorMsg)
   }
 
   // Notifications
@@ -505,7 +506,7 @@ ipcMain.handle('config:set-all', async (_, cfg) => {
   } catch (error) {
     const errorMsg = (error as Error).message
     saveErrors.push({field: 'notifications', error: errorMsg})
-    console.error('[config:set-all] Failed to save notifications:', errorMsg)
+    log.error('[config:set-all] Failed to save notifications:', errorMsg)
   }
 
   // Notification Types
@@ -516,17 +517,17 @@ ipcMain.handle('config:set-all', async (_, cfg) => {
   } catch (error) {
     const errorMsg = (error as Error).message
     saveErrors.push({field: 'notificationTypes', error: errorMsg})
-    console.error('[config:set-all] Failed to save notificationTypes:', errorMsg)
+    log.error('[config:set-all] Failed to save notificationTypes:', errorMsg)
   }
 
   // 汇总保存错误
   if (saveErrors.length > 0) {
-    console.error('[config:set-all] Some fields failed to save:', saveErrors)
+    log.error('[config:set-all] Some fields failed to save:', saveErrors)
   }
 
   // Verify save
   const savedConfig = configStore.getAll()
-  console.log('[config:set-all] Verification after save:', {
+  log.log('[config:set-all] Verification after save:', {
     apiKey: savedConfig.apiKey ? '***' + savedConfig.apiKey.slice(-4) : 'empty',
     apiUrl: savedConfig.apiUrl,
     model: savedConfig.model,
@@ -540,7 +541,7 @@ ipcMain.handle('config:set-all', async (_, cfg) => {
   BrowserWindow.getAllWindows().forEach(win => {
     win.webContents.send('config:updated')
   })
-  console.log('[config:set-all] Broadcasted config:updated event to all windows')
+  log.log('[config:set-all] Broadcasted config:updated event to all windows')
 
   return {
     success: saveErrors.length === 0,
@@ -554,7 +555,7 @@ ipcMain.handle('config:set-all', async (_, cfg) => {
 ipcMain.handle('config:get-style-config', () => {
   try {
     const config = configStore.getUserStyleConfig()
-    console.log('[config:get-style-config] Returning style config:', {
+    log.log('[config:get-style-config] Returning style config:', {
       articleCount: config?.articles.length || 0,
       learningCount: config?.learningCount || 0,
       hasStyleGuide: !!config?.styleGuide
@@ -571,7 +572,7 @@ ipcMain.handle('config:get-style-config', () => {
       learningCount: 0
     }
   } catch (error) {
-    console.error('[config:get-style-config] Error:', error)
+    log.error('[config:get-style-config] Error:', error)
     return {
       articles: [],
       styleGuide: {
@@ -604,11 +605,11 @@ ipcMain.handle('config:save-article', async (_event, { content, filename }: { co
     // 添加到配置
     configStore.addArticlePath(articlePath)
 
-    console.log('[config:save-article] Article saved:', articlePath)
+    log.log('[config:save-article] Article saved:', articlePath)
     return { success: true, path: articlePath }
   } catch (error) {
     const errorMsg = (error as Error).message
-    console.error('[config:save-article] Failed to save article:', errorMsg)
+    log.error('[config:save-article] Failed to save article:', errorMsg)
     return { success: false, error: errorMsg }
   }
 })
@@ -616,7 +617,7 @@ ipcMain.handle('config:save-article', async (_event, { content, filename }: { co
 // 分析用户文章风格
 ipcMain.handle('config:analyze-style', async (_event, { articlePaths }: { articlePaths: string[] }) => {
   try {
-    console.log('[config:analyze-style] Analyzing', articlePaths.length, 'articles')
+    log.log('[config:analyze-style] Analyzing', articlePaths.length, 'articles')
 
     // 读取所有文章内容
     const fs = await import('fs')
@@ -627,7 +628,7 @@ ipcMain.handle('config:analyze-style', async (_event, { articlePaths }: { articl
         const content = await fs.promises.readFile(articlePath, 'utf-8')
         articlesContent.push(content)
       } catch (error) {
-        console.error(`[config:analyze-style] Failed to read article: ${articlePath}`, error)
+        log.error(`[config:analyze-style] Failed to read article: ${articlePath}`, error)
       }
     }
 
@@ -661,7 +662,7 @@ ipcMain.handle('config:analyze-style', async (_event, { articlePaths }: { articl
       scriptPath = path.join(process.cwd(), 'resources', 'skills', 'style-learner', 'scripts', 'style_learner.py')
     }
 
-    console.log('[config:analyze-style] Calling style_learner.py at:', scriptPath)
+    log.log('[config:analyze-style] Calling style_learner.py at:', scriptPath)
 
     const result = await new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
       const python = spawn('python', [scriptPath], {
@@ -708,7 +709,7 @@ ipcMain.handle('config:analyze-style', async (_event, { articlePaths }: { articl
     try {
       analysisResult = JSON.parse(result.stdout)
     } catch (error) {
-      console.error('[config:analyze-style] Failed to parse Python output:', result.stdout)
+      log.error('[config:analyze-style] Failed to parse Python output:', result.stdout)
       throw new Error('解析分析结果失败')
     }
 
@@ -787,7 +788,7 @@ ipcMain.handle('config:analyze-style', async (_event, { articlePaths }: { articl
       }
     }
 
-    console.log('[config:analyze-style] Analysis complete')
+    log.log('[config:analyze-style] Analysis complete')
     return {
       success: true,
       result: adaptedResult,
@@ -795,7 +796,7 @@ ipcMain.handle('config:analyze-style', async (_event, { articlePaths }: { articl
     }
   } catch (error) {
     const errorMsg = (error as Error).message
-    console.error('[config:analyze-style] Failed to analyze:', errorMsg)
+    log.error('[config:analyze-style] Failed to analyze:', errorMsg)
     return { success: false, error: errorMsg }
   }
 })
@@ -804,11 +805,11 @@ ipcMain.handle('config:analyze-style', async (_event, { articlePaths }: { articl
 ipcMain.handle('config:update-style-guide', async (_event, { styleGuide }: { styleGuide: any }) => {
   try {
     configStore.updateStyleGuide(styleGuide)
-    console.log('[config:update-style-guide] Style guide updated')
+    log.log('[config:update-style-guide] Style guide updated')
     return { success: true }
   } catch (error) {
     const errorMsg = (error as Error).message
-    console.error('[config:update-style-guide] Failed to update:', errorMsg)
+    log.error('[config:update-style-guide] Failed to update:', errorMsg)
     return { success: false, error: errorMsg }
   }
 })
@@ -833,7 +834,7 @@ ipcMain.handle('config:reanalyze-style', async () => {
         const content = await fs.promises.readFile(articlePath, 'utf-8')
         articles.push(content)
       } catch (error) {
-        console.warn('[config:reanalyze-style] Failed to read article:', articlePath)
+        log.warn('[config:reanalyze-style] Failed to read article:', articlePath)
       }
     }
 
@@ -849,7 +850,7 @@ ipcMain.handle('config:reanalyze-style', async () => {
     return result
   } catch (error) {
     const errorMsg = (error as Error).message
-    console.error('[config:reanalyze-style] Failed:', errorMsg)
+    log.error('[config:reanalyze-style] Failed:', errorMsg)
     return { success: false, error: errorMsg }
   }
 })
@@ -858,11 +859,11 @@ ipcMain.handle('config:reanalyze-style', async () => {
 ipcMain.handle('config:clear-style-config', () => {
   try {
     configStore.clearStyleConfig()
-    console.log('[config:clear-style-config] Style config cleared')
+    log.log('[config:clear-style-config] Style config cleared')
     return { success: true }
   } catch (error) {
     const errorMsg = (error as Error).message
-    console.error('[config:clear-style-config] Failed:', errorMsg)
+    log.error('[config:clear-style-config] Failed:', errorMsg)
     return { success: false, error: errorMsg }
   }
 })
@@ -871,12 +872,12 @@ ipcMain.handle('config:clear-style-config', () => {
 ipcMain.handle('config:get-first-launch', () => {
   // 使用 ConfigStore 方法获取，支持默认值
   const firstLaunch = configStore.getFirstLaunch()
-  console.log('[config:get-first-launch] Returning:', firstLaunch)
+  log.log('[config:get-first-launch] Returning:', firstLaunch)
   return firstLaunch
 })
 
 ipcMain.handle('config:set-first-launch', () => {
-  console.log('[config:set-first-launch] Setting to false')
+  log.log('[config:set-first-launch] Setting to false')
   configStore.setFirstLaunch(false)
   return true
 })
@@ -893,7 +894,7 @@ ipcMain.handle('config:get-api-key-status', async () => {
 // 检查所有必需配置是否完整
 ipcMain.handle('config:get-setup-status', async () => {
   try {
-    console.log('[config:get-setup-status] Fetching setup status...');
+    log.log('[config:get-setup-status] Fetching setup status...');
     const apiKey = await configStore.getApiKey();
     const folders = configStore.getAuthorizedFolders();
     const status = {
@@ -901,10 +902,10 @@ ipcMain.handle('config:get-setup-status', async () => {
       hasAuthorizedFolders: folders.length > 0,
       isSetupComplete: !!apiKey && folders.length > 0
     };
-    console.log('[config:get-setup-status] Returning:', status);
+    log.log('[config:get-setup-status] Returning:', status);
     return status;
   } catch (error) {
-    console.error('[config:get-setup-status] Error:', error);
+    log.error('[config:get-setup-status] Error:', error);
     // 返回默认状态（引导用户重新配置）
     return {
       hasApiKey: false,
@@ -916,18 +917,18 @@ ipcMain.handle('config:get-setup-status', async () => {
 
 // 🔒 更新管理器 IPC 处理器
 ipcMain.handle('update:check', async () => {
-  console.log('[update:check] Manual update check requested')
+  log.log('[update:check] Manual update check requested')
   await updateManager?.checkForUpdates()
 })
 
 ipcMain.handle('update:install', async () => {
-  console.log('[update:install] User requested to install update')
+  log.log('[update:install] User requested to install update')
   updateManager?.quitAndInstall()
 })
 
 // 重置首次启动状态（调试用）
 ipcMain.handle('config:reset-first-launch', () => {
-  console.log('[config:reset-first-launch] Resetting to true');
+  log.log('[config:reset-first-launch] Resetting to true');
   configStore.setFirstLaunch(true);
   return { success: true };
 });
@@ -957,9 +958,9 @@ ipcMain.handle('shortcut:update', (_, newShortcut: string) => {
 })
 
 ipcMain.handle('dialog:select-folder', async () => {
-  console.log('[dialog:select-folder] Opening folder selection dialog...')
+  log.log('[dialog:select-folder] Opening folder selection dialog...')
   if (!mainWin) {
-    console.error('[dialog:select-folder] ❌ mainWin is null!')
+    log.error('[dialog:select-folder] ❌ mainWin is null!')
     return null
   }
 
@@ -967,19 +968,19 @@ ipcMain.handle('dialog:select-folder', async () => {
     const result = await dialog.showOpenDialog(mainWin, {
       properties: ['openDirectory', 'createDirectory', 'promptToCreate']
     })
-    console.log('[dialog:select-folder] Dialog result:', {
+    log.log('[dialog:select-folder] Dialog result:', {
       canceled: result.canceled,
       filePaths: result.filePaths
     })
 
     if (!result.canceled && result.filePaths.length > 0) {
-      console.log('[dialog:select-folder] ✅ Selected folder:', result.filePaths[0])
+      log.log('[dialog:select-folder] ✅ Selected folder:', result.filePaths[0])
       return result.filePaths[0]
     }
-    console.log('[dialog:select-folder] ⚠️ Dialog canceled')
+    log.log('[dialog:select-folder] ⚠️ Dialog canceled')
     return null
   } catch (error) {
-    console.error('[dialog:select-folder] ❌ Error:', error)
+    log.error('[dialog:select-folder] ❌ Error:', error)
     return null
   }
 })
@@ -1018,19 +1019,19 @@ ipcMain.handle('floating-ball:move', (_, { deltaX, deltaY }: { deltaX: number, d
 
 // Window controls for custom titlebar
 ipcMain.handle('window:minimize', async () => {
-  console.log('IPC: window:minimize called');
+  log.log('IPC: window:minimize called');
   try {
     if (mainWin && !mainWin.isDestroyed()) {
-      console.log('IPC: window:minimize - mainWin exists and not destroyed');
+      log.log('IPC: window:minimize - mainWin exists and not destroyed');
       mainWin.minimize();
-      console.log('IPC: window:minimize completed successfully');
+      log.log('IPC: window:minimize completed successfully');
       return { success: true, message: 'Window minimized' };
     } else {
-      console.error('IPC: window:minimize failed - mainWin is null or destroyed');
+      log.error('IPC: window:minimize failed - mainWin is null or destroyed');
       return { success: false, message: 'Main window not available' };
     }
   } catch (error) {
-    console.error('IPC: window:minimize error:', error);
+    log.error('IPC: window:minimize error:', error);
     return {
       success: false,
       message: `Error: ${error instanceof Error ? error.message : String(error)}`
@@ -1038,25 +1039,25 @@ ipcMain.handle('window:minimize', async () => {
   }
 })
 ipcMain.handle('window:maximize', async () => {
-  console.log('IPC: window:maximize called');
+  log.log('IPC: window:maximize called');
   try {
     if (mainWin && !mainWin.isDestroyed()) {
-      console.log('IPC: window:maximize - mainWin exists and not destroyed');
+      log.log('IPC: window:maximize - mainWin exists and not destroyed');
       if (mainWin.isMaximized()) {
         mainWin.unmaximize();
-        console.log('IPC: window:maximize - unmaximized successfully');
+        log.log('IPC: window:maximize - unmaximized successfully');
         return { success: true, message: 'Window unmaximized', isMaximized: false };
       } else {
         mainWin.maximize();
-        console.log('IPC: window:maximize - maximized successfully');
+        log.log('IPC: window:maximize - maximized successfully');
         return { success: true, message: 'Window maximized', isMaximized: true };
       }
     } else {
-      console.error('IPC: window:maximize failed - mainWin is null or destroyed');
+      log.error('IPC: window:maximize failed - mainWin is null or destroyed');
       return { success: false, message: 'Main window not available' };
     }
   } catch (error) {
-    console.error('IPC: window:maximize error:', error);
+    log.error('IPC: window:maximize error:', error);
     return {
       success: false,
       message: `Error: ${error instanceof Error ? error.message : String(error)}`
@@ -1064,19 +1065,19 @@ ipcMain.handle('window:maximize', async () => {
   }
 })
 ipcMain.handle('window:close', async () => {
-  console.log('IPC: window:close called');
+  log.log('IPC: window:close called');
   try {
     if (mainWin && !mainWin.isDestroyed()) {
-      console.log('IPC: window:close - mainWin exists and not destroyed');
+      log.log('IPC: window:close - mainWin exists and not destroyed');
       mainWin.hide();
-      console.log('IPC: window:close completed successfully');
+      log.log('IPC: window:close completed successfully');
       return { success: true, message: 'Window hidden' };
     } else {
-      console.error('IPC: window:close failed - mainWin is null or destroyed');
+      log.error('IPC: window:close failed - mainWin is null or destroyed');
       return { success: false, message: 'Main window not available' };
     }
   } catch (error) {
-    console.error('IPC: window:close error:', error);
+    log.error('IPC: window:close error:', error);
     return {
       success: false,
       message: `Error: ${error instanceof Error ? error.message : String(error)}`
@@ -1092,7 +1093,7 @@ ipcMain.handle('mcp:get-config', async () => {
     if (!fs.existsSync(mcpConfigPath)) return '{}';
     return fs.readFileSync(mcpConfigPath, 'utf-8');
   } catch (e) {
-    console.error('Failed to read MCP config:', e);
+    log.error('Failed to read MCP config:', e);
     return '{}';
   }
 });
@@ -1110,7 +1111,7 @@ ipcMain.handle('mcp:save-config', async (_, content: string) => {
     }
     return { success: true };
   } catch (e) {
-    console.error('Failed to save MCP config:', e);
+    log.error('Failed to save MCP config:', e);
     return { success: false, error: (e as Error).message };
   }
 });
@@ -1130,7 +1131,7 @@ const getBuiltinSkillNames = () => {
     if (fs.existsSync(sourceDir)) {
       return fs.readdirSync(sourceDir).filter(f => fs.statSync(path.join(sourceDir, f)).isDirectory());
     }
-  } catch (e) { console.error(e) }
+  } catch (e) { log.error(e) }
   return [];
 };
 
@@ -1149,7 +1150,7 @@ ipcMain.handle('skills:list', async () => {
       isBuiltin: builtinSkills.includes(f)
     }));
   } catch (e) {
-    console.error('Failed to list skills:', e);
+    log.error('Failed to list skills:', e);
     return [];
   }
 });
@@ -1166,7 +1167,7 @@ ipcMain.handle('skills:get', async (_, skillId: string) => {
     if (!mdFile) return '';
     return fs.readFileSync(path.join(skillPath, mdFile), 'utf-8');
   } catch (e) {
-    console.error('Failed to read skill:', e);
+    log.error('Failed to read skill:', e);
     return '';
   }
 });
@@ -1180,10 +1181,10 @@ ipcMain.handle('skills:save', async (_event, skillId: string, content: string) =
     await fs.mkdir(path.dirname(skillPath), { recursive: true } as any);
     await fs.writeFile(skillPath, content, 'utf-8' as any);
 
-    console.log(`[skills:save] Saved skill: ${skillId}`);
+    log.log(`[skills:save] Saved skill: ${skillId}`);
     return { success: true };
   } catch (error) {
-    console.error('[skills:save] Error:', error);
+    log.error('[skills:save] Error:', error);
     return { success: false, error: (error as Error).message };
   }
 });
@@ -1194,7 +1195,7 @@ ipcMain.handle('skills:delete', async (_event, skillId: string) => {
     const skillPath = path.join(userSkillsDir, skillId);
 
     await fs.rm(skillPath, { recursive: true, force: true } as any);
-    console.log(`[skills:delete] Deleted skill: ${skillId}`);
+    log.log(`[skills:delete] Deleted skill: ${skillId}`);
 
     // Reload skills
     if (agent) {
@@ -1203,7 +1204,7 @@ ipcMain.handle('skills:delete', async (_event, skillId: string) => {
 
     return { success: true };
   } catch (error) {
-    console.error('[skills:delete] Error:', error);
+    log.error('[skills:delete] Error:', error);
     return { success: false, error: (error as Error).message };
   }
 });
@@ -1313,7 +1314,7 @@ ipcMain.handle('commands:execute', async (_, commandId: string, params?: Record<
     await command.execute(params);
     return { success: true };
   } catch (error) {
-    console.error(`[Commands] Error executing command ${commandId}:`, error);
+    log.error(`[Commands] Error executing command ${commandId}:`, error);
     return { success: false, error: (error as Error).message };
   }
 });
@@ -1332,7 +1333,7 @@ ipcMain.handle('commands:set-shortcut', async (_, commandId: string, accelerator
       id: commandId,
       accelerator: accelerator,
       action: () => {
-        console.log(`[ShortcutManager] Executing command via shortcut: ${commandId}`);
+        log.log(`[ShortcutManager] Executing command via shortcut: ${commandId}`);
         command.execute();
       },
       description: command.description
@@ -1346,7 +1347,7 @@ ipcMain.handle('commands:set-shortcut', async (_, commandId: string, accelerator
       return { success: false, error: 'Shortcut registration failed (possibly conflict)' };
     }
   } catch (error) {
-    console.error(`[Commands] Error setting shortcut for ${commandId}:`, error);
+    log.error(`[Commands] Error setting shortcut for ${commandId}:`, error);
     return { success: false, error: (error as Error).message };
   }
 });
@@ -1377,14 +1378,14 @@ async function initializeAgent() {
   const doubaoApiKey = await configStore.getDoubaoApiKey()
   if (doubaoApiKey) {
     process.env.DOUBAO_API_KEY = doubaoApiKey
-    console.log('Doubao API Key已配置并注入到环境变量')
+    log.log('Doubao API Key已配置并注入到环境变量')
   }
 
   // 注入智谱 API Key 到环境变量,供 Skills 使用
   const zhipuApiKey = await configStore.getZhipuApiKey()
   if (zhipuApiKey) {
     process.env.ZHIPU_API_KEY = zhipuApiKey
-    console.log('Zhipu API Key已配置并注入到环境变量')
+    log.log('Zhipu API Key已配置并注入到环境变量')
   }
 
   if (apiKey && mainWin) {
@@ -1400,22 +1401,22 @@ async function initializeAgent() {
     if (currentSessionId) {
       const session = sessionStore.getSession(currentSessionId)
       if (session && session.messages.length > 0) {
-        console.log(`[Main] Auto-loading session: ${session.title} (${session.messages.length} messages)`)
+        log.log(`[Main] Auto-loading session: ${session.title} (${session.messages.length} messages)`)
         agent.loadHistory(session.messages)
       } else {
-        console.log('[Main] Current session is empty, starting fresh')
+        log.log('[Main] Current session is empty, starting fresh')
       }
     } else {
-      console.log('[Main] No current session found, starting fresh')
+      log.log('[Main] No current session found, starting fresh')
     }
 
     // Trigger async initialization for MCP and Skills
-    agent.initialize().catch(err => console.error('Agent initialization failed:', err));
+    agent.initialize().catch(err => log.error('Agent initialization failed:', err));
 
-    console.log('Agent initialized with model:', configStore.getModel())
-    console.log('API URL:', configStore.getApiUrl())
+    log.log('Agent initialized with model:', configStore.getModel())
+    log.log('API URL:', configStore.getApiUrl())
   } else {
-    console.warn('No API Key found. Please configure in Settings.')
+    log.warn('No API Key found. Please configure in Settings.')
   }
 }
 
@@ -1469,8 +1470,8 @@ function createTray() {
 
 function createMainWindow() {
   const preloadPath = path.join(__dirname, 'preload.cjs')
-  console.log('[Main Window] __dirname:', __dirname)
-  console.log('[Main Window] preload path:', preloadPath)
+  log.log('[Main Window] __dirname:', __dirname)
+  log.log('[Main Window] preload path:', preloadPath)
 
   mainWin = new BrowserWindow({
     width: 900,
@@ -1496,7 +1497,7 @@ function createMainWindow() {
   mainWin.setMenu(null)
 
   mainWin.once('ready-to-show', () => {
-    console.log('Main window ready.')
+    log.log('Main window ready.')
   })
 
   mainWin.on('close', (event) => {
@@ -1508,15 +1509,15 @@ function createMainWindow() {
 
   // 🔍 调试：检查 preload 是否加载
   mainWin?.webContents.on('did-finish-load', () => {
-    console.log('[Main Window] Finished loading')
+    log.log('[Main Window] Finished loading')
     mainWin?.webContents.executeJavaScript('typeof window.ipcRenderer')
       .then(result => {
-        console.log('[Main Window] window.ipcRenderer type:', result)
+        log.log('[Main Window] window.ipcRenderer type:', result)
         // 发送主进程消息
         mainWin?.webContents.send('main-process-message', (new Date).toLocaleString())
       })
       .catch(err => {
-        console.error('[Main Window] Error checking ipcRenderer:', err)
+        log.error('[Main Window] Error checking ipcRenderer:', err)
       })
   })
 
@@ -1580,16 +1581,16 @@ function createFloatingBallWindow() {
 }
 
 function toggleFloatingBallExpanded() {
-  console.log('[FloatingBall] toggleFloatingBallExpanded called, isBallExpanded:', isBallExpanded)
+  log.log('[FloatingBall] toggleFloatingBallExpanded called, isBallExpanded:', isBallExpanded)
   if (!floatingBallWin) {
-    console.error('[FloatingBall] floatingBallWin is null!')
+    log.error('[FloatingBall] floatingBallWin is null!')
     return
   }
 
   const [currentX, currentY] = floatingBallWin.getPosition()
   const { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workAreaSize
-  console.log('[FloatingBall] Current position:', currentX, currentY)
-  console.log('[FloatingBall] Screen size:', screenWidth, screenHeight)
+  log.log('[FloatingBall] Current position:', currentX, currentY)
+  log.log('[FloatingBall] Screen size:', screenWidth, screenHeight)
 
   if (isBallExpanded) {
     // Collapse - Calculate where ball should go based on current expanded window position
@@ -1602,7 +1603,7 @@ function toggleFloatingBallExpanded() {
     const finalX = Math.max(0, Math.min(ballX, screenWidth - BALL_SIZE))
     const finalY = Math.max(0, Math.min(ballY, screenHeight - BALL_SIZE))
 
-    console.log('[FloatingBall] Collapsing to:', BALL_SIZE, 'x', BALL_SIZE, 'at', finalX, finalY)
+    log.log('[FloatingBall] Collapsing to:', BALL_SIZE, 'x', BALL_SIZE, 'at', finalX, finalY)
     floatingBallWin.setSize(BALL_SIZE, BALL_SIZE)
     floatingBallWin.setPosition(finalX, finalY)
     isBallExpanded = false
@@ -1623,13 +1624,13 @@ function toggleFloatingBallExpanded() {
     newX = Math.max(0, newX)
     newY = Math.max(0, newY)
 
-    console.log('[FloatingBall] Expanding to:', EXPANDED_WIDTH, 'x', EXPANDED_HEIGHT, 'at', newX, newY)
+    log.log('[FloatingBall] Expanding to:', EXPANDED_WIDTH, 'x', EXPANDED_HEIGHT, 'at', newX, newY)
     floatingBallWin.setSize(EXPANDED_WIDTH, EXPANDED_HEIGHT)
     floatingBallWin.setPosition(newX, newY)
     isBallExpanded = true
   }
 
-  console.log('[FloatingBall] Sending state-changed event:', isBallExpanded)
+  log.log('[FloatingBall] Sending state-changed event:', isBallExpanded)
   floatingBallWin.webContents.send('floating-ball:state-changed', isBallExpanded)
 }
 
@@ -1646,7 +1647,7 @@ setInterval(() => {
 async function analyzeArticles(articles: string[]): Promise<any> {
   // TODO: 集成 AI API 进行风格分析
   // 目前返回模拟数据
-  console.log('[analyzeArticles] Analyzing', articles.length, 'articles (AI integration pending)')
+  log.log('[analyzeArticles] Analyzing', articles.length, 'articles (AI integration pending)')
 
   // 这里应该调用 AI API (如 Anthropic API) 进行风格分析
   // 示例伪代码：

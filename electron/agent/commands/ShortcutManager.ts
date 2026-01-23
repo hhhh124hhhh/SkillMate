@@ -6,6 +6,7 @@
 import { globalShortcut, BrowserWindow } from 'electron';
 import { ShortcutBinding, CommandDefinition } from './types.js';
 import { configStore } from '../../config/ConfigStore.js';
+import log from 'electron-log';
 
 export class ShortcutManager {
   private bindings: Map<string, ShortcutBinding> = new Map();
@@ -23,7 +24,7 @@ export class ShortcutManager {
     // 1. 冲突检测
     const conflictId = this.checkConflict(binding.accelerator, binding.id);
     if (conflictId) {
-      console.warn(
+      log.warn(
         `[ShortcutManager] Conflict detected: ${binding.accelerator} already bound to ${conflictId}`
       );
       return false;
@@ -37,13 +38,13 @@ export class ShortcutManager {
     // 3. 注册到系统
     try {
       const success = globalShortcut.register(binding.accelerator, () => {
-        console.log(`[ShortcutManager] Triggered: ${binding.id} (${binding.accelerator})`);
+        log.log(`[ShortcutManager] Triggered: ${binding.id} (${binding.accelerator})`);
         binding.action();
       });
 
       if (success) {
         this.bindings.set(binding.id, binding);
-        console.log(
+        log.log(
           `[ShortcutManager] Registered: ${binding.id} -> ${binding.accelerator}`
         );
 
@@ -52,13 +53,13 @@ export class ShortcutManager {
 
         return true;
       } else {
-        console.error(
+        log.error(
           `[ShortcutManager] Failed to register: ${binding.id} -> ${binding.accelerator}`
         );
         return false;
       }
     } catch (error) {
-      console.error(`[ShortcutManager] Error registering shortcut:`, error);
+      log.error(`[ShortcutManager] Error registering shortcut:`, error);
       return false;
     }
   }
@@ -67,7 +68,7 @@ export class ShortcutManager {
    * 批量注册命令快捷键
    */
   registerFromCommands(commands: CommandDefinition[]): void {
-    console.log(`[ShortcutManager] Registering shortcuts for ${commands.length} commands...`);
+    log.log(`[ShortcutManager] Registering shortcuts for ${commands.length} commands...`);
 
     commands.forEach(cmd => {
       if (cmd.shortcut) {
@@ -75,7 +76,7 @@ export class ShortcutManager {
           id: cmd.id,
           accelerator: cmd.shortcut,
           action: () => {
-            console.log(`[ShortcutManager] Executing command via shortcut: ${cmd.id}`);
+            log.log(`[ShortcutManager] Executing command via shortcut: ${cmd.id}`);
             cmd.execute();
           },
           description: cmd.description
@@ -92,7 +93,7 @@ export class ShortcutManager {
     if (binding) {
       globalShortcut.unregister(binding.accelerator);
       this.bindings.delete(id);
-      console.log(`[ShortcutManager] Unregistered: ${id}`);
+      log.log(`[ShortcutManager] Unregistered: ${id}`);
 
       // 持久化到配置
       this.saveToConfig();
@@ -103,7 +104,7 @@ export class ShortcutManager {
    * 注销所有快捷键
    */
   unregisterAll(): void {
-    console.log(`[ShortcutManager] Unregistering all shortcuts...`);
+    log.log(`[ShortcutManager] Unregistering all shortcuts...`);
 
     for (const [id] of this.bindings) {
       globalShortcut.unregister(this.bindings.get(id)!.accelerator);
@@ -161,16 +162,16 @@ export class ShortcutManager {
       const config = configStore.get('shortcuts') as Record<string, string> | undefined;
 
       if (config) {
-        console.log(`[ShortcutManager] Loading ${Object.keys(config).length} shortcuts from config...`);
+        log.log(`[ShortcutManager] Loading ${Object.keys(config).length} shortcuts from config...`);
 
         for (const [id, accelerator] of Object.entries(config)) {
           // 注意：这里只恢复快捷键绑定，不执行命令
           // 实际的命令执行需要在CommandRegistry初始化后再绑定
-          console.log(`[ShortcutManager] Found shortcut in config: ${id} -> ${accelerator}`);
+          log.log(`[ShortcutManager] Found shortcut in config: ${id} -> ${accelerator}`);
         }
       }
     } catch (error) {
-      console.error('[ShortcutManager] Error loading shortcuts from config:', error);
+      log.error('[ShortcutManager] Error loading shortcuts from config:', error);
     }
   }
 
@@ -186,9 +187,9 @@ export class ShortcutManager {
       }
 
       configStore.set('shortcuts', shortcuts);
-      console.log('[ShortcutManager] Saved shortcuts to config');
+      log.log('[ShortcutManager] Saved shortcuts to config');
     } catch (error) {
-      console.error('[ShortcutManager] Error saving shortcuts to config:', error);
+      log.error('[ShortcutManager] Error saving shortcuts to config:', error);
     }
   }
 

@@ -1,4 +1,5 @@
 import path from 'path';
+import log from 'electron-log';
 import { configStore } from '../../config/ConfigStore.js';
 
 export class PermissionManager {
@@ -15,11 +16,11 @@ export class PermissionManager {
         const normalized = path.resolve(folderPath);
         // Security check: never allow root directories
         if (normalized === '/' || normalized === 'C:\\' || normalized.match(/^[A-Z]:\\$/)) {
-            console.warn('Attempted to authorize root directory, denied.');
+            log.warn('Attempted to authorize root directory, denied.');
             return false;
         }
         this.authorizedFolders.add(normalized);
-        console.log(`Authorized folder: ${normalized}`);
+        log.log(`Authorized folder: ${normalized}`);
         return true;
     }
 

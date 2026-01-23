@@ -43,7 +43,7 @@ export class UpdateManager {
     // 开发环境禁用更新
     if (process.env.NODE_ENV === 'development') {
       autoUpdater.autoDownload = false
-      console.log('[Update] Auto-update disabled in development mode')
+      log.log('[Update] Auto-update disabled in development mode')
     }
 
     // 配置日志
@@ -54,7 +54,7 @@ export class UpdateManager {
   private registerEvents() {
     // 发现更新
     autoUpdater.on('update-available', (info: UpdateInfo) => {
-      console.log('[Update] Update available:', info.version)
+      log.log('[Update] Update available:', info.version)
 
       this.mainWindow?.webContents.send('update:available', {
         version: info.version,
@@ -67,7 +67,7 @@ export class UpdateManager {
 
     // 更新已下载
     autoUpdater.on('update-downloaded', (info: UpdateInfo) => {
-      console.log('[Update] Update downloaded:', info.version)
+      log.log('[Update] Update downloaded:', info.version)
       this.isDownloading = false
 
       this.mainWindow?.webContents.send('update:downloaded', {
@@ -80,7 +80,7 @@ export class UpdateManager {
 
     // 下载进度
     autoUpdater.on('download-progress', (progress) => {
-      console.log(`[Update] Download progress: ${progress.percent}%`)
+      log.log(`[Update] Download progress: ${progress.percent}%`)
 
       this.mainWindow?.webContents.send('update:progress', {
         percent: Math.floor(progress.percent),
@@ -92,7 +92,7 @@ export class UpdateManager {
 
     // 无更新
     autoUpdater.on('update-not-available', (info: UpdateInfo) => {
-      console.log('[Update] No update available, current version:', info.version)
+      log.log('[Update] No update available, current version:', info.version)
 
       this.mainWindow?.webContents.send('update:not-available', {
         version: info.version
@@ -103,7 +103,7 @@ export class UpdateManager {
 
     // 错误处理
     autoUpdater.on('error', (error: Error) => {
-      console.error('[Update] Error:', error)
+      log.error('[Update] Error:', error)
       this.isDownloading = false
 
       this.mainWindow?.webContents.send('update:error', {
@@ -120,7 +120,7 @@ export class UpdateManager {
    */
   public async checkForUpdates(): Promise<void> {
     if (process.env.NODE_ENV === 'development') {
-      console.log('[Update] Skipped in development mode')
+      log.log('[Update] Skipped in development mode')
       this.mainWindow?.webContents.send('update:not-available', {
         version: 'dev'
       })
@@ -128,17 +128,17 @@ export class UpdateManager {
     }
 
     if (this.isDownloading) {
-      console.log('[Update] Already downloading, skip check')
+      log.log('[Update] Already downloading, skip check')
       return
     }
 
     try {
-      console.log('[Update] Checking for updates...')
+      log.log('[Update] Checking for updates...')
       log.info('[Update] Checking for updates...')
 
       await autoUpdater.checkForUpdates()
     } catch (error) {
-      console.error('[Update] Failed to check for updates:', error)
+      log.error('[Update] Failed to check for updates:', error)
       log.error('[Update] Failed to check for updates:', error)
     }
   }
@@ -147,7 +147,7 @@ export class UpdateManager {
    * 立即安装并重启（紧急更新用）
    */
   public quitAndInstall(): void {
-    console.log('[Update] Quitting and installing update...')
+    log.log('[Update] Quitting and installing update...')
     log.info('[Update] Quitting and installing update')
 
     autoUpdater.quitAndInstall(true, true)
