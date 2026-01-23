@@ -4,6 +4,7 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import path from 'path';
 import fs from 'fs/promises';
 import os from 'os';
+import log from 'electron-log';
 // app import removed
 
 export interface MCPServerConfig {
@@ -26,7 +27,7 @@ export class MCPClientService {
         const configDir = path.join(os.homedir(), '.aiagent');
         this.configPath = path.join(configDir, 'mcp.json');
 
-        console.log('[MCPClientService] Using config path:', this.configPath);
+        log.log('[MCPClientService] Using config path:', this.configPath);
     }
 
     async loadClients() {
@@ -36,7 +37,7 @@ export class MCPClientService {
             config = JSON.parse(content);
         } catch (e) {
             // Create default config from template
-            console.log('[MCPClientService] Creating default MCP config from template');
+            log.log('[MCPClientService] Creating default MCP config from template');
             const templatePath = path.join(process.env.APP_ROOT || process.cwd(), 'resources', 'mcp-templates.json');
 
             try {
@@ -44,9 +45,9 @@ export class MCPClientService {
                 await fs.mkdir(path.dirname(this.configPath), { recursive: true });
                 await fs.writeFile(this.configPath, template, 'utf-8');
                 config = JSON.parse(template);
-                console.log('[MCPClientService] Created default config from template');
+                log.log('[MCPClientService] Created default config from template');
             } catch (templateError) {
-                console.error('[MCPClientService] Failed to load template:', templateError);
+                log.error('[MCPClientService] Failed to load template:', templateError);
             }
         }
 
@@ -65,11 +66,11 @@ export class MCPClientService {
         try {
             let transport;
 
-            console.log(`Connecting to MCP server: ${name}, type: ${config.type}, baseUrl: ${config.baseUrl}`);
+            log.log(`Connecting to MCP server: ${name}, type: ${config.type}, baseUrl: ${config.baseUrl}`);
 
             if (config.type === 'streamableHttp' && config.baseUrl) {
                 // HTTP transport
-                console.log(`Using HTTP transport for MCP server: ${name} at ${config.baseUrl}`);
+                log.log(`Using HTTP transport for MCP server: ${name} at ${config.baseUrl}`);
                 transport = new StreamableHTTPClientTransport(new URL(config.baseUrl), {
                     requestInit: {
                         headers: config.headers || {}
@@ -77,7 +78,7 @@ export class MCPClientService {
                 });
             } else if (config.command) {
                 // Stdio transport
-                console.log(`Using stdio transport for MCP server: ${name}`);
+                log.log(`Using stdio transport for MCP server: ${name}`);
                 const finalEnv = { ...(process.env as Record<string, string>), ...config.env };
 
                 // [Restored] Sync API Key from ConfigStore if Base URL matches MiniMax
@@ -91,7 +92,7 @@ export class MCPClientService {
                     // Only override if the config env key is placeholder or missing
                     const configKey = config.env?.MINIMAX_API_KEY;
                     if (!configKey || configKey === "YOUR_API_KEY_HERE" || configKey.includes("API密钥")) {
-                        console.log('Injecting App API Key for MiniMax MCP Server');
+                        log.log('Injecting App API Key for MiniMax MCP Server');
                         finalEnv['MINIMAX_API_KEY'] = appApiKey;
                     }
                 }
@@ -102,7 +103,7 @@ export class MCPClientService {
                     env: finalEnv
                 });
             } else {
-                console.error(`Invalid MCP server config for ${name}: missing required fields`);
+                log.error(`Invalid MCP server config for ${name}: missing required fields`);
                 return;
             }
 
@@ -125,15 +126,15 @@ export class MCPClientService {
 
             // 安全地记录日志 - 捕获 EPIPE 错误
             try {
-                console.log(`Connected to MCP server: ${name}`);
+                log.log(`Connected to MCP server: ${name}`);
             } catch (logError) {
                 // 忽略日志错误，可能是进程已终止
                 if ((logError as NodeJS.ErrnoException).code !== 'EPIPE') {
-                    console.error(`Failed to log connection success for ${name}:`, logError);
+                    log.error(`Failed to log connection success for ${name}:`, logError);
                 }
             }
         } catch (e) {
-            console.error(`Failed to connect to MCP server ${name}:`, e);
+            log.error(`Failed to connect to MCP server ${name}:`, e);
         }
     }
 
@@ -150,7 +151,7 @@ export class MCPClientService {
                 }));
                 allTools.push(...tools);
             } catch (e) {
-                console.error(`Error listing tools for ${name}:`, e);
+                log.error(`Error listing tools for ${name}:`, e);
             }
         }
         return allTools;
@@ -169,8 +170,8 @@ export class MCPClientService {
             const prompt = args.prompt as string || '';
 
             // 🔍 Detailed logging for diagnosis
-            console.log(`[MCPClientService] 📥 Received tool call: ${serverName}__${toolName}`);
-            console.log(`[MCPClientService] 📝 Original prompt (first 150 chars): ${prompt.substring(0, 150)}...`);
+            log.log(`[MCPClientService] 📥 Received tool call: ${serverName}__${toolName}`);
+            log.log(`[MCPClientService] 📝 Original prompt (first 150 chars): ${prompt.substring(0, 150)}...`);
 
             // Precise date detection using regex to avoid false positives
             // Only skip injection if prompt contains a complete date format
@@ -183,21 +184,21 @@ export class MCPClientService {
             const hasDateAlready = hasCompleteDate || hasDashDate || hasSlashDate || hasKeyword || hasPrefixedDate;
 
             // 🔍 Log detection results
-            console.log(`[MCPClientService] 🔍 Date detection results:`);
-            console.log(`  - Complete date (YYYY年MM月DD日): ${hasCompleteDate}`);
-            console.log(`  - Dash date (YYYY-MM-DD): ${hasDashDate}`);
-            console.log(`  - Slash date (YYYY/MM/DD): ${hasSlashDate}`);
-            console.log(`  - Keyword '当前日期': ${hasKeyword}`);
-            console.log(`  - Prefixed date: ${hasPrefixedDate}`);
-            console.log(`  - Final decision (hasDateAlready): ${hasDateAlready}`);
+            log.log(`[MCPClientService] 🔍 Date detection results:`);
+            log.log(`  - Complete date (YYYY年MM月DD日): ${hasCompleteDate}`);
+            log.log(`  - Dash date (YYYY-MM-DD): ${hasDashDate}`);
+            log.log(`  - Slash date (YYYY/MM/DD): ${hasSlashDate}`);
+            log.log(`  - Keyword '当前日期': ${hasKeyword}`);
+            log.log(`  - Prefixed date: ${hasPrefixedDate}`);
+            log.log(`  - Final decision (hasDateAlready): ${hasDateAlready}`);
 
             if (!hasDateAlready) {
                 modifiedArgs = {
                     ...args,
                     prompt: `【当前日期：${currentDate}】\n\n${prompt}`
                 };
-                console.log(`[MCPClientService] ✅ Auto-injected current date: ${currentDate}`);
-                console.log(`[MCPClientService] 📤 Final prompt (first 150 chars): ${(modifiedArgs.prompt as string).substring(0, 150)}...`);
+                log.log(`[MCPClientService] ✅ Auto-injected current date: ${currentDate}`);
+                log.log(`[MCPClientService] 📤 Final prompt (first 150 chars): ${(modifiedArgs.prompt as string).substring(0, 150)}...`);
             } else {
                 const reason = [];
                 if (hasCompleteDate) reason.push('complete date format');
@@ -205,8 +206,8 @@ export class MCPClientService {
                 if (hasSlashDate) reason.push('slash date format');
                 if (hasKeyword) reason.push('"当前日期" keyword');
                 if (hasPrefixedDate) reason.push('prefixed date format');
-                console.log(`[MCPClientService] ⏭️ Skipping injection, reason: ${reason.join(', ')}`);
-                console.log(`[MCPClientService] 📤 Prompt unchanged (first 150 chars): ${prompt.substring(0, 150)}...`);
+                log.log(`[MCPClientService] ⏭️ Skipping injection, reason: ${reason.join(', ')}`);
+                log.log(`[MCPClientService] 📤 Prompt unchanged (first 150 chars): ${prompt.substring(0, 150)}...`);
             }
         }
 

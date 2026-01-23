@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { BrowserWindow } from 'electron';
+import log from 'electron-log';
 
 import { FileSystemTools, ReadFileSchema, WriteFileSchema, ListDirSchema, RunCommandSchema } from './tools/FileSystemTools.js';
 import { SkillManager } from './skills/SkillManager.js';
@@ -71,25 +72,25 @@ export class AgentRuntime {
     }
 
     public async initialize() {
-        console.log('Initializing AgentRuntime...');
+        log.log('Initializing AgentRuntime...');
         try {
             await this.skillManager.loadSkills();
             await this.mcpService.loadClients();
 
-            console.log('[AgentRuntime] Skills and MCP loaded, initializing command system...');
+            log.log('[AgentRuntime] Skills and MCP loaded, initializing command system...');
 
             // 初始化命令系统
             try {
                 await this.initializeCommands();
             } catch (cmdError) {
-                console.error('[AgentRuntime] Failed to initialize command system:', cmdError);
-                console.error('[AgentRuntime] Error stack:', (cmdError as Error).stack);
+                log.error('[AgentRuntime] Failed to initialize command system:', cmdError);
+                log.error('[AgentRuntime] Error stack:', (cmdError as Error).stack);
                 // 继续运行，命令系统是可选的
             }
 
-            console.log('AgentRuntime initialized (Skills & MCP loaded)');
+            log.log('AgentRuntime initialized (Skills & MCP loaded)');
         } catch (error) {
-            console.error('Failed to initialize AgentRuntime:', error);
+            log.error('Failed to initialize AgentRuntime:', error);
         }
     }
 
@@ -97,7 +98,7 @@ export class AgentRuntime {
      * 初始化命令系统
      */
     private async initializeCommands() {
-        console.log('[CommandSystem] Initializing commands...');
+        log.log('[CommandSystem] Initializing commands...');
 
         // 1. 从技能注册命令
         const tools = this.skillManager.getTools();
@@ -125,7 +126,7 @@ export class AgentRuntime {
             id: 'command-palette',
             accelerator: 'Ctrl+Shift+P',
             action: () => {
-                console.log('[CommandSystem] Opening command palette');
+                log.log('[CommandSystem] Opening command palette');
                 this.broadcast('command-palette:toggle', {});
             },
             description: '打开命令面板'
@@ -135,8 +136,8 @@ export class AgentRuntime {
         const commands = this.commandRegistry.getAll();
         this.shortcutManager.registerFromCommands(commands);
 
-        console.log(`[CommandSystem] Initialized ${this.commandRegistry.getAll().length} commands`);
-        console.log(`[CommandSystem] Registered ${this.shortcutManager.getAllBindings().length} shortcuts`);
+        log.log(`[CommandSystem] Initialized ${this.commandRegistry.getAll().length} commands`);
+        log.log(`[CommandSystem] Registered ${this.shortcutManager.getAllBindings().length} shortcuts`);
     }
 
     public removeWindow(win: BrowserWindow) {
@@ -176,18 +177,18 @@ export class AgentRuntime {
 
         try {
             // ========== Slash Command 检测 ==========
-            console.log('[AgentRuntime] processUserMessage called, input type:', typeof input);
-            console.log('[AgentRuntime] Input value:', typeof input === 'string' ? JSON.stringify(input) : '[object]');
+            log.log('[AgentRuntime] processUserMessage called, input type:', typeof input);
+            log.log('[AgentRuntime] Input value:', typeof input === 'string' ? JSON.stringify(input) : '[object]');
 
             let processedInput = input;
 
             if (typeof input === 'string') {
-                console.log('[AgentRuntime] Calling slashParser.parse...');
+                log.log('[AgentRuntime] Calling slashParser.parse...');
                 const parsed = this.slashParser.parse(input);
-                console.log('[AgentRuntime] Parse result:', parsed ? 'SUCCESS' : 'NULL');
+                log.log('[AgentRuntime] Parse result:', parsed ? 'SUCCESS' : 'NULL');
 
                 if (parsed) {
-                    console.log('[SlashCommand] Detected:', parsed.command.id);
+                    log.log('[SlashCommand] Detected:', parsed.command.id);
 
                     // 处理命令
                     const shouldContinue = await this.handleSlashCommand(parsed);
@@ -228,12 +229,12 @@ export class AgentRuntime {
                     if (detection.confidence > 0.8) {
                         const warning = promptInjectionDefense.generateWarning(detection);
                         this.broadcast('agent:error', '⚠️ 检测到高危安全威胁，已拒绝处理该请求');
-                        console.error('[Security] Prompt injection blocked:', detection);
+                        log.error('[Security] Prompt injection blocked:', detection);
                         throw new Error(warning);
                     }
 
                     // 中低危攻击：清理后继续处理
-                    console.warn('[Security] Prompt injection detected and sanitized:', detection);
+                    log.warn('[Security] Prompt injection detected and sanitized:', detection);
                     userContent = promptInjectionDefense.sanitize(processedInput);
                 } else {
                     userContent = processedInput;
@@ -274,12 +275,12 @@ export class AgentRuntime {
                         if (detection.confidence > 0.8) {
                             const warning = promptInjectionDefense.generateWarning(detection);
                             this.broadcast('agent:error', '⚠️ 检测到高危安全威胁，已拒绝处理该请求');
-                            console.error('[Security] Prompt injection blocked:', detection);
+                            log.error('[Security] Prompt injection blocked:', detection);
                             throw new Error(warning);
                         }
 
                         // 中低危攻击：清理后继续处理
-                        console.warn('[Security] Prompt injection detected and sanitized:', detection);
+                        log.warn('[Security] Prompt injection detected and sanitized:', detection);
                         blocks.push({ type: 'text', text: promptInjectionDefense.sanitize(processedInput.content) });
                     } else {
                         blocks.push({ type: 'text', text: processedInput.content });
@@ -296,8 +297,8 @@ export class AgentRuntime {
 
             // 添加意图检测日志
             if (typeof userContent === 'string') {
-                console.log('[IntentDetection] User input:', userContent);
-                console.log('[IntentDetection] Detected skills:', this.detectRelevantSkills(userContent));
+                log.log('[IntentDetection] User input:', userContent);
+                log.log('[IntentDetection] Detected skills:', this.detectRelevantSkills(userContent));
             }
 
             this.notifyUpdate();
@@ -307,7 +308,7 @@ export class AgentRuntime {
 
         } catch (error: unknown) {
             const err = error as { status?: number; message?: string };
-            console.error('Agent Loop Error:', error);
+            log.error('Agent Loop Error:', error);
 
             // [Fix] Handle MiniMax/provider sensitive content errors gracefully
             if (err.status === 500 && (err.message?.includes('sensitive') || JSON.stringify(error).includes('1027'))) {
@@ -358,7 +359,7 @@ export class AgentRuntime {
 
         while (keepGoing && iterationCount < MAX_ITERATIONS) {
             iterationCount++;
-            console.log(`[AgentRuntime] Loop iteration: ${iterationCount}`);
+            log.log(`[AgentRuntime] Loop iteration: ${iterationCount}`);
             if (this.abortController?.signal.aborted) break;
 
             const tools: Anthropic.Tool[] = [
@@ -371,7 +372,7 @@ export class AgentRuntime {
             ];
 
             // 添加调试日志：显示可用工具列表
-            console.log('[AgentRuntime] Available tools:', tools.map(t => ({
+            log.log('[AgentRuntime] Available tools:', tools.map(t => ({
                 name: t.name,
                 description: t.description?.substring(0, 60) + '...'
             })));
@@ -459,9 +460,9 @@ ${workingDirContext}
 
 You are a capable and helpful AI assistant. Help users accomplish their goals efficiently and safely.`;
 
-            console.log('Sending request to API...');
-            console.log('Model:', this.model);
-            console.log('Base URL:', this.anthropic.baseURL);
+            log.log('Sending request to API...');
+            log.log('Model:', this.model);
+            log.log('Base URL:', this.anthropic.baseURL);
 
             try {
                 const stream = await this.anthropic.messages.create({
@@ -524,7 +525,7 @@ You are a capable and helpful AI assistant. Help users accomplish their goals ef
                                         input: parsedInput
                                     });
                                 } catch (e) {
-                                    console.error("Failed to parse tool input", e);
+                                    log.error("Failed to parse tool input", e);
                                     // Treat as a failed tool use so the model knows it messed up
                                     finalContent.push({
                                         type: 'tool_use',
@@ -557,7 +558,7 @@ You are a capable and helpful AI assistant. Help users accomplish their goals ef
                         for (const toolUse of toolUses) {
                             if (toolUse.type !== 'tool_use') continue;
 
-                            console.log(`Executing tool: ${toolUse.name}`);
+                            log.log(`Executing tool: ${toolUse.name}`);
                             let result = "Tool execution failed or unknown tool.";
 
                             try {
@@ -603,7 +604,7 @@ You are a capable and helpful AI assistant. Help users accomplish their goals ef
                                     }
                                 } else {
                                     const skillInfo = await this.skillManager.getSkillInfo(toolUse.name);
-                                    console.log(`[Runtime] Skill ${toolUse.name} info found? ${!!skillInfo} (len: ${skillInfo?.instructions?.length})`);
+                                    log.log(`[Runtime] Skill ${toolUse.name} info found? ${!!skillInfo} (len: ${skillInfo?.instructions?.length})`);
                                     if (skillInfo) {
                                         // Return skill content following official Claude Code Skills pattern
                                         // The model should directly execute existing scripts using absolute paths
@@ -651,11 +652,11 @@ ${skillInfo.instructions}
 
             } catch (loopError: unknown) {
                 const loopErr = loopError as { status?: number; message?: string };
-                console.error("Agent Loop detailed error:", loopError);
+                log.error("Agent Loop detailed error:", loopError);
 
                 // Handle Sensitive Content Error (1027)
                 if (loopErr.status === 500 && (loopErr.message?.includes('sensitive') || JSON.stringify(loopError).includes('1027'))) {
-                    console.log("Caught sensitive content error, asking Agent to retry...");
+                    log.log("Caught sensitive content error, asking Agent to retry...");
 
                     // Add a system-like user message to prompt the agent to fix its output
                     this.history.push({
@@ -693,7 +694,7 @@ ${skillInfo.instructions}
 
         // Check if permission is already granted
         if (configStore.hasPermission(tool, path)) {
-            console.log(`[AgentRuntime] Auto-approved ${tool} (saved permission)`);
+            log.log(`[AgentRuntime] Auto-approved ${tool} (saved permission)`);
             return true;
         }
 
@@ -749,7 +750,7 @@ ${skillInfo.instructions}
     private async handleSlashCommand(parsed: ParsedCommand): Promise<boolean> {
         const { command, params, remainingInput } = parsed;
 
-        console.log(`[SlashCommand] Executing: ${command.id}`);
+        log.log(`[SlashCommand] Executing: ${command.id}`);
 
         // 1. 系统命令：直接执行
         if (command.type === CommandType.SYSTEM) {

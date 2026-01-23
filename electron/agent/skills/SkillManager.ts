@@ -3,6 +3,7 @@ import path from 'path';
 import os from 'os';
 import yaml from 'js-yaml';
 import { app } from 'electron';
+import log from 'electron-log';
 import { SkillEncryption, EncryptedSkillData } from '../../security/SkillEncryption.js';
 
 export interface SkillDefinition {
@@ -45,7 +46,7 @@ export class SkillManager {
             }
         }
         
-        console.log(`[SkillManager] Skills locked to read-only directory: ${this.skillsDir}`);
+        log.info(`[SkillManager] Skills locked to read-only directory: ${this.skillsDir}`);
         // [Security] Copy logic removed to ensure stability
     }
 
@@ -67,7 +68,7 @@ export class SkillManager {
         ]);
 
         const loadTime = Date.now() - startTime;
-        console.log(`[SkillManager] ⚡ Lazy loaded ${this.skillMetadata.size} skill metadata in ${loadTime}ms`);
+        log.info(`[SkillManager] ⚡ Lazy loaded ${this.skillMetadata.size} skill metadata in ${loadTime}ms`);
     }
 
     /**
@@ -78,7 +79,7 @@ export class SkillManager {
         try {
             await fs.access(dir);
         } catch {
-            console.log(`[SkillManager] ${source} skills directory not found: ${dir}`);
+            log.info(`[SkillManager] ${source} skills directory not found: ${dir}`);
             return;
         }
 
@@ -143,7 +144,7 @@ export class SkillManager {
                 });
             }
         } catch (e) {
-            console.error(`Failed to load skill metadata from ${filePath}`, e);
+            log.error(`Failed to load skill metadata from ${filePath}`, e);
         }
     }
 
@@ -187,7 +188,7 @@ export class SkillManager {
 
             return instructions;
         } catch (e) {
-            console.error(`Failed to load instructions for ${name}`, e);
+            log.error(`Failed to load instructions for ${name}`, e);
             return undefined;
         }
     }

@@ -29,6 +29,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import { spawn } from 'child_process';
 import { app } from 'electron';
+import log from 'electron-log';
 
 export class PythonRuntimeManager {
     private pythonExe: string | null = null;
@@ -55,12 +56,12 @@ export class PythonRuntimeManager {
      * 内部初始化实现
      */
     private async _initialize(): Promise<boolean> {
-        console.log('[PythonRuntime] Initializing...');
+        log.log('[PythonRuntime] Initializing...');
 
         try {
             // 1. 确定运行时路径
             const runtimePath = this.getRuntimePath();
-            console.log(`[PythonRuntime] Runtime path: ${runtimePath}`);
+            log.log(`[PythonRuntime] Runtime path: ${runtimePath}`);
 
             // 2. 检查目录是否存在
             // 注意：Python 嵌入式版本解压后直接在 runtimePath 根目录，不在 python/ 子目录
@@ -71,7 +72,7 @@ export class PythonRuntimeManager {
                 await fs.access(pythonExe);
                 await fs.access(libPath);
             } catch {
-                console.warn('[PythonRuntime] ✗ Python runtime not found');
+                log.warn('[PythonRuntime] ✗ Python runtime not found');
                 this._printSetupInstructions();
                 return false;
             }
@@ -79,19 +80,19 @@ export class PythonRuntimeManager {
             this.pythonExe = pythonExe;
             this.libPath = libPath;
 
-            console.log(`[PythonRuntime] ✓ Found Python: ${pythonExe}`);
-            console.log(`[PythonRuntime] ✓ Found Lib: ${libPath}`);
+            log.log(`[PythonRuntime] ✓ Found Python: ${pythonExe}`);
+            log.log(`[PythonRuntime] ✓ Found Lib: ${libPath}`);
 
             // 3. 验证依赖
             await this.verifyDependencies();
 
             this.isReady = true;
-            console.log('[PythonRuntime] ✓ Initialization complete');
+            log.log('[PythonRuntime] ✓ Initialization complete');
             return true;
 
         } catch (error) {
             const err = error as Error;
-            console.error('[PythonRuntime] ✗ Initialization failed:', err.message);
+            log.error('[PythonRuntime] ✗ Initialization failed:', err.message);
             this._printSetupInstructions();
             return false;
         }
@@ -117,7 +118,7 @@ export class PythonRuntimeManager {
      * 验证依赖包是否已安装
      */
     private async verifyDependencies(): Promise<void> {
-        console.log('[PythonRuntime] Verifying dependencies...');
+        log.log('[PythonRuntime] Verifying dependencies...');
 
         if (!this.pythonExe || !this.libPath) {
             throw new Error('Python runtime not initialized');
@@ -140,7 +141,7 @@ except ImportError as e:
 `;
 
         await fs.writeFile(testScriptPath, testCode, 'utf-8');
-        console.log('[PythonRuntime] Created test script:', testScriptPath);
+        log.log('[PythonRuntime] Created test script:', testScriptPath);
 
         return new Promise((resolve, reject) => {
             const proc = spawn(this.pythonExe!, [testScriptPath], {
@@ -171,15 +172,15 @@ except ImportError as e:
                     // 忽略清理错误
                 }
 
-                console.log('[PythonRuntime] Process exited with code:', code);
-                console.log('[PythonRuntime] stdout:', output);
-                if (error) console.log('[PythonRuntime] stderr:', error);
+                log.log('[PythonRuntime] Process exited with code:', code);
+                log.log('[PythonRuntime] stdout:', output);
+                if (error) log.log('[PythonRuntime] stderr:', error);
 
                 if (code === 0 && output.includes('OK')) {
-                    console.log('[PythonRuntime] ✓ All dependencies verified');
+                    log.log('[PythonRuntime] ✓ All dependencies verified');
                     resolve();
                 } else {
-                    console.warn('[PythonRuntime] ⚠ Dependency verification failed');
+                    log.warn('[PythonRuntime] ⚠ Dependency verification failed');
                     reject(new Error('Dependencies verification failed'));
                 }
             });
@@ -191,7 +192,7 @@ except ImportError as e:
                 } catch {
                     // 忽略清理错误
                 }
-                console.error('[PythonRuntime] ✗ Failed to spawn Python process:', err);
+                log.error('[PythonRuntime] ✗ Failed to spawn Python process:', err);
                 reject(err);
             });
         });
@@ -245,27 +246,27 @@ except ImportError as e:
      */
     private _printSetupInstructions(): void {
         if (app.isPackaged) {
-            console.error('\n' + '='.repeat(60));
-            console.error('Python Runtime Not Found!');
-            console.error('='.repeat(60));
-            console.error('\nThe application was built without the Python runtime.');
-            console.error('Please rebuild the application with the following steps:');
-            console.error('\n  1. cd /path/to/wechat-flowwork');
-            console.error('  2. npm run setup-python');
-            console.error('  3. npm run build');
-            console.error('\n' + '='.repeat(60) + '\n');
+            log.error('\n' + '='.repeat(60));
+            log.error('Python Runtime Not Found!');
+            log.error('='.repeat(60));
+            log.error('\nThe application was built without the Python runtime.');
+            log.error('Please rebuild the application with the following steps:');
+            log.error('\n  1. cd /path/to/wechat-flowwork');
+            log.error('  2. npm run setup-python');
+            log.error('  3. npm run build');
+            log.error('\n' + '='.repeat(60) + '\n');
         } else {
-            console.error('\n' + '='.repeat(60));
-            console.error('Python Runtime Not Found!');
-            console.error('='.repeat(60));
-            console.error('\nTo use the AI skills, you need to set up the Python runtime first.');
-            console.error('\nRun the following command:');
-            console.error('\n  npm run setup-python');
-            console.error('\nThis will download and configure Python 3.11.8 (embeddable version)');
-            console.error('and install the required dependencies (openai, requests, Pillow, PyYAML).');
-            console.error('\nEstimated download size: ~25 MB');
-            console.error('Estimated installation time: 2-5 minutes');
-            console.error('\n' + '='.repeat(60) + '\n');
+            log.error('\n' + '='.repeat(60));
+            log.error('Python Runtime Not Found!');
+            log.error('='.repeat(60));
+            log.error('\nTo use the AI skills, you need to set up the Python runtime first.');
+            log.error('\nRun the following command:');
+            log.error('\n  npm run setup-python');
+            log.error('\nThis will download and configure Python 3.11.8 (embeddable version)');
+            log.error('and install the required dependencies (openai, requests, Pillow, PyYAML).');
+            log.error('\nEstimated download size: ~25 MB');
+            log.error('Estimated installation time: 2-5 minutes');
+            log.error('\n' + '='.repeat(60) + '\n');
         }
     }
 }
