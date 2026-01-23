@@ -1,12 +1,17 @@
 import { useState, useEffect } from 'react';
-import { Minus, Square, X, HelpCircle } from 'lucide-react';
+import { Minus, Square, X, HelpCircle, Command } from 'lucide-react';
 import { CoworkView } from './components/CoworkView.js';
 import { SettingsView } from './components/SettingsView.js';
 import { UserGuideView } from './components/UserGuideView.js';
 import { ConfirmDialog, useConfirmations } from './components/ConfirmDialog.js';
 import { FloatingBallPage } from './components/FloatingBallPage.js';
 import { UpdateNotification } from './components/UpdateNotification.js';
+import { CommandPalette } from './components/CommandPalette.js';
 import Anthropic from '@anthropic-ai/sdk';
+import type { CommandDefinition as FullCommandDefinition } from '../electron/agent/commands/types.js';
+
+// 前端使用的 CommandDefinition（不包含 execute 函数）
+type CommandDefinition = Omit<FullCommandDefinition, 'execute'>;
 
 function App() {
   const [history, setHistory] = useState<Anthropic.MessageParam[]>([]);
@@ -15,6 +20,7 @@ function App() {
   const [showUserGuide, setShowUserGuide] = useState(false);
   const [isFirstLaunch, setIsFirstLaunch] = useState(false);
   const [settingsInitialTab, setSettingsInitialTab] = useState<'api' | 'folders' | 'advanced'>('api');
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
   const { pendingRequest, handleConfirm, handleDeny } = useConfirmations();
 
   // Check if this is the floating ball window
@@ -76,16 +82,31 @@ function App() {
     };
   }, []);
 
+  // 监听命令面板切换事件
+  useEffect(() => {
+    const removeListener = window.ipcRenderer.on('command-palette:toggle', () => {
+      setShowCommandPalette(prev => !prev);
+    });
+
+    return () => removeListener();
+  }, []);
+
   const handleSendMessage = async (msg: string | { content: string, images: string[] }) => {
+    console.log('[App] handleSendMessage called');
+    console.log('[App] Message type:', typeof msg);
+    console.log('[App] Message value:', typeof msg === 'string' ? JSON.stringify(msg) : '[object]');
+
     setIsProcessing(true);
     try {
+      console.log('[App] Calling IPC: agent:send-message');
       const result = await window.ipcRenderer.invoke('agent:send-message', msg) as { error?: string } | undefined;
+      console.log('[App] IPC result:', result);
       if (result?.error) {
         console.error(result.error);
         setIsProcessing(false);
       }
     } catch (err) {
-      console.error(err);
+      console.error('[App] IPC error:', err);
       setIsProcessing(false);
     }
   };
@@ -93,6 +114,36 @@ function App() {
   const handleAbort = () => {
     window.ipcRenderer.invoke('agent:abort');
     setIsProcessing(false);
+  };
+
+  const handleCommandExecute = (command: CommandDefinition) => {
+    console.log('[CommandPalette] Executing command:', command.id);
+
+    // 技能命令：填充到输入框
+    if (command.requiresInput) {
+      console.log('[CommandPalette] Skill command, filling input:', command.id);
+      // 通过自定义事件通知 CoworkView 填充输入框
+      window.dispatchEvent(new CustomEvent('command:fill-input', {
+        detail: {
+          commandId: command.id,
+          commandName: command.name
+        }
+      }));
+      return;
+    }
+
+    // 系统命令：通过 IPC 执行
+    console.log('[CommandPalette] System command, executing via IPC:', command.id);
+    window.ipcRenderer.invoke('commands:execute', command.id)
+      .then((result: unknown) => {
+        const typedResult = result as { success: boolean; error?: string };
+        if (!typedResult.success) {
+          console.error('[CommandPalette] Command execution failed:', typedResult.error);
+        }
+      })
+      .catch((error: Error) => {
+        console.error('[CommandPalette] Command execution error:', error);
+      });
   };
 
   // If this is the floating ball window, render only the floating ball
@@ -128,6 +179,18 @@ function App() {
         </div>
 
         <div className="flex items-center gap-1 z-50" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+          {/* 命令面板按钮 */}
+          <button
+            onClick={() => {
+              console.log('Command Palette button clicked');
+              setShowCommandPalette(true);
+            }}
+            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+            title="打开命令面板 (Ctrl+Shift+P)"
+          >
+            <Command size={14} />
+          </button>
+
           {/* 新增：帮助按钮 */}
           <button
             onClick={() => setShowUserGuide(true)}
@@ -224,6 +287,15 @@ function App() {
 
       {/* Update Notification */}
       <UpdateNotification />
+
+      {/* Command Palette */}
+      {!isFloatingBall && !isFirstLaunch && (
+        <CommandPalette
+          isOpen={showCommandPalette}
+          onClose={() => setShowCommandPalette(false)}
+          onSelectCommand={handleCommandExecute}
+        />
+      )}
     </div>
   );
 }

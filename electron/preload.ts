@@ -112,6 +112,17 @@ const ALLOWED_CHANNELS = [
   'notification:get-enabled',
   'notification:has-permission',
 
+  // 命令面板
+  'command-palette:toggle',        // 命令面板切换
+  'commands:execute',              // 执行命令
+  'commands:search',               // 搜索命令
+
+  // Slash Command 状态广播
+  'slash-command:success',         // 命令执行成功
+  'slash-command:error',           // 命令执行错误
+  'slash-command:result',          // 命令执行结果
+  'slash-command:executing',       // 命令正在执行
+
   // 调试通道
   'main-process-message',         // 主进程调试消息
 ] as const
@@ -157,12 +168,12 @@ function secureOn(
 }
 
 // 🔒 安全的 off 方法
-function secureOff(channel: string, ...args: unknown[]) {
+function secureOff(channel: string, listener: (...args: unknown[]) => void) {
   if (!isChannelAllowed(channel)) {
     console.error(`[Security] ❌ Blocked unauthorized IPC off: ${channel}`)
     return
   }
-  return ipcRenderer.off(channel, ...args)
+  return ipcRenderer.off(channel, listener)
 }
 
 // --------- Expose some API to the Renderer process ---------

@@ -18,7 +18,7 @@ export interface SkillDefinition {
 export class SkillManager {
     private skillsDir: string;
     private skills: Map<string, SkillDefinition> = new Map();
-    private skillMetadata: Map<string, { description: string; input_schema: Record<string, unknown>; source: 'user' | 'builtin'; filePath: string }> = new Map(); // 懒加载元数据缓存
+    private skillMetadata: Map<string, { name?: string; description: string; input_schema: Record<string, unknown>; source: 'user' | 'builtin'; filePath: string }> = new Map(); // 懒加载元数据缓存
     private encryption: SkillEncryption;
     private instructionsCache: Map<string, string> = new Map(); // 指令内容缓存
     private cacheEnabled: boolean = true; // 缓存开关
@@ -70,43 +70,6 @@ export class SkillManager {
         console.log(`[SkillManager] ⚡ Lazy loaded ${this.skillMetadata.size} skill metadata in ${loadTime}ms`);
     }
 
-    private async loadSkillsFromDirectory(dir: string, source: 'user' | 'builtin') {
-        try {
-            await fs.access(dir);
-        } catch {
-            console.log(`[SkillManager] ${source} skills directory not found: ${dir}`);
-            return;
-        }
-
-        const files = await fs.readdir(dir);
-        const loadPromises: Promise<void>[] = [];
-
-        for (const file of files) {
-            const filePath = path.join(dir, file);
-            let stats;
-            try {
-                stats = await fs.stat(filePath);
-            } catch { continue; }
-
-            if (stats.isDirectory()) {
-                // Look for SKILL.md inside directory
-                const skillMdPath = path.join(filePath, 'SKILL.md');
-                try {
-                    await fs.access(skillMdPath);
-                    loadPromises.push(this.parseSkill(skillMdPath, source));
-                } catch {
-                    // console.log(`No SKILL.md found in ${file}`);
-                }
-            } else if (file.endsWith('.md')) {
-                // Support legacy single-file skills
-                loadPromises.push(this.parseSkill(filePath, source));
-            }
-        }
-
-        // 并行加载所有技能
-        await Promise.all(loadPromises);
-    }
-
     /**
      * 懒加载：仅加载技能元数据（名称、描述），不加载完整指令内容
      * 当需要使用技能时，再加载完整内容
@@ -133,12 +96,16 @@ export class SkillManager {
                 const skillMdPath = path.join(filePath, 'SKILL.md');
                 try {
                     await fs.access(skillMdPath);
-                    loadPromises.push(this.parseSkillMetadata(skillMdPath, source));
+                    // 提取目录名作为技能 ID
+                    const skillId = file;
+                    loadPromises.push(this.parseSkillMetadata(skillMdPath, source, skillId));
                 } catch {
                     // No SKILL.md found
                 }
             } else if (file.endsWith('.md')) {
-                loadPromises.push(this.parseSkillMetadata(filePath, source));
+                // 单文件技能，使用文件名（不含 .md）作为 ID
+                const skillId = file.replace(/\.md$/, '');
+                loadPromises.push(this.parseSkillMetadata(filePath, source, skillId));
             }
         }
 
@@ -149,8 +116,11 @@ export class SkillManager {
     /**
      * 解析技能元数据（懒加载模式）
      * 只读取 frontmatter，不读取完整 instructions
+     * @param filePath SKILL.md 文件路径
+     * @param source 技能来源（user/builtin）
+     * @param skillId 技能 ID（使用目录名）
      */
-    private async parseSkillMetadata(filePath: string, source: 'user' | 'builtin' = 'builtin') {
+    private async parseSkillMetadata(filePath: string, source: 'user' | 'builtin' = 'builtin', skillId: string) {
         try {
             const content = await fs.readFile(filePath, 'utf-8');
             const parts = content.split('---');
@@ -162,9 +132,10 @@ export class SkillManager {
                 input_schema?: Record<string, unknown>;
             } | undefined;
 
-            if (frontmatter?.name && frontmatter?.description) {
-                // 只存储元数据，不存储 instructions
-                this.skillMetadata.set(frontmatter.name, {
+            if (frontmatter?.description) {
+                // 使用 skillId 作为键，同时保存中文名称
+                this.skillMetadata.set(skillId, {
+                    name: frontmatter.name || skillId, // 保存中文名称用于显示
                     description: frontmatter.description,
                     input_schema: frontmatter.input_schema || { type: 'object', properties: {} },
                     source,
@@ -173,63 +144,6 @@ export class SkillManager {
             }
         } catch (e) {
             console.error(`Failed to load skill metadata from ${filePath}`, e);
-        }
-    }
-
-    private async parseSkill(filePath: string, source: 'user' | 'builtin' = 'builtin') {
-        const startTime = Date.now();
-        try {
-            const content = await fs.readFile(filePath, 'utf-8');
-            const parts = content.split('---');
-            if (parts.length < 3) return; // Invalid frontmatter structure
-
-            const frontmatter = yaml.load(parts[1]) as {
-                name?: string;
-                description?: string;
-                input_schema?: Record<string, unknown>;
-                encryption?: EncryptedSkillData;
-            } | undefined;
-
-            let instructions: string;
-
-            // 🔒 Check if content is encrypted
-            if (frontmatter?.encryption) {
-                // Encrypted skill - decrypt it
-                try {
-                    instructions = this.encryption.decrypt(frontmatter.encryption);
-                    console.log(`[SkillManager] 🔓 Decrypted ${frontmatter.name} from ${filePath}`);
-                } catch (decryptError) {
-                    console.error(`[SkillManager] ❌ Failed to decrypt ${filePath}:`, decryptError);
-                    // Fallback: try to read as plaintext
-                    instructions = parts.slice(2).join('---').trim();
-                }
-            } else {
-                // Plaintext skill (development mode or legacy format)
-                instructions = parts.slice(2).join('---').trim();
-            }
-
-            if (frontmatter && frontmatter.name && frontmatter.description) {
-                const loadTime = Date.now() - startTime;
-                console.log(`[SkillManager] ✅ Loaded [${source}] ${frontmatter.name} (desc: ${frontmatter.description}, inst len: ${instructions.length}, load time: ${loadTime}ms)`);
-                this.skills.set(frontmatter.name, {
-                    name: frontmatter.name,
-                    description: frontmatter.description,
-                    input_schema: frontmatter.input_schema || { type: 'object', properties: {} },
-                    instructions: instructions,
-                    source,
-                    filePath,
-                    _lazy: false
-                });
-
-                // 缓存 instructions
-                if (this.cacheEnabled) {
-                    this.instructionsCache.set(frontmatter.name, instructions);
-                }
-            } else {
-                console.warn(`[SkillManager] Invalid frontmatter in ${filePath}`);
-            }
-        } catch (e) {
-            console.error(`Failed to load skill from ${filePath}`, e);
         }
     }
 
@@ -279,21 +193,52 @@ export class SkillManager {
     }
 
     getTools() {
+        // ✅ 保留的核心技能列表（白名单模式）
+        const allowedSkills = new Set([
+            // 通用创作类
+            'wechat-writing',      // 全流程创作助手
+            'ai-writer',           // AI写作工具
+            'brainstorming',       // 头脑风暴
+            'style-learner',       // 风格学习
+            'natural-writer',      // 去AI味润色
+
+            // 辅助工具类
+            'get_current_time',    // 获取时间
+            'data-analyzer',       // 数据分析
+
+            // 设计类
+            'algorithmic-art',     // 算法艺术
+            'article-illustrator', // 文章插图
+            'canvas-design',       // 画布设计
+            'cover-generator',     // 封面生成
+            'image-cropper',       // 图片裁剪
+            'image-generation',    // 图片生成
+
+            // 办公/文档类
+            'docx-editor',         // Word编辑
+            'pdf-processor',       // PDF处理
+            'pptx-processor',      // PPT处理
+        ]);
+
         // 懒加载模式：从元数据返回工具列表
         if (this.skillMetadata.size > 0) {
-            return Array.from(this.skillMetadata.entries()).map(([name, metadata]) => ({
-                name,
-                description: metadata.description,
-                input_schema: metadata.input_schema
-            }));
+            return Array.from(this.skillMetadata.entries())
+                .filter(([id]) => allowedSkills.has(id))
+                .map(([id, metadata]) => ({
+                    name: id,
+                    description: metadata.description,
+                    input_schema: metadata.input_schema
+                }));
         }
 
         // 兼容旧模式：从 skills Map 返回
-        return Array.from(this.skills.values()).map(skill => ({
-            name: skill.name,
-            description: skill.description,
-            input_schema: skill.input_schema
-        }));
+        return Array.from(this.skills.values())
+            .filter(skill => allowedSkills.has(skill.name))
+            .map(skill => ({
+                name: skill.name,
+                description: skill.description,
+                input_schema: skill.input_schema
+            }));
     }
 
     async getSkillInstructions(name: string): Promise<string | undefined> {
@@ -328,7 +273,8 @@ export class SkillManager {
         }
 
         // 兼容旧模式
-        return this.getSkillInfo(name)?.instructions;
+        const skillInfo = await this.getSkillInfo(name);
+        return skillInfo?.instructions;
     }
 
     async getSkillInfo(name: string): Promise<{ instructions: string, skillDir: string } | undefined> {

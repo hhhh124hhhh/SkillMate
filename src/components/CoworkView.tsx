@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { Square, ArrowUp, ChevronDown, ChevronUp, Download, FolderOpen, MessageCircle, Zap, AlertTriangle, Check, X, Settings, History, Plus, Trash2, PenTool, Search, Layout, Type, FileUp, FileText, FileSpreadsheet, Braces, Eye, Image, Code, FileSearch, Wrench, Lightbulb } from 'lucide-react';
+import { Square, ArrowUp, ChevronDown, ChevronUp, Download, FolderOpen, MessageCircle, Zap, AlertTriangle, Check, X, Settings, History, Plus, Trash2, FileUp, FileText, FileSpreadsheet, Braces, Eye, Image, Code, FileSearch, Wrench, Lightbulb, PenTool, BarChart, Server, HelpCircle } from 'lucide-react';
 import { MarkdownRenderer } from './MarkdownRenderer.js';
 import { FilePreview } from './FilePreview.js';
 import Anthropic from '@anthropic-ai/sdk';
+import type { CommandDefinition } from '../electron/agent/commands/types.js';
 
 type Mode = 'chat' | 'work';
 
@@ -48,10 +49,31 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
     const [permissionRequest, setPermissionRequest] = useState<PermissionRequest | null>(null);
     const [showHistory, setShowHistory] = useState(false);
     const [sessions, setSessions] = useState<SessionSummary[]>([]);
+
+    // 命令建议状态
+    const [showCommandSuggestions, setShowCommandSuggestions] = useState(false);
+    const [commandSuggestions, setCommandSuggestions] = useState<CommandDefinition[]>([]);
+    const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0);
     const scrollRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const documentInputRef = useRef<HTMLInputElement>(null);
+    const commandSuggestionsRef = useRef<HTMLDivElement>(null);
+
+    // 图标映射
+    const getCommandIcon = (iconName: string) => {
+        const iconMap: Record<string, React.ElementType> = {
+            'PenTool': PenTool,
+            'BarChart': BarChart,
+            'Server': Server,
+            'Settings': Settings,
+            'HelpCircle': HelpCircle,
+            'Wrench': Wrench,
+            'Plus': Plus,
+        };
+        const Icon = iconMap[iconName] || HelpCircle;
+        return <Icon size={16} />;
+    };
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [previewFilePath, setPreviewFilePath] = useState<string | null>(null);
     const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
@@ -103,11 +125,61 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
         };
         const removeConfigListener = window.ipcRenderer.on('config:updated', handleConfigUpdated);
 
+        // Slash Command 状态监听
+        const removeSlashSuccessListener = window.ipcRenderer.on('slash-command:success', (_event, data) => {
+            console.log('[CoworkView] Slash command success:', data);
+            // 可选：显示成功提示
+        });
+
+        const removeSlashErrorListener = window.ipcRenderer.on('slash-command:error', (_event, data) => {
+            console.error('[CoworkView] Slash command error:', data);
+            // 显示错误消息
+            const errorData = data as { error: string };
+            setStreamingText(prev => prev + `\n\n❌ ${errorData.error}`);
+        });
+
+        const removeSlashExecutingListener = window.ipcRenderer.on('slash-command:executing', (_event, data) => {
+            console.log('[CoworkView] Executing skill command:', data);
+            const execData = data as { commandName: string };
+            setStreamingText(`⚡ 正在使用技能：${execData.commandName}...`);
+        });
+
         return () => {
             removeStreamListener?.();
             removeHistoryListener?.();
             removeConfirmListener?.();
             removeConfigListener?.();
+            removeSlashSuccessListener?.();
+            removeSlashErrorListener?.();
+            removeSlashExecutingListener?.();
+        };
+    }, []);
+
+    // 监听命令面板的输入填充请求
+    useEffect(() => {
+        const handleCommandFill = (event: Event) => {
+            const customEvent = event as CustomEvent<{
+                commandId: string;
+                commandName: string;
+            }>;
+
+            const { commandId } = customEvent.detail;
+
+            // 填充命令到输入框
+            setInput(`/${commandId} `);
+
+            // 自动聚焦输入框（延迟确保命令面板关闭动画完成）
+            setTimeout(() => {
+                inputRef.current?.focus();
+            }, 100);
+
+            console.log(`[CoworkView] Command filled: /${commandId}`);
+        };
+
+        window.addEventListener('command:fill-input', handleCommandFill);
+
+        return () => {
+            window.removeEventListener('command:fill-input', handleCommandFill);
         };
     }, []);
 
@@ -132,6 +204,20 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
             if (attachmentMenuRef.current &&
                 !attachmentMenuRef.current.contains(event.target as Node)) {
                 setShowAttachmentMenu(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    // Close command suggestions when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (commandSuggestionsRef.current &&
+                !commandSuggestionsRef.current.contains(event.target as Node) &&
+                event.target !== inputRef.current) {
+                setShowCommandSuggestions(false);
             }
         };
 
@@ -202,9 +288,19 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
     };
 
     const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if ((!input.trim() && images.length === 0 && documents.length === 0) || isProcessing) return;
+        console.log('[CoworkView] handleSubmit called!');
+        console.log('[CoworkView] Input value:', input);
+        console.log('[CoworkView] Images count:', images.length);
+        console.log('[CoworkView] Documents count:', documents.length);
+        console.log('[CoworkView] isProcessing:', isProcessing);
 
+        e.preventDefault();
+        if ((!input.trim() && images.length === 0 && documents.length === 0) || isProcessing) {
+            console.log('[CoworkView] handleSubmit: Early return - empty input or processing');
+            return;
+        }
+
+        console.log('[CoworkView] Calling onSendMessage...');
         setStreamingText('');
 
         // Build message content with document references
@@ -231,6 +327,100 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
         setInput('');
         setImages([]);
         setDocuments([]);
+    };
+
+    // 处理输入变化，检测 slash command
+    const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setInput(value);
+
+        // 检测是否以 / 开头
+        if (value.trim().startsWith('/')) {
+            // 提取查询部分（去掉 /）
+            const query = value.slice(1).trim();
+
+            // 搜索命令
+            try {
+                const results = await window.ipcRenderer.invoke('commands:search', {
+                    query,
+                    limit: 50 // 增加到50个命令
+                }) as CommandDefinition[];
+
+                setCommandSuggestions(results);
+                setShowCommandSuggestions(true);
+                setSelectedSuggestionIndex(0);
+            } catch (err) {
+                console.error('[CoworkView] Failed to search commands:', err);
+            }
+        } else {
+            // 不以 / 开头，隐藏建议
+            setShowCommandSuggestions(false);
+            setCommandSuggestions([]);
+        }
+    };
+
+    // 处理命令选择
+    const handleSelectCommand = (command: CommandDefinition) => {
+        console.log('[CoworkView] Selected command:', command.id);
+
+        // 技能命令：填充到输入框
+        if (command.requiresInput) {
+            setInput(`/${command.id} `);
+            setShowCommandSuggestions(false);
+
+            // 聚焦到输入框
+            setTimeout(() => {
+                inputRef.current?.focus();
+            }, 100);
+        } else {
+            // 系统命令：直接执行
+            window.ipcRenderer.invoke('commands:execute', command.id)
+                .then((result: unknown) => {
+                    const typedResult = result as { success: boolean; error?: string };
+                    if (!typedResult.success) {
+                        console.error('[CoworkView] Command execution failed:', typedResult.error);
+                    }
+                })
+                .catch((err: Error) => {
+                    console.error('[CoworkView] Command execution error:', err);
+                })
+                .finally(() => {
+                    setShowCommandSuggestions(false);
+                });
+        }
+    };
+
+    // 处理键盘导航
+    const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (!showCommandSuggestions || commandSuggestions.length === 0) {
+            return;
+        }
+
+        switch (e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                setSelectedSuggestionIndex((prev) =>
+                    prev < commandSuggestions.length - 1 ? prev + 1 : 0
+                );
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                setSelectedSuggestionIndex((prev) =>
+                    prev > 0 ? prev - 1 : commandSuggestions.length - 1
+                );
+                break;
+            case 'Enter':
+                e.preventDefault();
+                const selectedCommand = commandSuggestions[selectedSuggestionIndex];
+                if (selectedCommand) {
+                    handleSelectCommand(selectedCommand);
+                }
+                break;
+            case 'Escape':
+                e.preventDefault();
+                setShowCommandSuggestions(false);
+                break;
+        }
     };
 
     const handleSelectFolder = async () => {
@@ -873,7 +1063,8 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                                     ref={inputRef}
                                     type="text"
                                     value={input}
-                                    onChange={(e) => setInput(e.target.value)}
+                                    onChange={handleInputChange}
+                                    onKeyDown={handleInputKeyDown}
                                     onPaste={handlePaste}
                                     placeholder={mode === 'chat' ? "输入消息或拖放文件... (Ctrl+L 聚焦)" : workingDir ? "输入任务或问题，例如：帮我分析这个文件、生成代码、优化性能等 (Ctrl+L 聚焦)" : "开始使用 AI Agent"}
                                     className="flex-1 bg-transparent text-slate-800 placeholder:text-slate-400 py-3 text-sm focus:outline-none"
@@ -911,6 +1102,64 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                                     )}
                                 </div>
                             </div>
+
+                            {/* 命令建议列表 */}
+                            {showCommandSuggestions && commandSuggestions.length > 0 && (
+                                <div
+                                    ref={commandSuggestionsRef}
+                                    className="absolute bottom-full left-0 right-0 mb-2 bg-white rounded-xl shadow-2xl border border-slate-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200"
+                                >
+                                    <div className="max-h-[400px] overflow-y-auto">
+                                        {commandSuggestions.map((cmd, index) => (
+                                            <button
+                                                key={cmd.id}
+                                                type="button"
+                                                onClick={() => handleSelectCommand(cmd)}
+                                                className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
+                                                    index === selectedSuggestionIndex
+                                                        ? 'bg-blue-50 text-blue-700'
+                                                        : 'hover:bg-slate-50 text-slate-700'
+                                                }`}
+                                            >
+                                                <div className={`p-1.5 rounded-lg shrink-0 ${
+                                                    index === selectedSuggestionIndex
+                                                        ? 'bg-blue-100 text-blue-600'
+                                                        : 'bg-slate-100 text-slate-500'
+                                                }`}>
+                                                    {getCommandIcon(cmd.icon)}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className={`font-medium text-sm truncate ${
+                                                        index === selectedSuggestionIndex ? 'text-blue-700' : 'text-slate-800'
+                                                    }`}>
+                                                        {cmd.name}
+                                                    </div>
+                                                    <div className={`text-xs truncate ${
+                                                        index === selectedSuggestionIndex ? 'text-blue-600' : 'text-slate-500'
+                                                    }`}>
+                                                        {cmd.description}
+                                                    </div>
+                                                </div>
+                                                <div className={`text-xs px-2 py-1 rounded-md shrink-0 ${
+                                                    index === selectedSuggestionIndex
+                                                        ? 'bg-blue-200 text-blue-700'
+                                                        : 'bg-slate-100 text-slate-500'
+                                                }`}>
+                                                    {cmd.type}
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div className="px-4 py-2 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+                                        <p className="text-[11px] text-slate-500">
+                                            使用 ↑↓ 导航，Enter 选择，Esc 关闭
+                                        </p>
+                                        <p className="text-[11px] text-slate-400">
+                                            {commandSuggestions.length} 个命令
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </form>
 
@@ -1068,7 +1317,7 @@ function MessageItem({ message, expandedBlocks, toggleBlock, showTools, onImageC
     );
 }
 
-function EmptyState({ onAction }: { mode: Mode, workingDir: string | null, onAction: (text: string) => void }) {
+function EmptyState({ mode: _mode, workingDir: _workingDir, onAction }: { mode: Mode, workingDir: string | null, onAction: (text: string) => void }) {
     return (
         <div className="flex flex-col items-center justify-center h-full text-center space-y-8 py-10 animate-in fade-in duration-500">
             <div className="relative group">

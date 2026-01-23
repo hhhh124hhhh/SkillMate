@@ -9,7 +9,8 @@ import { configStore } from '../config/ConfigStore.js';
 import { notificationService } from '../services/NotificationService.js';
 import { promptInjectionDefense } from '../security/PromptInjectionDefense.js';
 import { dlp } from '../data-loss-prevention/DataLossPrevention.js';
-import { CommandRegistry, SlashCommandParser, ShortcutManager } from './commands/index.js';
+import { CommandRegistry, SlashCommandParser, ShortcutManager, MCPToolEnhanced } from './commands/index.js';
+import { ParsedCommand, CommandType, CommandDefinition } from './commands/types.js';
 import os from 'os';
 
 
@@ -32,6 +33,9 @@ export class AgentRuntime {
     private artifacts: { path: string; name: string; type: string }[] = [];
 
     private model: string;
+
+    // Slash Command 处理状态
+    private modifiedInput: string | undefined = undefined;
 
     // 命令系统
     public commandRegistry: CommandRegistry;
@@ -61,16 +65,29 @@ export class AgentRuntime {
         }
     }
 
+    // Public getter for skillManager
+    public getSkillManager(): SkillManager {
+        return this.skillManager;
+    }
+
     public async initialize() {
         console.log('Initializing AgentRuntime...');
         try {
             await this.skillManager.loadSkills();
             await this.mcpService.loadClients();
 
-            // 初始化命令系统
-            await this.initializeCommands();
+            console.log('[AgentRuntime] Skills and MCP loaded, initializing command system...');
 
-            console.log('AgentRuntime initialized (Skills & MCP & Commands loaded)');
+            // 初始化命令系统
+            try {
+                await this.initializeCommands();
+            } catch (cmdError) {
+                console.error('[AgentRuntime] Failed to initialize command system:', cmdError);
+                console.error('[AgentRuntime] Error stack:', (cmdError as Error).stack);
+                // 继续运行，命令系统是可选的
+            }
+
+            console.log('AgentRuntime initialized (Skills & MCP loaded)');
         } catch (error) {
             console.error('Failed to initialize AgentRuntime:', error);
         }
@@ -91,7 +108,13 @@ export class AgentRuntime {
 
         // 2. 从MCP工具注册命令
         const mcpTools = await this.mcpService.getTools();
-        this.commandRegistry.registerFromMCPTools(mcpTools);
+        const mcpToolsWithServer = mcpTools
+          .filter(tool => tool.description !== undefined)
+          .map(tool => ({
+            ...tool,
+            serverName: 'mcp'
+          })) as MCPToolEnhanced[];
+        this.commandRegistry.registerFromMCPTools(mcpToolsWithServer);
 
         // 3. 注册系统命令
         this.commandRegistry.registerSystemCommands();
@@ -103,7 +126,7 @@ export class AgentRuntime {
             accelerator: 'Ctrl+Shift+P',
             action: () => {
                 console.log('[CommandSystem] Opening command palette');
-                this.broadcast('command-palette:toggle');
+                this.broadcast('command-palette:toggle', {});
             },
             description: '打开命令面板'
         });
@@ -152,14 +175,46 @@ export class AgentRuntime {
         this.abortController = new AbortController();
 
         try {
+            // ========== Slash Command 检测 ==========
+            console.log('[AgentRuntime] processUserMessage called, input type:', typeof input);
+            console.log('[AgentRuntime] Input value:', typeof input === 'string' ? JSON.stringify(input) : '[object]');
+
+            let processedInput = input;
+
+            if (typeof input === 'string') {
+                console.log('[AgentRuntime] Calling slashParser.parse...');
+                const parsed = this.slashParser.parse(input);
+                console.log('[AgentRuntime] Parse result:', parsed ? 'SUCCESS' : 'NULL');
+
+                if (parsed) {
+                    console.log('[SlashCommand] Detected:', parsed.command.id);
+
+                    // 处理命令
+                    const shouldContinue = await this.handleSlashCommand(parsed);
+
+                    if (!shouldContinue) {
+                        // 命令已完全处理，不需要 AI
+                        this.isProcessing = false;
+                        return;
+                    }
+
+                    // 如果命令修改了输入（如技能命令），使用修改后的输入
+                    if (this.modifiedInput) {
+                        processedInput = this.modifiedInput;
+                        this.modifiedInput = undefined;
+                    }
+                }
+            }
+            // ========== Slash Command 检测结束 ==========
+
             await this.skillManager.loadSkills();
             await this.mcpService.loadClients();
 
             let userContent: string | Anthropic.ContentBlockParam[] = '';
 
-            if (typeof input === 'string') {
+            if (typeof processedInput === 'string') {
                 // 🔒 安全检查：提示词注入检测
-                const detection = promptInjectionDefense.detectInjection(input);
+                const detection = promptInjectionDefense.detectInjection(processedInput);
 
                 if (detection.isInjection) {
                     // 广播安全警告到所有窗口
@@ -179,15 +234,15 @@ export class AgentRuntime {
 
                     // 中低危攻击：清理后继续处理
                     console.warn('[Security] Prompt injection detected and sanitized:', detection);
-                    userContent = promptInjectionDefense.sanitize(input);
+                    userContent = promptInjectionDefense.sanitize(processedInput);
                 } else {
-                    userContent = input;
+                    userContent = processedInput;
                 }
             } else {
                 const blocks: Anthropic.ContentBlockParam[] = [];
                 // Process images
-                if (input.images && input.images.length > 0) {
-                    for (const img of input.images) {
+                if (processedInput.images && processedInput.images.length > 0) {
+                    for (const img of processedInput.images) {
                         // format: data:image/png;base64,......
                         const match = img.match(/^data:(image\/[a-zA-Z]+);base64,(.+)$/);
                         if (match) {
@@ -203,9 +258,9 @@ export class AgentRuntime {
                     }
                 }
                 // Add text with security check
-                if (input.content && input.content.trim()) {
+                if (processedInput.content && processedInput.content.trim()) {
                     // 🔒 安全检查：提示词注入检测
-                    const detection = promptInjectionDefense.detectInjection(input.content);
+                    const detection = promptInjectionDefense.detectInjection(processedInput.content);
 
                     if (detection.isInjection) {
                         // 广播安全警告到所有窗口
@@ -225,9 +280,9 @@ export class AgentRuntime {
 
                         // 中低危攻击：清理后继续处理
                         console.warn('[Security] Prompt injection detected and sanitized:', detection);
-                        blocks.push({ type: 'text', text: promptInjectionDefense.sanitize(input.content) });
+                        blocks.push({ type: 'text', text: promptInjectionDefense.sanitize(processedInput.content) });
                     } else {
-                        blocks.push({ type: 'text', text: input.content });
+                        blocks.push({ type: 'text', text: processedInput.content });
                     }
                 } else if (blocks.some(b => b.type === 'image')) {
                     // [Fix] If only images are present, add a default prompt to satisfy API requirements
@@ -684,6 +739,88 @@ ${skillInfo.instructions}
         }
 
         return relevant;
+    }
+
+    /**
+     * 处理 Slash Command
+     * @returns false 表示命令已完全处理，不需要继续 AI 流程
+     *          true 表示需要继续 AI 流程
+     */
+    private async handleSlashCommand(parsed: ParsedCommand): Promise<boolean> {
+        const { command, params, remainingInput } = parsed;
+
+        console.log(`[SlashCommand] Executing: ${command.id}`);
+
+        // 1. 系统命令：直接执行
+        if (command.type === CommandType.SYSTEM) {
+            try {
+                await command.execute(params);
+                this.broadcast('slash-command:success', {
+                    commandId: command.id,
+                    commandName: command.name
+                });
+                return false; // 不需要 AI 处理
+            } catch (error) {
+                this.broadcast('slash-command:error', {
+                    commandId: command.id,
+                    error: (error as Error).message
+                });
+                return false;
+            }
+        }
+
+        // 2. MCP 工具：直接执行
+        if (command.type === CommandType.MCP) {
+            try {
+                const result = await command.execute(params);
+                this.broadcast('slash-command:result', {
+                    commandId: command.id,
+                    result
+                });
+                return false;
+            } catch (error) {
+                this.broadcast('slash-command:error', {
+                    commandId: command.id,
+                    error: (error as Error).message
+                });
+                return false;
+            }
+        }
+
+        // 3. 技能命令：转换为 AI 消息
+        if (command.type === CommandType.SKILL) {
+            // 构造增强的提示词，引导 AI 使用该技能
+            const skillPrompt = this.constructSkillPrompt(command, remainingInput);
+
+            // 修改输入，让 AI 处理
+            this.modifiedInput = skillPrompt;
+
+            // 通知前端正在执行技能
+            this.broadcast('slash-command:executing', {
+                commandId: command.id,
+                commandName: command.name
+            });
+
+            return true; // 需要 AI 处理
+        }
+
+        return true;
+    }
+
+    /**
+     * 为技能命令构造 AI 提示词
+     */
+    private constructSkillPrompt(command: CommandDefinition, userInput: string): string {
+        const skillName = command.id;
+        const skillDescription = command.description;
+
+        // 如果用户有输入，组合技能和用户输入
+        if (userInput.trim()) {
+            return `I want to use the ${skillName} skill (${skillDescription}).\n\nMy request: ${userInput}\n\nPlease use the ${skillName} skill to help me with this request.`;
+        } else {
+            // 只有技能名，没有参数
+            return `I want to use the ${skillName} skill (${skillDescription}).\n\nPlease load this skill and ask me what I would like to do with it.`;
+        }
     }
 
     public handleConfirmResponseWithRemember(id: string, approved: boolean, remember: boolean): void {

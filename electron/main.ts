@@ -730,7 +730,7 @@ ipcMain.handle('config:analyze-style', async (_event, { articlePaths }: { articl
     // 转换 opening_style.patterns 对象为数组
     const openingHabitsArray = features.opening_style?.patterns ?
       Object.entries(features.opening_style.patterns)
-        .filter(([_, count]) => count > 0)
+        .filter(([_, count]) => (count as number) > 0)
         .map(([name, _]) => name) : []
 
     const styleGuide = {
@@ -1031,7 +1031,10 @@ ipcMain.handle('window:minimize', async () => {
     }
   } catch (error) {
     console.error('IPC: window:minimize error:', error);
-    return { success: false, message: `Error: ${error.message}` };
+    return {
+      success: false,
+      message: `Error: ${error instanceof Error ? error.message : String(error)}`
+    };
   }
 })
 ipcMain.handle('window:maximize', async () => {
@@ -1054,7 +1057,10 @@ ipcMain.handle('window:maximize', async () => {
     }
   } catch (error) {
     console.error('IPC: window:maximize error:', error);
-    return { success: false, message: `Error: ${error.message}` };
+    return {
+      success: false,
+      message: `Error: ${error instanceof Error ? error.message : String(error)}`
+    };
   }
 })
 ipcMain.handle('window:close', async () => {
@@ -1071,7 +1077,10 @@ ipcMain.handle('window:close', async () => {
     }
   } catch (error) {
     console.error('IPC: window:close error:', error);
-    return { success: false, message: `Error: ${error.message}` };
+    return {
+      success: false,
+      message: `Error: ${error instanceof Error ? error.message : String(error)}`
+    };
   }
 })
 
@@ -1165,11 +1174,11 @@ ipcMain.handle('skills:get', async (_, skillId: string) => {
 ipcMain.handle('skills:save', async (_event, skillId: string, content: string) => {
   try {
     const userSkillsDir = path.join(os.homedir(), '.aiagent', 'skills');
-    await fs.mkdir(userSkillsDir, { recursive: true });
+    await fs.mkdir(userSkillsDir, { recursive: true } as any);
 
     const skillPath = path.join(userSkillsDir, skillId, 'SKILL.md');
-    await fs.mkdir(path.dirname(skillPath), { recursive: true });
-    await fs.writeFile(skillPath, content, 'utf-8');
+    await fs.mkdir(path.dirname(skillPath), { recursive: true } as any);
+    await fs.writeFile(skillPath, content, 'utf-8' as any);
 
     console.log(`[skills:save] Saved skill: ${skillId}`);
     return { success: true };
@@ -1184,12 +1193,12 @@ ipcMain.handle('skills:delete', async (_event, skillId: string) => {
     const userSkillsDir = path.join(os.homedir(), '.aiagent', 'skills');
     const skillPath = path.join(userSkillsDir, skillId);
 
-    await fs.rm(skillPath, { recursive: true, force: true });
+    await fs.rm(skillPath, { recursive: true, force: true } as any);
     console.log(`[skills:delete] Deleted skill: ${skillId}`);
 
     // Reload skills
     if (agent) {
-      await agent.skillManager.loadSkills();
+      await agent.getSkillManager().loadSkills();
     }
 
     return { success: true };
@@ -1227,6 +1236,137 @@ ipcMain.handle('notification:get-enabled', () => {
 
 ipcMain.handle('notification:has-permission', () => {
   return { hasPermission: notificationService.hasPermission() };
+});
+
+// ========== 命令系统 IPC Handlers ==========
+
+// 获取所有命令列表
+ipcMain.handle('commands:list', async () => {
+  if (!agent) return [];
+  const allCommands = agent.commandRegistry.getAll();
+
+  // 移除不可序列化的属性（如 execute 函数）
+  return allCommands.map(cmd => ({
+    id: cmd.id,
+    type: cmd.type,
+    name: cmd.name,
+    description: cmd.description,
+    keywords: cmd.keywords,
+    category: cmd.category,
+    icon: cmd.icon,
+    shortcut: cmd.shortcut,
+    params: cmd.params,
+    requiresInput: cmd.requiresInput,
+    serverName: cmd.serverName
+  }));
+});
+
+// 搜索命令
+ipcMain.handle('commands:search', async (_, options: {
+  query?: string;
+  category?: string;
+  type?: string;
+  limit?: number
+}) => {
+  if (!agent) return [];
+
+  const searchOptions: {
+    query?: string;
+    category?: string;
+    type?: string;
+    limit?: number
+  } = {
+    query: options.query,
+    category: options.category as any,
+    type: options.type as any,
+    limit: options.limit
+  };
+
+  const results = agent.commandRegistry.search(searchOptions as any);
+
+  // 移除不可序列化的属性（如 execute 函数）
+  return results.map(cmd => ({
+    id: cmd.id,
+    type: cmd.type,
+    name: cmd.name,
+    description: cmd.description,
+    keywords: cmd.keywords,
+    category: cmd.category,
+    icon: cmd.icon,
+    shortcut: cmd.shortcut,
+    params: cmd.params,
+    requiresInput: cmd.requiresInput,
+    serverName: cmd.serverName
+  }));
+});
+
+// 执行命令
+ipcMain.handle('commands:execute', async (_, commandId: string, params?: Record<string, unknown>) => {
+  if (!agent) return { success: false, error: 'Agent not initialized' };
+
+  const command = agent.commandRegistry.get(commandId);
+  if (!command) {
+    return { success: false, error: `Command not found: ${commandId}` };
+  }
+
+  try {
+    await command.execute(params);
+    return { success: true };
+  } catch (error) {
+    console.error(`[Commands] Error executing command ${commandId}:`, error);
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+// 设置快捷键
+ipcMain.handle('commands:set-shortcut', async (_, commandId: string, accelerator: string) => {
+  if (!agent) return { success: false, error: 'Agent not initialized' };
+
+  const command = agent.commandRegistry.get(commandId);
+  if (!command) {
+    return { success: false, error: `Command not found: ${commandId}` };
+  }
+
+  try {
+    const success = agent.shortcutManager.register({
+      id: commandId,
+      accelerator: accelerator,
+      action: () => {
+        console.log(`[ShortcutManager] Executing command via shortcut: ${commandId}`);
+        command.execute();
+      },
+      description: command.description
+    });
+
+    if (success) {
+      // 更新命令定义中的快捷键
+      command.shortcut = accelerator;
+      return { success: true };
+    } else {
+      return { success: false, error: 'Shortcut registration failed (possibly conflict)' };
+    }
+  } catch (error) {
+    console.error(`[Commands] Error setting shortcut for ${commandId}:`, error);
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+// 获取所有快捷键
+ipcMain.handle('commands:get-shortcuts', async () => {
+  if (!agent) return [];
+  return agent.shortcutManager.getAllBindings();
+});
+
+// Slash command 建议
+ipcMain.handle('commands:suggest', async (_, partialInput: string) => {
+  if (!agent) return [];
+  return agent.slashParser.getSuggestions(partialInput);
+});
+
+// 检查快捷键冲突
+ipcMain.handle('commands:check-conflict', async (_, accelerator: string, excludeId?: string) => {
+  if (!agent) return null;
+  return agent.shortcutManager.checkConflict(accelerator, excludeId);
 });
 
 
@@ -1367,9 +1507,9 @@ function createMainWindow() {
   })
 
   // 🔍 调试：检查 preload 是否加载
-  mainWin.webContents.on('did-finish-load', () => {
+  mainWin?.webContents.on('did-finish-load', () => {
     console.log('[Main Window] Finished loading')
-    mainWin.webContents.executeJavaScript('typeof window.ipcRenderer')
+    mainWin?.webContents.executeJavaScript('typeof window.ipcRenderer')
       .then(result => {
         console.log('[Main Window] window.ipcRenderer type:', result)
         // 发送主进程消息
