@@ -69,7 +69,7 @@ export function MarkdownRenderer({ content, className = '', isDark = false }: Ma
                         if (isFilePath) {
                             return (
                                 <code
-                                    className={`${className} px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 font-mono text-sm border border-blue-200 cursor-pointer hover:bg-blue-100 transition-colors`}
+                                    className={`${className} px-1.5 py-0.5 rounded-md bg-orange-50 text-orange-700 font-mono text-sm border border-orange-200 cursor-pointer hover:bg-orange-100 transition-colors`}
                                     onClick={() => window.ipcRenderer.invoke('shell:open-path', codeText)}
                                     title="点击在文件管理器中打开"
                                     {...props}

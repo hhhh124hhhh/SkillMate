@@ -24,7 +24,7 @@ const availableIcons = [
 
 // 颜色主题
 const colorThemes = [
-  { name: '蓝色', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200' },
+  { name: '蓝色', color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200' },
   { name: '绿色', color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-200' },
   { name: '橙色', color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200' },
   { name: '紫色', color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200' },

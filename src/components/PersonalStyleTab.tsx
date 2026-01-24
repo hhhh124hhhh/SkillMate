@@ -559,14 +559,14 @@ ${cfg.styleGuide.structureHabits.length > 0
     return (
         <div className="space-y-6">
             {/* 顶部说明 */}
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
+            <div className="bg-gradient-to-r from-orange-50 to-indigo-50 border border-orange-200 rounded-xl p-4">
                 <div className="flex items-start gap-3">
-                    <Sparkles className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
+                    <Sparkles className="w-5 h-5 text-orange-600 mt-0.5 shrink-0" />
                     <div>
                         <h3 className="text-sm font-semibold text-blue-900 mb-1">个人风格学习器</h3>
-                        <p className="text-xs text-blue-700 leading-relaxed">
+                        <p className="text-xs text-orange-700 leading-relaxed">
                             上传 10-20 篇你的文章，AI 会分析你的写作风格，让以后的文章写得像你亲手写的。
-                            <span className="block mt-1 text-blue-600">🔒 所有文章仅保存在本地，不会上传到云端。</span>
+                            <span className="block mt-1 text-orange-600">🔒 所有文章仅保存在本地，不会上传到云端。</span>
                         </p>
                     </div>
                 </div>
@@ -589,7 +589,7 @@ ${cfg.styleGuide.structureHabits.length > 0
                             onClick={() => setUploadMode('upload')}
                             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
                                 uploadMode === 'upload'
-                                    ? 'bg-blue-600 text-white'
+                                    ? 'bg-orange-600 text-white'
                                     : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
                             }`}
                         >
@@ -599,7 +599,7 @@ ${cfg.styleGuide.structureHabits.length > 0
                             onClick={() => setUploadMode('paste')}
                             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
                                 uploadMode === 'paste'
-                                    ? 'bg-blue-600 text-white'
+                                    ? 'bg-orange-600 text-white'
                                     : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
                             }`}
                         >
@@ -617,7 +617,7 @@ ${cfg.styleGuide.structureHabits.length > 0
                         onClick={() => document.getElementById('file-upload')?.click()}
                         className={`border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer ${
                             dragActive
-                                ? 'border-blue-500 bg-blue-50'
+                                ? 'border-orange-500 bg-orange-50'
                                 : 'border-stone-300 hover:border-stone-400'
                         }`}
                     >
@@ -651,13 +651,13 @@ ${cfg.styleGuide.structureHabits.length > 0
                             value={pastedText}
                             onChange={(e) => setPastedText(e.target.value)}
                             placeholder="粘贴你的文章内容..."
-                            className="w-full h-40 p-3 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none"
+                            className="w-full h-40 p-3 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 resize-none"
                         />
                         <div className="flex justify-end mt-2">
                             <button
                                 onClick={handlePasteSubmit}
                                 disabled={!pastedText.trim()}
-                                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-stone-300 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                                className="px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700 disabled:bg-stone-300 disabled:cursor-not-allowed transition-all flex items-center gap-2"
                             >
                                 <Upload className="w-4 h-4" />
                                 提交文章
@@ -690,7 +690,7 @@ ${cfg.styleGuide.structureHabits.length > 0
                         <button
                             onClick={handleAnalyze}
                             disabled={isAnalyzing}
-                            className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg hover:from-blue-700 hover:to-indigo-700 disabled:from-stone-400 disabled:to-stone-500 disabled:cursor-not-allowed transition-all flex items-center gap-2 shadow-lg shadow-blue-200"
+                            className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-orange-600 to-indigo-600 rounded-lg hover:from-orange-700 hover:to-indigo-700 disabled:from-stone-400 disabled:to-stone-500 disabled:cursor-not-allowed transition-all flex items-center gap-2 shadow-lg shadow-blue-200"
                         >
                             {isAnalyzing ? (
                                 <>
@@ -723,7 +723,7 @@ ${cfg.styleGuide.structureHabits.length > 0
                 <div className="border border-stone-200 rounded-xl overflow-hidden">
                     <div className="bg-stone-50 px-4 py-3 border-b border-stone-200 flex items-center justify-between">
                         <h4 className="text-sm font-semibold text-stone-700 flex items-center gap-2">
-                            <TrendingUp className="w-4 h-4 text-blue-600" />
+                            <TrendingUp className="w-4 h-4 text-orange-600" />
                             风格分析结果
                         </h4>
                         <button
@@ -745,7 +745,7 @@ ${cfg.styleGuide.structureHabits.length > 0
                                 {analysisResult.openingHabits.patterns.map((pattern, idx) => (
                                     <span
                                         key={idx}
-                                        className="px-2.5 py-1 text-xs bg-blue-50 text-blue-700 rounded-full"
+                                        className="px-2.5 py-1 text-xs bg-orange-50 text-orange-700 rounded-full"
                                     >
                                         {pattern}
                                     </span>
@@ -792,7 +792,7 @@ ${cfg.styleGuide.structureHabits.length > 0
                         <div>
                             <h5 className="text-xs font-semibold text-stone-600 mb-2">结构习惯</h5>
                             <p className="text-sm text-stone-700 mb-2">
-                                最常用的结构：<span className="font-semibold text-blue-600">{analysisResult.structureHabits.mainPattern}</span>
+                                最常用的结构：<span className="font-semibold text-orange-600">{analysisResult.structureHabits.mainPattern}</span>
                             </p>
                             <div className="flex flex-wrap gap-2">
                                 {Object.entries(analysisResult.structureHabits.distribution).map(([key, value]) => (
@@ -826,7 +826,7 @@ ${cfg.styleGuide.structureHabits.length > 0
                 <div className="border border-stone-200 rounded-xl overflow-hidden">
                     <div className="bg-stone-50 px-4 py-3 border-b border-stone-200 flex items-center justify-between">
                         <h4 className="text-sm font-semibold text-stone-700 flex items-center gap-2">
-                            <Sliders className="w-4 h-4 text-blue-600" />
+                            <Sliders className="w-4 h-4 text-orange-600" />
                             手动调整风格
                         </h4>
                         {!isEditing && (
@@ -835,7 +835,7 @@ ${cfg.styleGuide.structureHabits.length > 0
                                     setIsEditing(true);
                                     setEditedStyleGuide(config.styleGuide);
                                 }}
-                                className="px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-all"
+                                className="px-3 py-1.5 text-xs font-medium text-orange-600 bg-orange-50 rounded-lg hover:bg-orange-100 transition-all"
                             >
                                 编辑
                             </button>
@@ -850,7 +850,7 @@ ${cfg.styleGuide.structureHabits.length > 0
                                     <div>
                                         <div className="flex items-center justify-between mb-2">
                                             <label className="text-xs font-medium text-stone-700">专业术语密度</label>
-                                            <span className="text-xs font-bold text-blue-600">{editedStyleGuide.wordChoice.technicalLevel}/10</span>
+                                            <span className="text-xs font-bold text-orange-600">{editedStyleGuide.wordChoice.technicalLevel}/10</span>
                                         </div>
                                         <input
                                             type="range"
@@ -864,7 +864,7 @@ ${cfg.styleGuide.structureHabits.length > 0
                                                     technicalLevel: parseInt(e.target.value)
                                                 }
                                             })}
-                                            className="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                                            className="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-orange-600"
                                         />
                                         <div className="flex justify-between text-xs text-stone-500 mt-1">
                                             <span>通俗易懂</span>
@@ -875,7 +875,7 @@ ${cfg.styleGuide.structureHabits.length > 0
                                     <div>
                                         <div className="flex items-center justify-between mb-2">
                                             <label className="text-xs font-medium text-stone-700">口语化程度</label>
-                                            <span className="text-xs font-bold text-blue-600">{editedStyleGuide.wordChoice.colloquialLevel}/10</span>
+                                            <span className="text-xs font-bold text-orange-600">{editedStyleGuide.wordChoice.colloquialLevel}/10</span>
                                         </div>
                                         <input
                                             type="range"
@@ -889,7 +889,7 @@ ${cfg.styleGuide.structureHabits.length > 0
                                                     colloquialLevel: parseInt(e.target.value)
                                                 }
                                             })}
-                                            className="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                                            className="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-orange-600"
                                         />
                                         <div className="flex justify-between text-xs text-stone-500 mt-1">
                                             <span>正式书面</span>
@@ -900,7 +900,7 @@ ${cfg.styleGuide.structureHabits.length > 0
                                     <div>
                                         <div className="flex items-center justify-between mb-2">
                                             <label className="text-xs font-medium text-stone-700">幽默感指数</label>
-                                            <span className="text-xs font-bold text-blue-600">{editedStyleGuide.wordChoice.humorLevel}/10</span>
+                                            <span className="text-xs font-bold text-orange-600">{editedStyleGuide.wordChoice.humorLevel}/10</span>
                                         </div>
                                         <input
                                             type="range"
@@ -914,7 +914,7 @@ ${cfg.styleGuide.structureHabits.length > 0
                                                     humorLevel: parseInt(e.target.value)
                                                 }
                                             })}
-                                            className="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                                            className="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-orange-600"
                                         />
                                         <div className="flex justify-between text-xs text-stone-500 mt-1">
                                             <span>严肃认真</span>
@@ -927,7 +927,7 @@ ${cfg.styleGuide.structureHabits.length > 0
                                 <div className="flex gap-2 pt-2">
                                     <button
                                         onClick={handleSaveEdit}
-                                        className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-all flex items-center gap-2"
+                                        className="px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700 transition-all flex items-center gap-2"
                                     >
                                         <Check className="w-4 h-4" />
                                         保存修改
@@ -946,9 +946,9 @@ ${cfg.styleGuide.structureHabits.length > 0
                         ) : (
                             <div className="space-y-3">
                                 <div className="grid grid-cols-3 gap-3">
-                                    <div className="p-3 bg-blue-50 rounded-lg">
-                                        <p className="text-xs text-blue-600 mb-1">专业术语</p>
-                                        <p className="text-xl font-bold text-blue-700">
+                                    <div className="p-3 bg-orange-50 rounded-lg">
+                                        <p className="text-xs text-orange-600 mb-1">专业术语</p>
+                                        <p className="text-xl font-bold text-orange-700">
                                             {config.styleGuide.wordChoice.technicalLevel}<span className="text-sm font-normal">/10</span>
                                         </p>
                                     </div>
@@ -997,12 +997,12 @@ ${cfg.styleGuide.structureHabits.length > 0
                 <div className="border border-stone-200 rounded-xl overflow-hidden">
                     <div className="bg-stone-50 px-4 py-3 border-b border-stone-200 flex items-center justify-between">
                         <h4 className="text-sm font-semibold text-stone-700 flex items-center gap-2">
-                            <Eye className="w-4 h-4 text-blue-600" />
+                            <Eye className="w-4 h-4 text-orange-600" />
                             风格指南预览
                         </h4>
                         <button
                             onClick={() => setShowStyleGuide(!showStyleGuide)}
-                            className="text-xs text-blue-600 hover:text-blue-700"
+                            className="text-xs text-orange-600 hover:text-orange-700"
                         >
                             {showStyleGuide ? '隐藏' : '显示'}
                         </button>

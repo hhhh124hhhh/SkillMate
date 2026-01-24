@@ -233,7 +233,7 @@ export function MCPConfigEditorRedesign({ onClose }: MCPConfigEditorRedesignProp
         {/* 工具栏 */}
         <div className="h-[72px] bg-[#252b33] border-b border-[#2d343d] flex items-center px-6 gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-1 h-5 bg-blue-500 rounded shadow-[0_0_10px_rgba(59,130,246,0.3)]"></div>
+            <div className="w-1 h-5 bg-orange-500 rounded shadow-[0_0_10px_rgba(59,130,246,0.3)]"></div>
             <h2 className="text-lg font-semibold text-slate-100">MCP 配置</h2>
           </div>
 
@@ -246,7 +246,7 @@ export function MCPConfigEditorRedesign({ onClose }: MCPConfigEditorRedesignProp
               placeholder="搜索服务器..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-10 bg-[#0f1419] border border-[#2d343d] rounded-lg pl-10 pr-3 text-sm text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition-all"
+              className="w-full h-10 bg-[#0f1419] border border-[#2d343d] rounded-lg pl-10 pr-3 text-sm text-slate-100 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/15 transition-all"
             />
           </div>
 
@@ -260,7 +260,7 @@ export function MCPConfigEditorRedesign({ onClose }: MCPConfigEditorRedesignProp
 
           <button
             onClick={addServer}
-            className="h-10 px-4 bg-blue-500 rounded-lg text-sm font-medium text-white hover:bg-blue-600 transition-all flex items-center gap-2 shadow-[0_2px_8px_rgba(59,130,246,0.3)]"
+            className="h-10 px-4 bg-orange-500 rounded-lg text-sm font-medium text-white hover:bg-blue-600 transition-all flex items-center gap-2 shadow-[0_2px_8px_rgba(59,130,246,0.3)]"
           >
             <Plus size={16} />
             添加服务器
@@ -306,14 +306,14 @@ export function MCPConfigEditorRedesign({ onClose }: MCPConfigEditorRedesignProp
                       className={`
                         relative p-4 rounded-lg cursor-pointer transition-all
                         ${isSelected
-                          ? 'bg-[#252b33] border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.15)]'
+                          ? 'bg-[#252b33] border-orange-500 shadow-[0_0_20px_rgba(59,130,246,0.15)]'
                           : 'bg-[#1a1f26] border-[#2d343d] hover:bg-[#2d343d] hover:border-[#3d4452]'
                         }
                         border
                       `}
                     >
                       <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-[#2d343d] transition-all rounded-l-lg
-                        ${isSelected ? '!w-0.5 !bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,1)]' : ''}
+                        ${isSelected ? '!w-0.5 !bg-orange-500 shadow-[0_0_8px_rgba(59,130,246,1)]' : ''}
                       " />
 
                       <div className="flex items-center gap-3 mb-2">
@@ -334,7 +334,7 @@ export function MCPConfigEditorRedesign({ onClose }: MCPConfigEditorRedesignProp
                           text-[10px] font-semibold uppercase px-2 py-0.5 rounded font-mono
                           ${server.type === 'streamableHttp'
                             ? 'bg-cyan-500/15 text-cyan-500'
-                            : 'bg-blue-500/15 text-blue-500'
+                            : 'bg-orange-500/15 text-orange-500'
                           }
                         `}>
                           {server.type === 'streamableHttp' ? 'HTTP' : 'stdio'}
@@ -381,7 +381,7 @@ export function MCPConfigEditorRedesign({ onClose }: MCPConfigEditorRedesignProp
                         className={`
                           h-[60px] p-3 rounded-lg border-2 flex items-center gap-3 transition-all
                           ${(!editForm.type || editForm.type === 'stdio')
-                            ? 'border-blue-500 bg-[#252b33] shadow-[0_0_0_3px_rgba(59,130,246,0.15)]'
+                            ? 'border-orange-500 bg-[#252b33] shadow-[0_0_0_3px_rgba(59,130,246,0.15)]'
                             : 'border-[#2d343d] bg-[#0f1419] hover:border-[#3d4452]'
                           }
                         `}
@@ -400,7 +400,7 @@ export function MCPConfigEditorRedesign({ onClose }: MCPConfigEditorRedesignProp
                         className={`
                           h-[60px] p-3 rounded-lg border-2 flex items-center gap-3 transition-all
                           ${editForm.type === 'streamableHttp'
-                            ? 'border-blue-500 bg-[#252b33] shadow-[0_0_0_3px_rgba(59,130,246,0.15)]'
+                            ? 'border-orange-500 bg-[#252b33] shadow-[0_0_0_3px_rgba(59,130,246,0.15)]'
                             : 'border-[#2d343d] bg-[#0f1419] hover:border-[#3d4452]'
                           }
                         `}
@@ -428,7 +428,7 @@ export function MCPConfigEditorRedesign({ onClose }: MCPConfigEditorRedesignProp
                           type="text"
                           value={selectedServer}
                           disabled
-                          className="w-full h-10 bg-[#0f1419] border border-[#2d343d] rounded px-3 text-sm text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition-all opacity-50"
+                          className="w-full h-10 bg-[#0f1419] border border-[#2d343d] rounded px-3 text-sm text-slate-100 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/15 transition-all opacity-50"
                         />
                       </div>
 
@@ -438,7 +438,7 @@ export function MCPConfigEditorRedesign({ onClose }: MCPConfigEditorRedesignProp
                           type="text"
                           value={editForm.description || ''}
                           onChange={(e) => updateFormField('description', e.target.value)}
-                          className="w-full h-10 bg-[#0f1419] border border-[#2d343d] rounded px-3 text-sm text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition-all"
+                          className="w-full h-10 bg-[#0f1419] border border-[#2d343d] rounded px-3 text-sm text-slate-100 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/15 transition-all"
                           placeholder="例如：AI 辅助工具"
                         />
                       </div>
@@ -458,7 +458,7 @@ export function MCPConfigEditorRedesign({ onClose }: MCPConfigEditorRedesignProp
                             type="text"
                             value={editForm.command || ''}
                             onChange={(e) => updateFormField('command', e.target.value)}
-                            className="w-full h-10 bg-[#0f1419] border border-[#2d343d] rounded px-3 text-sm text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition-all font-mono"
+                            className="w-full h-10 bg-[#0f1419] border border-[#2d343d] rounded px-3 text-sm text-slate-100 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/15 transition-all font-mono"
                             placeholder="npx"
                           />
                         </div>
@@ -469,7 +469,7 @@ export function MCPConfigEditorRedesign({ onClose }: MCPConfigEditorRedesignProp
                             type="text"
                             value={(editForm.args || []).join(' ')}
                             onChange={(e) => updateFormField('args', e.target.value.split(' '))}
-                            className="w-full h-10 bg-[#0f1419] border border-[#2d343d] rounded px-3 text-sm text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition-all font-mono"
+                            className="w-full h-10 bg-[#0f1419] border border-[#2d343d] rounded px-3 text-sm text-slate-100 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/15 transition-all font-mono"
                             placeholder="-y @package/name"
                           />
                         </div>
@@ -526,7 +526,7 @@ export function MCPConfigEditorRedesign({ onClose }: MCPConfigEditorRedesignProp
                             type="text"
                             value={editForm.baseUrl || ''}
                             onChange={(e) => updateFormField('baseUrl', e.target.value)}
-                            className="w-full h-10 bg-[#0f1419] border border-[#2d343d] rounded px-3 text-sm text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition-all font-mono"
+                            className="w-full h-10 bg-[#0f1419] border border-[#2d343d] rounded px-3 text-sm text-slate-100 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/15 transition-all font-mono"
                             placeholder="https://api.example.com/mcp"
                           />
                         </div>
@@ -595,7 +595,7 @@ export function MCPConfigEditorRedesign({ onClose }: MCPConfigEditorRedesignProp
                   </button>
                   <button
                     onClick={() => { saveCurrentServer(); handleSave(); }}
-                    className="h-10 px-4 bg-blue-500 rounded-lg text-sm font-medium text-white hover:bg-blue-600 transition-all flex items-center gap-2 shadow-[0_2px_8px_rgba(59,130,246,0.3)]"
+                    className="h-10 px-4 bg-orange-500 rounded-lg text-sm font-medium text-white hover:bg-blue-600 transition-all flex items-center gap-2 shadow-[0_2px_8px_rgba(59,130,246,0.3)]"
                   >
                     <Check size={14} />
                     保存配置
@@ -620,7 +620,7 @@ export function MCPConfigEditorRedesign({ onClose }: MCPConfigEditorRedesignProp
             <div className="w-full max-w-4xl max-h-[80vh] bg-[#1a1f26] rounded-xl border border-[#2d343d] shadow-2xl overflow-hidden">
               <div className="p-6 border-b border-[#2d343d] flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <FileText size={20} className="text-blue-500" />
+                  <FileText size={20} className="text-orange-500" />
                   <h3 className="text-lg font-semibold text-slate-100">服务器模板库</h3>
                 </div>
                 <button
@@ -637,7 +637,7 @@ export function MCPConfigEditorRedesign({ onClose }: MCPConfigEditorRedesignProp
                     <div
                       key={template.name}
                       onClick={() => applyTemplate(template)}
-                      className="bg-[#0f1419] border border-[#2d343d] rounded-xl p-5 hover:border-blue-500 hover:shadow-[0_0_20px_rgba(59,130,246,0.15)] transition-all cursor-pointer group"
+                      className="bg-[#0f1419] border border-[#2d343d] rounded-xl p-5 hover:border-orange-500 hover:shadow-[0_0_20px_rgba(59,130,246,0.15)] transition-all cursor-pointer group"
                     >
                       <div className="flex items-start justify-between mb-3">
                         <h4 className="font-semibold text-slate-100">{template.name}</h4>
@@ -645,7 +645,7 @@ export function MCPConfigEditorRedesign({ onClose }: MCPConfigEditorRedesignProp
                           text-xs px-2 py-1 rounded-full font-mono font-medium
                           ${template.type === 'streamableHttp'
                             ? 'bg-cyan-500/15 text-cyan-500'
-                            : 'bg-blue-500/15 text-blue-500'
+                            : 'bg-orange-500/15 text-orange-500'
                           }
                         `}>
                           {template.type === 'streamableHttp' ? 'HTTP' : 'STDIO'}
@@ -659,7 +659,7 @@ export function MCPConfigEditorRedesign({ onClose }: MCPConfigEditorRedesignProp
                         }
                       </div>
                       <div className="mt-4 pt-4 border-t border-[#2d343d]">
-                        <button className="w-full h-10 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all text-sm font-medium flex items-center justify-center gap-2 group-hover:shadow-[0_2px_8px_rgba(59,130,246,0.3)]">
+                        <button className="w-full h-10 bg-orange-500 text-white rounded-lg hover:bg-blue-600 transition-all text-sm font-medium flex items-center justify-center gap-2 group-hover:shadow-[0_2px_8px_rgba(59,130,246,0.3)]">
                           <Plus size={14} />
                           应用模板
                         </button>

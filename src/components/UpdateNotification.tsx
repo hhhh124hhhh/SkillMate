@@ -131,7 +131,7 @@ export function UpdateNotification() {
       <div className="flex items-start gap-3 pr-6">
         {state.status === 'downloading' && (
           <div className="flex-shrink-0">
-            <RefreshCw className="w-5 h-5 text-blue-500 animate-spin" />
+            <RefreshCw className="w-5 h-5 text-orange-500 animate-spin" />
           </div>
         )}
         {state.status === 'downloaded' && (
@@ -146,7 +146,7 @@ export function UpdateNotification() {
         )}
         {state.status === 'available' && (
           <div className="flex-shrink-0">
-            <Download className="w-5 h-5 text-blue-500" />
+            <Download className="w-5 h-5 text-orange-500" />
           </div>
         )}
 
@@ -171,7 +171,7 @@ export function UpdateNotification() {
             <div className="space-y-2">
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                 <div
-                  className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                  className="bg-orange-500 h-2 rounded-full transition-all duration-300"
                   style={{ width: `${state.progress.percent}%` }}
                 />
               </div>
@@ -204,7 +204,7 @@ export function UpdateNotification() {
           <>
             <button
               onClick={handleInstallNow}
-              className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors text-sm font-medium"
+              className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-orange-500 hover:bg-blue-600 text-white rounded-md transition-colors text-sm font-medium"
             >
               <Zap className="w-4 h-4" />
               立即重启

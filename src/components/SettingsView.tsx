@@ -220,7 +220,7 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
                     <div className="flex items-center gap-2">
-                        <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
+                        <div className="p-2 bg-orange-50 rounded-lg text-orange-600">
                             <Settings size={20} />
                         </div>
                         <h2 className="text-lg font-bold text-slate-800">设置</h2>
@@ -247,7 +247,7 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap border-b-2 ${activeTab === tab.id
-                                ? 'text-blue-600 border-blue-600 bg-blue-50/50'
+                                ? 'text-orange-600 border-orange-600 bg-orange-50/50'
                                 : 'text-slate-500 border-transparent hover:text-slate-700 hover:bg-slate-50'
                                 }`}
                         >
@@ -269,7 +269,7 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
                                         value={config.apiKey}
                                         onChange={(e) => setConfig({ ...config, apiKey: e.target.value })}
                                         placeholder={hasApiKey ? "••••••••••••••••" : "sk-..."}
-                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-base text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-base text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
                                     />
                                     {hasApiKey && config.apiKey === '' && (
                                         <p className="text-xs text-green-600 mt-1.5 flex items-center gap-1">
@@ -278,7 +278,7 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
                                         </p>
                                     )}
                                     {/* 新增：获取 API Key 说明 */}
-                                    <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <div className="mt-2 p-3 bg-orange-50 border border-orange-200 rounded-lg">
                                         <p className="text-xs font-medium text-blue-900 mb-2">
                                             如何获取智谱 AI API Key？
                                         </p>
@@ -296,7 +296,7 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
                                         value={config.doubaoApiKey || ''}
                                         onChange={(e) => setConfig({ ...config, doubaoApiKey: e.target.value })}
                                         placeholder="输入豆包生图 API Key"
-                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-base text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-base text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
                                     />
                                     <p className="text-xs text-slate-600 mt-2">
                                         用于生图技能的 API Key,将自动注入到 Skill 执行环境
@@ -309,7 +309,7 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
                                         value={config.apiUrl}
                                         onChange={(e) => setConfig({ ...config, apiUrl: e.target.value })}
                                         placeholder="https://api.anthropic.com"
-                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-base text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-base text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
                                     />
                                 </div>
                                 <div>
@@ -319,7 +319,7 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
                                         value={config.model}
                                         onChange={(e) => setConfig({ ...config, model: e.target.value })}
                                         placeholder="glm-4.7"
-                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-base text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-base text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
                                     />
                                     <p className="text-xs text-slate-600 mt-2 flex items-center gap-1">
                                         <Server size={12} />
@@ -333,7 +333,7 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
                                         disabled={saved}
                                         className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all shadow-sm ${saved
                                             ? 'bg-green-50 text-green-600 border border-green-200'
-                                            : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200'
+                                            : 'bg-orange-600 text-white hover:bg-orange-700 shadow-blue-200'
                                             }`}
                                     >
                                         {saved ? <Check size={16} /> : null}
@@ -345,7 +345,7 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
 
                         {activeTab === 'folders' && (
                             <>
-                                <div className="bg-blue-50 text-blue-700 rounded-lg p-3 text-xs">
+                                <div className="bg-orange-50 text-orange-700 rounded-lg p-3 text-xs">
                                     出于安全考虑，AI 只能访问以下授权的文件夹及其子文件夹。
                                 </div>
 
@@ -391,7 +391,7 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
                                         disabled={saved}
                                         className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all shadow-sm ${saved
                                             ? 'bg-green-50 text-green-600 border border-green-200'
-                                            : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200'
+                                            : 'bg-orange-600 text-white hover:bg-orange-700 shadow-blue-200'
                                             }`}
                                     >
                                         {saved ? <Check size={16} /> : null}
@@ -443,7 +443,7 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
                                                 onChange={(e) => setConfig({ ...config, notifications: e.target.checked })}
                                                 className="sr-only"
                                             />
-                                            <span className={`block h-5 rounded-full transition duration-200 ease-in-out ${config.notifications ? 'bg-blue-600' : 'bg-stone-200'}`}>
+                                            <span className={`block h-5 rounded-full transition duration-200 ease-in-out ${config.notifications ? 'bg-orange-600' : 'bg-stone-200'}`}>
                                                 <span className={`absolute left-0.5 top-0.5 w-4 h-4 transform rounded-full bg-white transition-transform duration-200 ease-in-out ${config.notifications ? 'translate-x-5' : ''}`}></span>
                                             </span>
                                         </div>
@@ -474,7 +474,7 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
                                                             })}
                                                             className="sr-only"
                                                         />
-                                                        <span className={`block h-4 rounded-full transition duration-200 ease-in-out ${config.notificationTypes[type.key] ? 'bg-blue-500' : 'bg-stone-200'}`}>
+                                                        <span className={`block h-4 rounded-full transition duration-200 ease-in-out ${config.notificationTypes[type.key] ? 'bg-orange-500' : 'bg-stone-200'}`}>
                                                             <span className={`absolute left-0.5 top-0.5 w-3 h-3 transform rounded-full bg-white transition-transform duration-200 ease-in-out ${config.notificationTypes[type.key] ? 'translate-x-4' : ''}`}></span>
                                                         </span>
                                                     </div>
@@ -532,7 +532,7 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
                                                 window.dispatchEvent(new CustomEvent('open-user-guide'));
                                                 onClose();
                                             }}
-                                            className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                                            className="px-3 py-1.5 text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700"
                                         >
                                             查看引导
                                         </button>
@@ -545,7 +545,7 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
                                         disabled={saved}
                                         className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all shadow-sm ${saved
                                             ? 'bg-green-50 text-green-600 border border-green-200'
-                                            : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200'
+                                            : 'bg-orange-600 text-white hover:bg-orange-700 shadow-blue-200'
                                             }`}
                                     >
                                         {saved ? <Check size={16} /> : null}

@@ -6,60 +6,77 @@
 
 @layer base {
   :root {
-    /* Professional Theme */
-    --background: 210 20% 98%;
-    --foreground: 220 13% 9%;
+    /* SkillMate Brand - Orange & Green Theme */
+    --background: 0 0% 98%; /* #FAFAFA */
+    --foreground: 0 0% 13%; /* #212121 */
 
-    --card: 0 0% 100%;
-    --card-foreground: 220 13% 9%;
+    --card: 0 0% 100%; /* #FFFFFF */
+    --card-foreground: 0 0% 13%; /* #212121 */
 
-    --primary: 220 70% 50%;
+    /* Brand Primary: Orange #FF7043 - Skills & Creativity */
+    --primary: 24 100% 63%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 15% 94%;
-    --secondary-foreground: 220 13% 15%;
+    /* Brand Secondary: Green #43A047 - Learning & Growth */
+    --secondary: 123 56% 42%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 210 15% 90%;
-    --muted-foreground: 220 8% 45%;
+    --muted: 210 15% 94%;
+    --muted-foreground: 0 0% 38%; /* #616161 */
 
-    --accent: 210 15% 94%;
-    --accent-foreground: 220 13% 15%;
+    --accent: 24 100% 95%; /* Light orange background */
+    --accent-foreground: 24 100% 40%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 210 15% 88%;
-    --input: 210 15% 88%;
-    --ring: 220 70% 50%;
+    --border: 0 0% 88%; /* #E0E0E0 */
+    --input: 0 0% 88%;
+    --ring: 24 100% 63%;
 
     --radius: 0.5rem;
+
+    /* Skill Status Colors */
+    --skill-free: 123 56% 42%; /* Green - Free skills */
+    --skill-paid: 24 100% 50%; /* Orange - Paid skills */
+    --skill-premium: 284 64% 42%; /* Purple - Premium skills */
+    --skill-featured: 0 72% 51%; /* Red - Featured skills */
   }
 
   .dark {
-    --background: 0 0% 7%;
-    --foreground: 0 0% 95%;
+    /* SkillMate Dark Theme */
+    --background: 228 27% 10%; /* #1A1A2E Deep blue-black */
+    --foreground: 0 0% 92%; /* #EAEAEA */
 
-    --card: 0 0% 10%;
-    --card-foreground: 0 0% 95%;
+    --card: 222 28% 13%; /* #16213E */
+    --card-foreground: 0 0% 92%; /* #EAEAEA */
 
-    --primary: 24 95% 53%;
+    /* Brand Primary: Orange #FF8C42 */
+    --primary: 24 100% 63%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 15%;
-    --secondary-foreground: 0 0% 90%;
+    /* Brand Secondary: Green #4CAF50 */
+    --secondary: 123 39% 50%;
+    --secondary-foreground: 0 0% 100%;
 
     --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 60%;
+    --muted-foreground: 0 0% 63%; /* #A0A0A0 */
 
-    --accent: 0 0% 15%;
-    --accent-foreground: 0 0% 90%;
+    --accent: 24 30% 15%; /* Dark orange background */
+    --accent-foreground: 24 100% 80%;
 
-    --destructive: 0 62% 30%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 95%;
 
-    --border: 0 0% 18%;
-    --input: 0 0% 18%;
-    --ring: 24 95% 53%;
+    --border: 228 18% 23%; /* #2A2A3E */
+    --input: 228 18% 23%;
+    --ring: 24 100% 63%;
+
+    /* Skill Status Colors (Dark) */
+    --skill-free: 123 39% 50%; /* Green - Free skills */
+    --skill-paid: 38 100% 59%; /* Orange - Paid skills */
+    --skill-premium: 284 64% 59%; /* Purple - Premium skills */
+    --skill-featured: 0 84% 63%; /* Red - Featured skills */
   }
 }
 
@@ -87,7 +104,7 @@
 
 @layer components {
   .user-bubble {
-    @apply bg-blue-50 text-slate-800 rounded-2xl px-5 py-4 leading-relaxed border border-blue-100 shadow-sm;
+    @apply bg-orange-50 text-slate-800 rounded-2xl px-5 py-4 leading-relaxed border border-orange-100 shadow-sm;
   }
 
   .command-block {
@@ -95,25 +112,65 @@
   }
 
   .command-block-header {
-    @apply flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors cursor-pointer;
+    @apply flex items-center justify-between px-4 py-3 hover:bg-orange-50/50 transition-colors cursor-pointer;
   }
 
   .steps-indicator {
-    @apply flex items-center gap-2 text-sm text-slate-400 pl-4 border-l-2 border-slate-200 ml-1;
+    @apply flex items-center gap-2 text-sm text-green-600 pl-4 border-l-2 border-green-200 ml-1;
   }
 
   .input-bar {
     @apply bg-white border border-slate-200 rounded-2xl flex items-center shadow-sm transition-all;
-    @apply focus-within:border-blue-300 focus-within:ring-4 focus-within:ring-blue-50;
+    @apply focus-within:border-orange-400 focus-within:ring-4 focus-within:ring-orange-100;
   }
 
   .input-bar-dark {
-    @apply bg-zinc-900 border border-zinc-700 rounded-2xl overflow-hidden;
+    @apply bg-stone-900 border border-stone-700 rounded-2xl overflow-hidden;
   }
 
   .floating-ball {
-    @apply w-16 h-16 rounded-full bg-stone-800 flex items-center justify-center shadow-2xl cursor-pointer;
+    @apply w-16 h-16 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-2xl cursor-pointer;
     @apply transition-transform hover:scale-105;
+  }
+
+  /* Skill Badge Components */
+  .skill-badge-free {
+    @apply bg-green-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full;
+  }
+
+  .skill-badge-paid {
+    @apply bg-orange-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full;
+  }
+
+  .skill-badge-premium {
+    @apply bg-purple-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full;
+  }
+
+  .skill-badge-featured {
+    @apply bg-red-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full;
+  }
+
+  /* Button Variants */
+  .btn-primary {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl px-6 py-2.5 font-semibold transition-all shadow-sm hover:shadow-md;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary text-secondary-foreground hover:bg-secondary/90 rounded-xl px-6 py-2.5 font-semibold transition-all shadow-sm hover:shadow-md;
+  }
+
+  /* Success State */
+  .success-message {
+    @apply bg-green-50 text-green-800 border border-green-200 rounded-xl px-4 py-3;
+  }
+
+  /* Learning Progress */
+  .progress-bar {
+    @apply h-2 bg-green-100 rounded-full overflow-hidden;
+  }
+
+  .progress-bar-fill {
+    @apply h-full bg-gradient-to-r from-green-400 to-green-500 transition-all duration-300;
   }
 }
 

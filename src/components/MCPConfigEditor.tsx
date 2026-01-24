@@ -19,6 +19,13 @@ interface MCPConfig {
   mcpServers: Record<string, MCPServer>;
 }
 
+interface MCPServerStatus {
+  name: string;
+  connected: boolean;
+  error?: string;
+  retryCount?: number;
+}
+
 interface MCPTemplate {
   name: string;
   description: string;
@@ -40,10 +47,26 @@ export function MCPConfigEditor({ onClose }: MCPConfigEditorProps) {
   const [editForm, setEditForm] = useState<MCPServer>({});
   const [showTemplates, setShowTemplates] = useState(false);
   const [templates, setTemplates] = useState<MCPTemplate[]>([]);
+  const [mcpStatus, setMcpStatus] = useState<MCPServerStatus[]>([]);
 
   useEffect(() => {
     loadConfig();
     loadTemplates();
+
+    // 定期刷新 MCP 状态
+    const loadStatus = async () => {
+      try {
+        const status = await window.ipcRenderer.invoke('mcp:get-status') as MCPServerStatus[];
+        setMcpStatus(status);
+      } catch (error) {
+        console.error('Failed to load MCP status:', error);
+      }
+    };
+
+    loadStatus();
+    const interval = setInterval(loadStatus, 5000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const loadConfig = async () => {
@@ -245,6 +268,22 @@ export function MCPConfigEditor({ onClose }: MCPConfigEditorProps) {
     setEditForm({ ...editForm, headers: newHeaders });
   };
 
+  const handleReconnect = async (serverName: string) => {
+    try {
+      const success = await window.ipcRenderer.invoke('mcp:reconnect', serverName) as boolean;
+      if (success) {
+        // 立即刷新状态
+        const status = await window.ipcRenderer.invoke('mcp:get-status') as MCPServerStatus[];
+        setMcpStatus(status);
+      } else {
+        alert(`重试连接 ${serverName} 失败，请查看日志了解详情`);
+      }
+    } catch (error) {
+      console.error('Failed to reconnect MCP server:', error);
+      alert('重试连接失败：' + (error as Error).message);
+    }
+  };
+
   const serverNames = Object.keys(config.mcpServers || {});
 
   return (
@@ -293,6 +332,49 @@ export function MCPConfigEditor({ onClose }: MCPConfigEditorProps) {
                   添加
                 </button>
               </div>
+
+              {/* MCP 服务器状态 */}
+              {mcpStatus.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  <h4 className="text-xs font-medium text-slate-500 uppercase tracking-wide">连接状态</h4>
+                  {mcpStatus.map((server) => (
+                    <div
+                      key={server.name}
+                      className="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-200"
+                    >
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        {server.connected ? (
+                          <Check size={14} className="text-green-500 flex-shrink-0" />
+                        ) : (
+                          <AlertCircle size={14} className="text-red-500 flex-shrink-0" />
+                        )}
+                        <span className="text-sm font-medium text-slate-700 truncate">{server.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {server.retryCount && server.retryCount > 0 && (
+                          <span className="text-xs text-yellow-600 bg-yellow-50 px-2 py-0.5 rounded">
+                            重试中 ({server.retryCount})
+                          </span>
+                        )}
+                        {!server.connected && (
+                          <button
+                            onClick={() => handleReconnect(server.name)}
+                            className="text-xs px-2 py-1 bg-orange-500 text-white rounded hover:bg-blue-600 transition-colors"
+                            title="重新连接"
+                          >
+                            重试
+                          </button>
+                        )}
+                        {server.error && (
+                          <div className="text-xs text-red-600 max-w-[100px] truncate" title={server.error}>
+                            {server.error}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
@@ -330,7 +412,7 @@ export function MCPConfigEditor({ onClose }: MCPConfigEditorProps) {
                               e.stopPropagation();
                               startEdit(name);
                             }}
-                            className="p-1 text-blue-500 hover:bg-blue-50 rounded transition-colors"
+                            className="p-1 text-orange-500 hover:bg-orange-50 rounded transition-colors"
                             title="编辑"
                           >
                             <Settings size={12} />
@@ -356,7 +438,7 @@ export function MCPConfigEditor({ onClose }: MCPConfigEditorProps) {
                           <div className="text-slate-600">
                             <span className="text-slate-400">类型:</span>{' '}
                             <span className={`font-medium ${
-                              server.type === 'streamableHttp' ? 'text-purple-600' : 'text-blue-600'
+                              server.type === 'streamableHttp' ? 'text-purple-600' : 'text-orange-600'
                             }`}>
                               {server.type === 'streamableHttp' ? 'HTTP API' : '命令行'}
                             </span>
@@ -391,7 +473,7 @@ export function MCPConfigEditor({ onClose }: MCPConfigEditorProps) {
                         <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                           template.type === 'streamableHttp'
                             ? 'bg-purple-100 text-purple-700'
-                            : 'bg-blue-100 text-blue-700'
+                            : 'bg-orange-100 text-orange-700'
                         }`}>
                           {template.type === 'streamableHttp' ? 'HTTP' : 'STDIO'}
                         </span>
@@ -447,7 +529,7 @@ export function MCPConfigEditor({ onClose }: MCPConfigEditorProps) {
                         onClick={() => updateFormField('type', 'stdio')}
                         className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 transition-all ${
                           editForm.type === 'stdio' || !editForm.type
-                            ? 'border-blue-500 bg-blue-50 text-blue-700'
+                            ? 'border-orange-500 bg-orange-50 text-orange-700'
                             : 'border-slate-200 text-slate-500 hover:border-slate-300'
                         }`}
                       >
@@ -668,15 +750,15 @@ export function MCPConfigEditor({ onClose }: MCPConfigEditorProps) {
                 </div>
 
                 {/* Help Text */}
-                <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
                   <p className="text-xs text-blue-800 mb-2 font-medium">
                     📚 MCP 配置说明：
                   </p>
-                  <ul className="text-xs text-blue-700 space-y-1 list-disc list-inside">
-                    <li><code className="bg-blue-100 px-1 rounded">stdio</code> 类型：使用 <code className="bg-blue-100 px-1 rounded">command</code> 和 <code className="bg-blue-100 px-1 rounded">args</code> 启动进程</li>
-                    <li><code className="bg-blue-100 px-1 rounded">streamableHttp</code> 类型：使用 <code className="bg-blue-100 px-1 rounded">baseUrl</code> 连接 HTTP 服务</li>
-                    <li>环境变量通过 <code className="bg-blue-100 px-1 rounded">env</code> 字段配置（如 API Key）</li>
-                    <li>配置保存位置：<code className="bg-blue-100 px-1 rounded">~/.aiagent/mcp.json</code></li>
+                  <ul className="text-xs text-orange-700 space-y-1 list-disc list-inside">
+                    <li><code className="bg-orange-100 px-1 rounded">stdio</code> 类型：使用 <code className="bg-orange-100 px-1 rounded">command</code> 和 <code className="bg-orange-100 px-1 rounded">args</code> 启动进程</li>
+                    <li><code className="bg-orange-100 px-1 rounded">streamableHttp</code> 类型：使用 <code className="bg-orange-100 px-1 rounded">baseUrl</code> 连接 HTTP 服务</li>
+                    <li>环境变量通过 <code className="bg-orange-100 px-1 rounded">env</code> 字段配置（如 API Key）</li>
+                    <li>配置保存位置：<code className="bg-orange-100 px-1 rounded">~/.aiagent/mcp.json</code></li>
                   </ul>
                 </div>
               </div>

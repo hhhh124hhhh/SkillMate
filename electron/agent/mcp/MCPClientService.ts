@@ -18,9 +18,23 @@ export interface MCPServerConfig {
     headers?: Record<string, string>;
 }
 
+export interface MCPConfig {
+    mcpServers: Record<string, MCPServerConfig>;
+}
+
+export interface MCPServerStatus {
+    name: string;
+    connected: boolean;
+    error?: string;
+    retryCount?: number;
+}
+
 export class MCPClientService {
     private clients: Map<string, Client> = new Map();
     private configPath: string;
+    private retryAttempts: Map<string, number> = new Map();
+    private readonly MAX_RETRIES = 2;
+    private connectionStatus: Map<string, MCPServerStatus> = new Map();
 
     constructor() {
         // Always read from user config directory
@@ -30,8 +44,132 @@ export class MCPClientService {
         log.log('[MCPClientService] Using config path:', this.configPath);
     }
 
+    /**
+     * 检测配置中的占位符
+     * @returns 需要修复的服务器列表
+     */
+    private detectPlaceholders(config: MCPConfig): string[] {
+        const placeholders: string[] = [];
+
+        for (const [name, serverConfig] of Object.entries(config.mcpServers)) {
+            // 检查 args 中的占位符
+            if (serverConfig.args) {
+                for (const arg of serverConfig.args) {
+                    if (arg.includes('ALLOWED_') || arg.includes('YOUR_')) {
+                        placeholders.push(`${name}:args:${arg}`);
+                    }
+                }
+            }
+
+            // 检查 env 中的占位符
+            if (serverConfig.env) {
+                for (const [key, value] of Object.entries(serverConfig.env)) {
+                    if (value.includes('YOUR_') || value.includes('API_KEY_HERE') || value.includes('API密钥')) {
+                        placeholders.push(`${name}:env:${key}`);
+                    }
+                }
+            }
+        }
+
+        return placeholders;
+    }
+
+    /**
+     * 自动替换文件系统路径
+     * @returns 是否成功替换
+     */
+    private async replaceFilesystemPath(config: MCPConfig): Promise<boolean> {
+        const filesystemConfig = config.mcpServers['filesystem'];
+        if (!filesystemConfig || !filesystemConfig.args) {
+            return false;
+        }
+
+        const allowedPathIndex = filesystemConfig.args.findIndex(
+            arg => arg === 'ALLOWED_PATH'
+        );
+
+        if (allowedPathIndex === -1) {
+            return false;
+        }
+
+        let replacementPath: string;
+
+        try {
+            // 尝试从 ConfigStore 获取授权文件夹
+            const { configStore } = await import('../../config/ConfigStore.js');
+            const authorizedFolders = configStore.getAuthorizedFolders();
+
+            if (authorizedFolders && authorizedFolders.length > 0) {
+                // 使用第一个授权文件夹
+                replacementPath = authorizedFolders[0];
+                log.log('[MCPClientService] Using authorized folder:', replacementPath);
+            } else {
+                // 使用用户主目录作为安全的默认路径
+                replacementPath = os.homedir();
+                log.log('[MCPClientService] Using home directory as default:', replacementPath);
+            }
+        } catch (error) {
+            // 如果 ConfigStore 加载失败，使用用户主目录
+            replacementPath = os.homedir();
+            log.warn('[MCPClientService] Failed to load ConfigStore, using home directory:', replacementPath);
+        }
+
+        // 替换占位符
+        filesystemConfig.args[allowedPathIndex] = replacementPath;
+
+        // 保存更新后的配置
+        try {
+            await fs.writeFile(this.configPath, JSON.stringify(config, null, 2), 'utf-8');
+            log.log('[MCPClientService] ✅ Replaced ALLOWED_PATH with:', replacementPath);
+            return true;
+        } catch (error) {
+            log.error('[MCPClientService] Failed to save config:', error);
+            return false;
+        }
+    }
+
+    /**
+     * 处理 API Key 占位符
+     * 禁用未配置的服务器，避免连接失败
+     */
+    private async replaceApiKeys(config: MCPConfig): Promise<void> {
+        const serversToRemove: string[] = [];
+
+        for (const [name, serverConfig] of Object.entries(config.mcpServers)) {
+            if (!serverConfig.env) continue;
+
+            let hasInvalidKey = false;
+
+            for (const [key, value] of Object.entries(serverConfig.env)) {
+                if (value.includes('YOUR_BRAVE_API_KEY_HERE') ||
+                    value.includes('YOUR_API_KEY_HERE') ||
+                    value.includes('API密钥')) {
+                    log.warn(`[MCPClientService] ⚠️ ${name} requires ${key} to be configured`);
+                    hasInvalidKey = true;
+                }
+            }
+
+            if (hasInvalidKey) {
+                // 禁用此服务器
+                delete config.mcpServers[name];
+                log.log(`[MCPClientService] 🚫 Disabled ${name} due to missing API key`);
+            }
+        }
+
+        // 保存更新后的配置
+        if (serversToRemove.length > 0) {
+            try {
+                await fs.writeFile(this.configPath, JSON.stringify(config, null, 2), 'utf-8');
+                log.log('[MCPClientService] ✅ Updated config after removing invalid servers');
+            } catch (error) {
+                log.error('[MCPClientService] Failed to save config:', error);
+            }
+        }
+    }
+
     async loadClients() {
-        let config: { mcpServers: Record<string, MCPServerConfig> } = { mcpServers: {} };
+        let config: MCPConfig = { mcpServers: {} };
+
         try {
             const content = await fs.readFile(this.configPath, 'utf-8');
             config = JSON.parse(content);
@@ -55,13 +193,54 @@ export class MCPClientService {
             config.mcpServers = {};
         }
 
+        // 🔧 检测并修复占位符
+        const placeholders = this.detectPlaceholders(config);
+        if (placeholders.length > 0) {
+            log.log('[MCPClientService] 🔍 Detected placeholders:', placeholders);
+
+            // 修复文件系统路径
+            const filesystemFixed = await this.replaceFilesystemPath(config);
+            if (filesystemFixed) {
+                log.log('[MCPClientService] ✅ Filesystem path fixed');
+            }
+
+            // 处理 API Key 占位符
+            await this.replaceApiKeys(config);
+        } else {
+            log.log('[MCPClientService] ✅ No placeholders found, config is valid');
+        }
+
+        // 连接所有服务器
         for (const [key, serverConfig] of Object.entries(config.mcpServers || {})) {
             await this.connectToServer(key, serverConfig);
         }
     }
 
-    private async connectToServer(name: string, config: MCPServerConfig) {
+    /**
+     * 获取所有已连接的 MCP 客户端
+     * @returns 客户端 Map
+     */
+    getClients(): Map<string, Client> {
+        return this.clients;
+    }
+
+    /**
+     * 获取所有 MCP 服务器的连接状态
+     * @returns 服务器状态数组
+     */
+    getConnectionStatus(): MCPServerStatus[] {
+        return Array.from(this.connectionStatus.values());
+    }
+
+    private async connectToServer(name: string, config: MCPServerConfig, retryCount: number = 0): Promise<void> {
         if (this.clients.has(name)) return;
+
+        // 初始化状态为连接中
+        this.connectionStatus.set(name, {
+            name,
+            connected: false,
+            retryCount
+        });
 
         try {
             let transport;
@@ -124,9 +303,19 @@ export class MCPClientService {
             // 保存客户端引用
             this.clients.set(name, client);
 
+            // 成功连接，清除重试计数
+            this.retryAttempts.delete(name);
+
+            // 更新状态为已连接
+            this.connectionStatus.set(name, {
+                name,
+                connected: true,
+                retryCount: 0
+            });
+
             // 安全地记录日志 - 捕获 EPIPE 错误
             try {
-                log.log(`Connected to MCP server: ${name}`);
+                log.log(`[MCP] ✅ Connected to ${name}`);
             } catch (logError) {
                 // 忽略日志错误，可能是进程已终止
                 if ((logError as NodeJS.ErrnoException).code !== 'EPIPE') {
@@ -134,7 +323,46 @@ export class MCPClientService {
                 }
             }
         } catch (e) {
-            log.error(`Failed to connect to MCP server ${name}:`, e);
+            const error = e as Error;
+
+            // 如果是临时性错误，尝试重试
+            if (retryCount < this.MAX_RETRIES && this.isRetryableError(error)) {
+                const currentAttempt = retryCount + 1;
+                this.retryAttempts.set(name, currentAttempt);
+
+                log.warn(`[MCP] ⚠️ Connection to ${name} failed (attempt ${currentAttempt}/${this.MAX_RETRIES + 1})`);
+                log.warn(`  Error: ${error.message}`);
+                log.log(`[MCP] 🔄 Retrying in 3 seconds...`);
+
+                // 等待 3 秒后重试
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                return this.connectToServer(name, config, currentAttempt);
+            }
+
+            // 重试失败或不可重试的错误，更新状态为连接失败
+            this.connectionStatus.set(name, {
+                name,
+                connected: false,
+                error: error.message,
+                retryCount
+            });
+
+            log.error(`[MCP] ❌ Failed to connect to ${name} after ${retryCount + 1} attempts:`);
+            log.error(`  Error: ${error.message}`);
+
+            // 提供诊断建议
+            if (error.message.includes('EACCES') || error.message.includes('权限')) {
+                log.error(`  💡 建议: 检查应用是否有足够权限启动子进程`);
+            } else if (error.message.includes('ENOENT')) {
+                log.error(`  💡 建议: 确保 ${config.command} 已正确安装`);
+            } else if (error.message.includes('timeout') || error.message.includes('ETIMEDOUT')) {
+                log.error(`  💡 建议: 网络连接可能较慢，请检查网络或稍后重试`);
+            } else if (error.message.includes('Connection closed') || error.message.includes('ECONNRESET')) {
+                log.error(`  💡 建议: MCP 服务器进程启动失败或意外退出`);
+                log.error(`  💡 尝试手动运行: ${config.command} ${config.args?.join(' ')}`);
+            } else {
+                log.error(`  💡 建议: 尝试手动运行 ${config.command} ${config.args?.join(' ')} 查看详细错误`);
+            }
         }
     }
 
@@ -226,5 +454,63 @@ export class MCPClientService {
         const month = String(now.getMonth() + 1).padStart(2, '0');
         const day = String(now.getDate()).padStart(2, '0');
         return `${year}年${month}月${day}日`;
+    }
+
+    private isRetryableError(error: Error): boolean {
+        const retryablePatterns = [
+            /timeout/i,
+            /ECONNREFUSED/i,
+            /ECONNRESET/i,
+            /Connection closed/i,
+            /ETIMEDOUT/i
+        ];
+
+        return retryablePatterns.some(pattern => pattern.test(error.message));
+    }
+
+    /**
+     * 重新连接到指定的 MCP 服务器
+     * @param name 服务器名称
+     * @returns 是否连接成功
+     */
+    async reconnectServer(name: string): Promise<boolean> {
+        try {
+            log.log(`[MCP] 🔄 Manual reconnection requested for ${name}`);
+
+            // 关闭现有连接
+            const existingClient = this.clients.get(name);
+            if (existingClient) {
+                await existingClient.close();
+                this.clients.delete(name);
+            }
+
+            // 清除重试计数
+            this.retryAttempts.delete(name);
+
+            // 重新加载配置
+            const content = await fs.readFile(this.configPath, 'utf-8');
+            const config: MCPConfig = JSON.parse(content);
+
+            const serverConfig = config.mcpServers[name];
+            if (!serverConfig) {
+                log.error(`[MCP] Server ${name} not found in config`);
+                return false;
+            }
+
+            // 重新连接
+            await this.connectToServer(name, serverConfig);
+
+            const success = this.clients.has(name);
+            if (success) {
+                log.log(`[MCP] ✅ Successfully reconnected to ${name}`);
+            } else {
+                log.log(`[MCP] ❌ Failed to reconnect to ${name}`);
+            }
+
+            return success;
+        } catch (e) {
+            log.error(`[MCP] Failed to reconnect ${name}:`, e);
+            return false;
+        }
     }
 }

@@ -1,6 +1,6 @@
 # 技能依赖安装指南
 
-本指南提供 AI Agent Desktop 技能系统所需依赖的安装说明。
+本指南提供 SkillMate 技能系统所需依赖的安装说明。
 
 ---
 
@@ -18,7 +18,7 @@
 
 ### 检查 Python 版本
 
-AI Agent Desktop 需要 Python 3.8 或更高版本：
+SkillMate 需要 Python 3.8 或更高版本：
 
 ```bash
 # 检查 Python 版本
@@ -104,7 +104,7 @@ pip install <package-name>
 
 ### 方式三：应用内置 Python（推荐）
 
-AI Agent Desktop 内置了 Python 运行时，无需系统安装 Python。
+SkillMate 内置了 Python 运行时，无需系统安装 Python。
 
 **依赖安装位置**:
 ```

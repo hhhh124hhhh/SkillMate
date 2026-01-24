@@ -51,10 +51,14 @@ export class CommandRegistry {
         id: skill.name,
         type: CommandType.SKILL,
         name: skill.name,
+        title: (skill as any).title || skill.name,  // 新增：友好标题
         description: skill.description,
         keywords: keywords,
         category: category,
         icon: this.getIconForCategory(category),
+        emoji: (skill as any).emoji || this.getDefaultEmoji(category),  // 新增：emoji图标
+        scenarios: (skill as any).scenarios || [],  // 新增：使用场景
+        difficulty: (skill as any).difficulty || '⭐⭐⭐',  // 新增：使用难度
         shortcut: skill.shortcut,
         params: this.convertInputSchemaToParams(skill.input_schema),
         execute: async (params) => {
@@ -311,6 +315,26 @@ export class CommandRegistry {
         return 'Settings';
       default:
         return 'HelpCircle';
+    }
+  }
+
+  /**
+   * 根据分类获取默认 emoji（小白友好）
+   */
+  private getDefaultEmoji(category: CommandCategory): string {
+    switch (category) {
+      case CommandCategory.CREATION:
+        return '✍️';  // 创作类
+      case CommandCategory.ANALYSIS:
+        return '📊';  // 分析类
+      case CommandCategory.TOOLS:
+        return '🛠️';  // 工具类
+      case CommandCategory.MCP:
+        return '🔌';  // MCP工具
+      case CommandCategory.SYSTEM:
+        return '⚙️';  // 系统操作
+      default:
+        return '❓';  // 未知
     }
   }
 

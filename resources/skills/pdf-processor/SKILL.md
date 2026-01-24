@@ -1,8 +1,13 @@
 ---
 name: pdf-processor
-description: |
-  PDF 处理工具 - 文本和表格提取、创建新 PDF、合并/拆分文档、表单处理。
-  当用户需要：提取 PDF 文本、合并/拆分 PDF、创建 PDF 文档、处理 PDF 表单、分析 PDF 内容时触发此技能。
+title: PDF处理
+description: 帮我处理PDF文档
+emoji: 📄
+场景:
+  - "需要提取PDF中的文字"
+  - "想把多个PDF合并"
+  - "要把PDF拆分成几份"
+使用难度: ⭐⭐（需要提供PDF文件）
 ---
 
 # PDF 处理指南

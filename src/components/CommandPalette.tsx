@@ -174,7 +174,7 @@ export function CommandPalette({ isOpen, onClose, onSelectCommand }: CommandPale
             onClick={() => setSelectedCategory(null)}
             className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
               selectedCategory === null
-                ? 'bg-blue-600 text-white'
+                ? 'bg-orange-600 text-white'
                 : 'text-slate-600 hover:bg-slate-200 dark:text-gray-300 dark:hover:bg-gray-700'
             }`}
           >
@@ -188,7 +188,7 @@ export function CommandPalette({ isOpen, onClose, onSelectCommand }: CommandPale
                 onClick={() => setSelectedCategory(cat)}
                 className={`px-3 py-1 rounded-full text-sm font-medium transition-colors flex items-center gap-1 ${
                   selectedCategory === cat
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-orange-600 text-white'
                     : 'text-slate-600 hover:bg-slate-200 dark:text-gray-300 dark:hover:bg-gray-700'
                 }`}
               >
@@ -214,7 +214,7 @@ export function CommandPalette({ isOpen, onClose, onSelectCommand }: CommandPale
                   onClick={() => handleSelect(cmd)}
                   className={`flex items-center justify-between px-4 py-3 cursor-pointer transition-colors ${
                     idx === selectedIndex
-                      ? 'bg-blue-50 dark:bg-blue-900/20'
+                      ? 'bg-orange-50 dark:bg-blue-900/20'
                       : 'hover:bg-slate-50 dark:hover:bg-gray-700/50'
                   }`}
                 >

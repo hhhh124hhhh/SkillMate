@@ -1,4 +1,4 @@
-# AI Agent Desktop - 技能索引
+# SkillMate - 技能索引
 
 **版本**：v2.0
 **更新日期**：2025-01-21
@@ -614,6 +614,6 @@ pip install pandas matplotlib seaborn openpyxl
 
 ---
 
-**维护者**：AI Agent Desktop Team
+**维护者**：SkillMate Team
 **许可**：MIT License
 **反馈**：GitHub Issues

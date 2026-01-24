@@ -433,7 +433,7 @@ description: 新技能描述
                 <div className="flex gap-2">
                   <button
                     onClick={() => setShowTemplates(!showTemplates)}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                    className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium"
                   >
                     <FileText size={16} />
                     模板库
@@ -454,16 +454,16 @@ description: 新技能描述
                   {templates.map((template) => (
                     <div
                       key={template.id}
-                      className="group relative bg-white border-2 border-blue-200 rounded-xl p-4 hover:shadow-md transition-all cursor-pointer hover:border-blue-400"
+                      className="group relative bg-white border-2 border-orange-200 rounded-xl p-4 hover:shadow-md transition-all cursor-pointer hover:border-orange-400"
                       onClick={() => handleApplyTemplate(template)}
                     >
                       <div className="absolute top-3 right-3">
-                        <span className="text-xs px-2 py-1 rounded-full font-medium bg-blue-100 text-blue-700">
+                        <span className="text-xs px-2 py-1 rounded-full font-medium bg-orange-100 text-orange-700">
                           模板
                         </span>
                       </div>
                       <div className="flex items-start gap-3 mb-3">
-                        <div className="p-2 rounded-lg bg-blue-100 text-blue-600">
+                        <div className="p-2 rounded-lg bg-orange-100 text-orange-600">
                           <FileText size={18} />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -471,7 +471,7 @@ description: 新技能描述
                           <p className="text-xs text-slate-500 line-clamp-2">{template.description}</p>
                         </div>
                       </div>
-                      <button className="w-full mt-3 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors">
+                      <button className="w-full mt-3 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors">
                         <Copy size={12} />
                         使用模板
                       </button>
@@ -486,7 +486,7 @@ description: 新技能描述
                       key={skill.id}
                       className={`group relative bg-white border rounded-xl p-4 transition-all hover:shadow-md ${
                         skill.isBuiltin
-                          ? 'border-blue-200 bg-blue-50/30'
+                          ? 'border-orange-200 bg-orange-50/30'
                           : 'border-slate-200 hover:border-purple-300'
                       }`}
                     >
@@ -494,7 +494,7 @@ description: 新技能描述
                         <span
                           className={`text-xs px-2 py-1 rounded-full font-medium ${
                             skill.isBuiltin
-                              ? 'bg-blue-100 text-blue-700'
+                              ? 'bg-orange-100 text-orange-700'
                               : 'bg-purple-100 text-purple-700'
                           }`}
                         >
@@ -505,7 +505,7 @@ description: 新技能描述
                       <div className="flex items-start gap-3 mb-3">
                         <div
                           className={`p-2 rounded-lg ${
-                            skill.isBuiltin ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'
+                            skill.isBuiltin ? 'bg-orange-100 text-orange-600' : 'bg-purple-100 text-purple-600'
                           }`}
                         >
                           <Code size={18} />
@@ -537,7 +537,7 @@ description: 新技能描述
                         {skill.isBuiltin ? (
                           <button
                             onClick={() => handleCopy(skill)}
-                            className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg text-xs font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+                            className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg text-xs font-medium bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors"
                           >
                             <Copy size={12} />
                             复制
@@ -783,9 +783,9 @@ description: 新技能描述
                       )}
 
                       {/* Help Text */}
-                      <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
                         <p className="text-xs text-blue-800 font-medium mb-1">💡 技能格式说明</p>
-                        <ul className="text-xs text-blue-700 space-y-1 list-disc list-inside">
+                        <ul className="text-xs text-orange-700 space-y-1 list-disc list-inside">
                           <li>技能名称：唯一标识，英文，使用连字符</li>
                           <li>技能描述：清晰说明功能和触发条件</li>
                           <li>输入参数：可选，定义技能接受的参数</li>

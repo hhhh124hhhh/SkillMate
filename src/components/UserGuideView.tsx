@@ -558,7 +558,7 @@ interface WorkflowCardProps {
 
 function WorkflowCard({ step }: WorkflowCardProps) {
     return (
-        <div className="bg-white p-5 rounded-xl border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all cursor-default group">
+        <div className="bg-white p-5 rounded-xl border border-slate-200 hover:border-orange-300 hover:shadow-md transition-all cursor-default group">
             <div className="flex items-center gap-3 mb-3">
                 <div className="p-2.5 bg-orange-50 rounded-lg text-orange-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                     {step.icon}

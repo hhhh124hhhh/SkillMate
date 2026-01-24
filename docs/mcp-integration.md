@@ -21,10 +21,10 @@ MCP 是由 Anthropic 开发的标准化协议，用于连接 AI 模型与外部�
 - [MCP SDK](https://github.com/modelcontextprotocol)
 - [MCP Servers](https://github.com/modelcontextprotocol/servers)
 
-### 1.2 MCP 在 AI Agent Desktop 中的角色
+### 1.2 MCP 在 SkillMate 中的角色
 
 ```
-AI Agent Desktop
+SkillMate
     │
     ├─► 内置工具（文件操作、命令执行）
     │
@@ -750,7 +750,7 @@ export DEBUG=mcp:*
 
 ## 十、总结
 
-MCP 协议为 AI Agent Desktop 提供了无限扩展能力。通过配置 MCP 服务器，你可以：
+MCP 协议为 SkillMate 提供了无限扩展能力。通过配置 MCP 服务器，你可以：
 
 - ✅ 集成外部 API 和服务
 - ✅ 访问本地资源（文件、数据库、Git）

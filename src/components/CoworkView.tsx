@@ -276,7 +276,7 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
         if (ext === 'json' || fileType.includes('json')) {
             return <Braces size={16} className="text-purple-500" />;
         }
-        return <FileText size={16} className="text-blue-500" />;
+        return <FileText size={16} className="text-orange-500" />;
     };
 
     // Robust file input trigger function with fallback mechanism
@@ -747,8 +747,8 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                 <div className="absolute inset-0 bg-slate-900/20 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-200">
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center">
-                                <AlertTriangle size={24} className="text-blue-600" />
+                            <div className="w-12 h-12 rounded-full bg-orange-50 flex items-center justify-center">
+                                <AlertTriangle size={24} className="text-orange-600" />
                             </div>
                             <div>
                                 <h3 className="font-semibold text-slate-800 text-lg">操作确认</h3>
@@ -776,7 +776,7 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                             </button>
                             <button
                                 onClick={() => handlePermissionResponse(true)}
-                                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors shadow-sm shadow-blue-200"
+                                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 rounded-xl transition-colors shadow-sm shadow-blue-200"
                             >
                                 <Check size={16} />
                                 允许
@@ -832,7 +832,7 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                     <div className="flex items-center gap-0.5 bg-slate-100/80 p-0.5 rounded-lg">
                         <button
                             onClick={() => setMode('chat')}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${mode === 'chat' ? 'bg-white text-blue-600 shadow-sm ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700'
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${mode === 'chat' ? 'bg-white text-orange-600 shadow-sm ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700'
                                 }`}
                         >
                             <MessageCircle size={14} />
@@ -840,7 +840,7 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                         </button>
                         <button
                             onClick={() => setMode('work')}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${mode === 'work' ? 'bg-white text-blue-600 shadow-sm ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700'
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${mode === 'work' ? 'bg-white text-orange-600 shadow-sm ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700'
                                 }`}
                         >
                             <Zap size={14} />
@@ -859,14 +859,14 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                     <div className="flex items-center gap-1">
                         <button
                             onClick={() => window.ipcRenderer.invoke('agent:new-session')}
-                            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            className="p-1.5 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
                             title="新会话"
                         >
                             <Plus size={16} />
                         </button>
                         <button
                             onClick={() => setShowHistory(!showHistory)}
-                            className={`p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors ${showHistory ? 'bg-blue-50 text-blue-600' : ''}`}
+                            className={`p-1.5 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors ${showHistory ? 'bg-orange-50 text-orange-600' : ''}`}
                             title="历史记录"
                         >
                             <History size={16} />
@@ -887,7 +887,7 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                 <div className="absolute top-12 right-6 z-20 w-80 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200 ring-1 ring-black/5">
                     <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/50">
                         <div className="flex items-center gap-2">
-                            <History size={14} className="text-blue-500" />
+                            <History size={14} className="text-orange-500" />
                             <span className="text-sm font-semibold text-slate-700">历史任务</span>
                         </div>
                         <button
@@ -978,7 +978,7 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                                 <div className="animate-in fade-in duration-200">
                                     <div className="text-slate-700 text-[15px] leading-7 max-w-none">
                                         <MarkdownRenderer content={streamingText} />
-                                        <span className="inline-block w-2 h-5 bg-blue-500 ml-0.5 animate-pulse" />
+                                        <span className="inline-block w-2 h-5 bg-orange-500 ml-0.5 animate-pulse" />
                                     </div>
                                 </div>
                             )}
@@ -987,9 +987,9 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
 
                     {isProcessing && !streamingText && (
                         <div className="flex items-center gap-2 text-slate-400 text-sm animate-pulse bg-white p-3 rounded-xl border border-slate-100">
-                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" />
-                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
+                            <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" />
+                            <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                            <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
                             <span>正在干活中，请稍候...</span>
                         </div>
                     )}
@@ -1042,18 +1042,18 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
 
                     <form onSubmit={handleSubmit}>
                         <div
-                            className={`relative border-2 rounded-xl transition-all duration-200 ${isDragging ? 'border-blue-400 bg-blue-50' : 'border-transparent'}`}
+                            className={`relative border-2 rounded-xl transition-all duration-200 ${isDragging ? 'border-orange-400 bg-orange-50' : 'border-transparent'}`}
                             onDragOver={handleDragOver}
                             onDragLeave={handleDragLeave}
                             onDrop={handleDrop}
                         >
                             {/* Drag overlay */}
                             {isDragging && (
-                                <div className="absolute inset-0 flex items-center justify-center bg-blue-50/95 rounded-xl z-10">
+                                <div className="absolute inset-0 flex items-center justify-center bg-orange-50/95 rounded-xl z-10">
                                     <div className="text-center">
-                                        <FileUp size={48} className="mx-auto mb-2 text-blue-500" />
-                                        <p className="text-lg font-medium text-blue-700">松开添加文件</p>
-                                        <p className="text-sm text-blue-600">支持图片、txt、md、json、csv、xlsx</p>
+                                        <FileUp size={48} className="mx-auto mb-2 text-orange-500" />
+                                        <p className="text-lg font-medium text-orange-700">松开添加文件</p>
+                                        <p className="text-sm text-orange-600">支持图片、txt、md、json、csv、xlsx</p>
                                     </div>
                                 </div>
                             )}
@@ -1070,8 +1070,8 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                                         onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
                                         className={`p-3 transition-colors ${
                                             showAttachmentMenu
-                                                ? 'text-blue-600 bg-blue-50'
-                                                : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50'
+                                                ? 'text-orange-600 bg-orange-50'
+                                                : 'text-slate-400 hover:text-orange-600 hover:bg-orange-50'
                                         }`}
                                         title="附件（图片、文件、预览）"
                                     >
@@ -1185,7 +1185,7 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                                             type="submit"
                                             disabled={!input.trim() && images.length === 0 && documents.length === 0}
                                             className={`p-2.5 rounded-lg transition-all ${input.trim() || images.length > 0 || documents.length > 0
-                                                ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700 shadow-blue-200'
+                                                ? 'bg-orange-600 text-white shadow-md hover:bg-orange-700 shadow-blue-200'
                                                 : 'bg-slate-100 text-slate-300'
                                                 }`}
                                             title="发送消息"
@@ -1222,7 +1222,7 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                                                 onClick={() => handleSelectCommand(cmd)}
                                                 className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
                                                     index === selectedSuggestionIndex
-                                                        ? 'bg-blue-50 text-blue-700'
+                                                        ? 'bg-orange-50 text-orange-700'
                                                         : 'hover:bg-slate-50 text-slate-700'
                                                 }`}
                                             >
@@ -1237,14 +1237,14 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                                                 <div className="flex-1 min-w-0">
                                                     {/* 标题 */}
                                                     <div className={`font-semibold text-base truncate ${
-                                                        index === selectedSuggestionIndex ? 'text-blue-700' : 'text-slate-800'
+                                                        index === selectedSuggestionIndex ? 'text-orange-700' : 'text-slate-800'
                                                     }`}>
                                                         {(cmd as any).title || cmd.name}
                                                     </div>
 
                                                     {/* 描述 */}
                                                     <div className={`text-sm truncate mt-0.5 ${
-                                                        index === selectedSuggestionIndex ? 'text-blue-600' : 'text-slate-500'
+                                                        index === selectedSuggestionIndex ? 'text-orange-600' : 'text-slate-500'
                                                     }`}>
                                                         {cmd.description}
                                                     </div>
@@ -1252,7 +1252,7 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                                                     {/* 使用场景（如果有） */}
                                                     {(cmd as any).scenarios && (cmd as any).scenarios.length > 0 && (
                                                         <div className={`text-xs mt-1 italic ${
-                                                            index === selectedSuggestionIndex ? 'text-blue-500' : 'text-slate-400'
+                                                            index === selectedSuggestionIndex ? 'text-orange-500' : 'text-slate-400'
                                                         }`}>
                                                             💡 {(cmd as any).scenarios[0]}
                                                         </div>
@@ -1263,7 +1263,7 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                                                 {(cmd as any).difficulty && (
                                                     <div className={`text-xs px-2 py-1 rounded-md shrink-0 font-medium ${
                                                         index === selectedSuggestionIndex
-                                                            ? 'bg-blue-100 text-blue-700'
+                                                            ? 'bg-orange-100 text-orange-700'
                                                             : 'bg-slate-100 text-slate-500'
                                                     }`}>
                                                         {(cmd as any).difficulty}
@@ -1443,7 +1443,7 @@ function EmptyState({ mode: _mode, workingDir: _workingDir, onAction }: { mode: 
     return (
         <div className="flex flex-col items-center justify-center h-full text-center space-y-8 py-10 animate-in fade-in duration-500">
             <div className="relative group">
-                <div className="absolute -inset-4 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-full blur-xl opacity-60 group-hover:opacity-80 transition-opacity duration-500"></div>
+                <div className="absolute -inset-4 bg-gradient-to-r from-orange-100 to-indigo-100 rounded-full blur-xl opacity-60 group-hover:opacity-80 transition-opacity duration-500"></div>
                 <div className="w-24 h-24 bg-white rounded-3xl shadow-xl flex items-center justify-center relative border border-white/50 ring-1 ring-black/5 transform group-hover:scale-105 transition-transform duration-300">
                     <img src="/logo_new.svg" alt="Logo" className="w-14 h-14 object-contain" />
                 </div>
@@ -1458,7 +1458,7 @@ function EmptyState({ mode: _mode, workingDir: _workingDir, onAction }: { mode: 
             </div>
             <div className="grid grid-cols-2 gap-3 w-full max-w-lg px-4">
                 {[
-                    { icon: Code, label: '代码生成', action: '帮我生成一个函数，功能是：[描述你的需求]', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200' },
+                    { icon: Code, label: '代码生成', action: '帮我生成一个函数，功能是：[描述你的需求]', color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200' },
                     { icon: FileSearch, label: '代码分析', action: '分析这个代码的功能和改进建议', color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-200' },
                     { icon: Wrench, label: '问题诊断', action: '帮我调试这段代码，找出错误原因', color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200' },
                     { icon: Lightbulb, label: '方案设计', action: '帮我设计一个解决方案，需求是：[描述需求]', color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200' }

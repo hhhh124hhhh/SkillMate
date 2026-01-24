@@ -1,6 +1,6 @@
 # 快速开始指南
 
-欢迎来到 AI Agent Desktop！本指南将帮助你在 5 分钟内运行起这个 AI Agent 框架。
+欢迎来到 SkillMate！本指南将帮助你在 5 分钟内运行起这个 AI Agent 框架。
 
 ---
 
@@ -62,7 +62,7 @@ npm run dev
 - 启动 Electron 主进程
 - 打开应用窗口
 
-**成功标志**: 看到应用窗口显示 "AI Agent Desktop" 界面。
+**成功标志**: 看到应用窗口显示 "SkillMate" 界面。
 
 ---
 
@@ -87,7 +87,7 @@ npm run dev
 
 **macOS**:
 1. 双击 `.dmg` 文件
-2. 将 `AI Agent Desktop` 拖拽到 `Applications` 文件夹
+2. 将 `SkillMate` 拖拽到 `Applications` 文件夹
 3. 从 Launchpad 启动应用
 
 **Linux** (AppImage):

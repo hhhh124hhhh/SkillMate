@@ -41,15 +41,21 @@ export interface CommandDefinition {
   id: string;                      // 唯一标识 (如 'ai-writer')
   type: CommandType;               // 命令类型
   name: string;                    // 显示名称
-  description: string;             // 简短描述
+  description: string;             // 简短描述（小白能懂）
   keywords: string[];              // 搜索关键词
   category: CommandCategory;       // 分类
-  icon?: string;                   // 图标名称
+  icon?: string;                   // 图标名称或 emoji（如 '✍️'）
   shortcut?: string;               // 快捷键 (如 'Ctrl+Shift+W')
   params?: CommandParameter[];     // 参数定义
   execute: (params?: Record<string, unknown>) => Promise<void>;  // 执行函数
-  requiresInput?: boolean;         // 是否需要用户输入参数
-  serverName?: string;             // MCP服务器名称 (仅MCP类型)
+  requiresInput?: boolean;         // 是否需要用户输入
+  serverName?: string;             // MCP 服务器名
+
+  // 小白友好属性（新增）
+  emoji?: string;                  // emoji 图标（如 '✍️'）
+  scenarios?: string[];            // 使用场景（什么时候用）
+  difficulty?: string;             // 使用难度（⭐到⭐⭐⭐⭐⭐）
+  title?: string;                  // 友好标题（如 'AI写作助手'）
 }
 
 /**

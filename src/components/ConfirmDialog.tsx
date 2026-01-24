@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { AlertTriangle, Check, X, AlertCircle } from 'lucide-react';
+import { Button } from './ui/Button.js';
 
 interface ConfirmationRequest {
     id: string;
@@ -103,28 +104,32 @@ export function ConfirmDialog({
 
                     {/* Actions */}
                     <div className="flex gap-3 p-5 border-t border-border bg-muted/30">
-                        <button
+                        <Button
+                            variant="danger"
+                            icon={X}
+                            className="flex-1"
                             onClick={() => {
                                 setRemember(false);
                                 if (typeof onDeny === 'function') {
                                     onDeny(request.id);
                                 }
                             }}
-                            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-destructive/10 text-destructive rounded-xl hover:bg-destructive/20 transition-colors font-medium"
                         >
-                            <X size={18} /> 拒绝
-                        </button>
-                        <button
+                            拒绝
+                        </Button>
+                        <Button
+                            variant="primary"
+                            icon={Check}
+                            className="flex-1"
                             onClick={() => {
                                 if (typeof onConfirm === 'function') {
                                     onConfirm(request.id, remember, request.tool, path);
                                 }
                                 setRemember(false);
                             }}
-                            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors font-medium"
                         >
-                            <Check size={18} /> 允许
-                        </button>
+                            允许
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -155,7 +160,10 @@ export function ConfirmDialog({
 
                 {/* Actions */}
                 <div className="flex gap-3 p-5 border-t border-border bg-muted/30">
-                    <button
+                    <Button
+                        variant="secondary"
+                        icon={X}
+                        className="flex-1"
                         onClick={() => {
                             if (typeof onCancel === 'function') {
                                 onCancel();
@@ -163,20 +171,21 @@ export function ConfirmDialog({
                                 (onDeny as () => void)();
                             }
                         }}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-secondary text-muted-foreground rounded-xl hover:bg-secondary/80 transition-colors font-medium"
                     >
-                        <X size={18} /> {cancelText}
-                    </button>
-                    <button
+                        {cancelText}
+                    </Button>
+                    <Button
+                        variant="primary"
+                        icon={Check}
+                        className="flex-1"
                         onClick={() => {
                             if (typeof onConfirm === 'function') {
                                 (onConfirm as () => void)();
                             }
                         }}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors font-medium"
                     >
-                        <Check size={18} /> {confirmText}
-                    </button>
+                        {confirmText}
+                    </Button>
                 </div>
             </div>
         </div>
