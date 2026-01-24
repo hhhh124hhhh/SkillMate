@@ -251,7 +251,7 @@ except ImportError as e:
             log.error('='.repeat(60));
             log.error('\nThe application was built without the Python runtime.');
             log.error('Please rebuild the application with the following steps:');
-            log.error('\n  1. cd /path/to/wechat-flowwork');
+            log.error('\n  1. cd /path/to/skill-mate');
             log.error('  2. npm run setup-python');
             log.error('  3. npm run build');
             log.error('\n' + '='.repeat(60) + '\n');

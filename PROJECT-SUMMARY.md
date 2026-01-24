@@ -1,6 +1,6 @@
-# 🎉 AI Agent Desktop v2.0 - 项目完成总结
+# 🎉 SkillMate v2.0 - 项目完成总结
 
-**项目名称**: AI Agent Desktop - 技能扩展计划
+**项目名称**: SkillMate - 技能扩展计划
 **版本**: v2.0.0
 **完成日期**: 2025-01-21
 **总耗时**: 5 个阶段
@@ -437,7 +437,7 @@ npm run dev
 
 ## 🎯 总结
 
-通过 5 个阶段的开发，AI Agent Desktop 成功从一个**15 个技能的教学项目**，升级为一个**功能最丰富、性能最优、文档最全的开源 AI Agent 框架**！
+通过 5 个阶段的开发，SkillMate 成功从一个**15 个技能的教学项目**，升级为一个**功能最丰富、性能最优、文档最全的开源 AI Agent 框架**！
 
 ### 核心价值
 
@@ -448,7 +448,7 @@ npm run dev
 
 ### 未来展望
 
-AI Agent Desktop v2.0 为后续发展奠定了坚实基础：
+SkillMate v2.0 为后续发展奠定了坚实基础：
 - 🎯 可以继续添加更多技能（目前 GitHub 上有 50+ 个可用技能）
 - 🔧 可以优化 UI/UX，提升用户体验
 - 🌐 可以建立社区，形成技能生态
@@ -462,5 +462,5 @@ AI Agent Desktop v2.0 为后续发展奠定了坚实基础：
 
 **项目地址**: https://github.com/yourname/aiagent-desktop
 **许可证**: Apache-2.0
-**维护者**: AI Agent Desktop Team
+**维护者**: SkillMate Team
 **联系**: support@aiagent.desktop

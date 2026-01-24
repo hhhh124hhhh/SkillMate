@@ -81,7 +81,10 @@
       "mcp__pencil__batch_get",
       "Bash(grep:*)",
       "Skill(document-skills:frontend-design)",
-      "Skill(document-skills:frontend-design:*)"
+      "Skill(document-skills:frontend-design:*)",
+      "Bash(wc:*)",
+      "Read(//c/Users/Lenovo/.vscode/extensions/highagency.pencildev-0.6.9/out/**)",
+      "Bash(do sed:*)"
     ]
   }
 }

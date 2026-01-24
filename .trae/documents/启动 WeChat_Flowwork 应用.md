@@ -1,4 +1,4 @@
-## 启动 WeChat_Flowwork 应用
+## 启动 SkillMate 应用
 
 ### 步骤：
 1. **安装依赖** - 运行 `npm install` 安装所有项目依赖
