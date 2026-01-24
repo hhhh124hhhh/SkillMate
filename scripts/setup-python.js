@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Python Runtime Setup Script for WeChat_Flowwork
+ * Python Runtime Setup Script for SkillMate
  *
  * 自动下载并配置 Python 3.11.8 嵌入式版本，预装项目所需的依赖包
  *
@@ -381,7 +381,7 @@ function showCompletion() {
  * 主函数
  */
 async function main() {
-    console.log('=== Python Runtime Setup for WeChat_Flowwork ===');
+    console.log('=== Python Runtime Setup for SkillMate ===');
     console.log(`Version: ${PYTHON_VERSION}\n`);
 
     try {

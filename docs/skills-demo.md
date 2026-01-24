@@ -1,4 +1,4 @@
-# AI Agent Desktop - 技能使用演示
+# SkillMate - 技能使用演示
 
 **版本**: v2.0
 **更新日期**: 2025-01-21
@@ -7,7 +7,7 @@
 
 ## 🎯 演示概述
 
-本文档演示如何在实际使用中应用 AI Agent Desktop 的 35 个内置技能。
+本文档演示如何在实际使用中应用 SkillMate 的 35 个内置技能。
 
 ---
 
@@ -1061,4 +1061,4 @@ brainstorming → writing-plans → test-driven-development
 
 ---
 
-**开始使用 AI Agent Desktop，体验 35 个强大技能带来的效率提升！** 🚀
+**开始使用 SkillMate，体验 35 个强大技能带来的效率提升！** 🚀

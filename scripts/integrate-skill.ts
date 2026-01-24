@@ -2,7 +2,7 @@
 /**
  * 技能集成工具
  *
- * 用于从 GitHub 仓库集成技能到 AI Agent Desktop 项目
+ * 用于从 GitHub 仓库集成技能到 SkillMate 项目
  *
  * 功能：
  * 1. 从 GitHub 克隆技能源码

@@ -262,7 +262,7 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
                             <img src="/logo_new.svg" alt="Logo" className="w-24 h-24 object-contain" />
                         </div>
                         <h1 className="text-4xl font-bold text-slate-800 mb-4">
-                            欢迎使用 AI Agent Desktop
+                            欢迎使用 SkillMate
                         </h1>
                         <p className="text-lg text-slate-600">
                             开始使用前，需要先完成 API Key 配置
@@ -289,7 +289,7 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
                                         如何获取 Anthropic API Key：
                                     </p>
                                     <ol className="text-xs text-slate-600 space-y-2 list-decimal list-inside">
-                                        <li>访问 <a href="https://console.anthropic.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Anthropic Console</a></li>
+                                        <li>访问 <a href="https://console.anthropic.com" target="_blank" rel="noopener noreferrer" className="text-orange-600 hover:underline">Anthropic Console</a></li>
                                         <li>注册/登录 Anthropic 账号</li>
                                         <li>进入「API Keys」页面，创建并复制 API Key</li>
                                         <li>将密钥粘贴到下方输入框中</li>
@@ -350,7 +350,7 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
                             <img src="/logo_new.svg" alt="Logo" className="w-24 h-24 object-contain" />
                         </div>
                         <h1 className="text-4xl font-bold text-slate-800 mb-4">
-                            欢迎使用 AI Agent Desktop
+                            欢迎使用 SkillMate
                         </h1>
                         <p className="text-lg text-slate-600">
                             继续完成最后一步配置
@@ -460,7 +460,7 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
                         <img src="/logo_new.svg" alt="Logo" className="w-20 h-20 object-contain" />
                     </div>
                     <h1 className="text-4xl font-bold text-slate-800 mb-4">
-                        欢迎使用 AI Agent Desktop
+                        欢迎使用 SkillMate
                     </h1>
                     <p className="text-lg text-slate-600">
                         学习如何构建现代化的 AI 助手应用
@@ -530,7 +530,7 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
                                     console.error('[UserGuideView] Failed to set first launch:', error);
                                 });
                         }}
-                        className="bg-blue-600 text-white px-10 py-3.5 rounded-xl hover:bg-blue-700 transition-colors text-lg font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all"
+                        className="bg-blue-600 text-white px-10 py-3.5 rounded-xl hover:bg-orange-700 transition-colors text-lg font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all"
                     >
                         开始使用 →
                     </button>
@@ -560,7 +560,7 @@ function WorkflowCard({ step }: WorkflowCardProps) {
     return (
         <div className="bg-white p-5 rounded-xl border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all cursor-default group">
             <div className="flex items-center gap-3 mb-3">
-                <div className="p-2.5 bg-blue-50 rounded-lg text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                <div className="p-2.5 bg-orange-50 rounded-lg text-orange-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                     {step.icon}
                 </div>
                 <h3 className="font-bold text-slate-800">{step.name}</h3>

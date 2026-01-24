@@ -168,9 +168,9 @@ npm run dev
 
 从 [Releases](https://github.com/yourname/skill-mate/releases) 下载最新版本：
 
-- **Windows**: `AI-Agent-Desktop-Windows-{version}-Setup.exe`
-- **macOS**: `AI-Agent-Desktop-Mac-{version}-Installer.dmg`
-- **Linux**: `AI-Agent-Desktop-Linux-{version}.AppImage` / `.deb`
+- **Windows**: `SkillMate-Windows-{version}-Setup.exe`
+- **macOS**: `SkillMate-Mac-{version}-Installer.dmg`
+- **Linux**: `SkillMate-Linux-{version}.AppImage` / `.deb`
 
 ---
 

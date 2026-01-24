@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { ArrowUp, ChevronDown, Home, History, X, Plus } from 'lucide-react';
 import { MarkdownRenderer } from './MarkdownRenderer.js';
+import { useFileUpload } from '../hooks/useFileUpload.js';
 
 type BallState = 'collapsed' | 'input' | 'expanded';
 
@@ -19,17 +20,18 @@ interface Message {
 export function FloatingBallPage() {
     const [ballState, setBallState] = useState<BallState>('collapsed');
     const [input, setInput] = useState('');
-    const [images, setImages] = useState<string[]>([]); // Base64 strings
     const [messages, setMessages] = useState<Message[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
     const [streamingText, setStreamingText] = useState('');
     const [showHistory, setShowHistory] = useState(false);
     const [isHovering, setIsHovering] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
     const collapseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+    // 使用 useFileUpload Hook 管理图片上传
+    const { images, fileInputRef, handleFileSelect, handlePaste, removeImage, clearImages } = useFileUpload();
 
     // Add transparent class to html element
     useEffect(() => {
@@ -151,7 +153,7 @@ export function FloatingBallPage() {
             setIsProcessing(false);
         }
         setInput('');
-        setImages([]);
+        clearImages();
     };
 
     // Handle collapse
@@ -160,49 +162,7 @@ export function FloatingBallPage() {
         window.ipcRenderer.invoke('floating-ball:toggle');
     };
 
-    // Image Input Handlers
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = e.target.files;
-        if (files) {
-            Array.from(files).forEach(file => {
-                if (file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        const result = e.target?.result as string;
-                        if (result) {
-                            setImages(prev => [...prev, result]);
-                        }
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
-        }
-        if (fileInputRef.current) fileInputRef.current.value = '';
-    };
-
-    const handlePaste = (e: React.ClipboardEvent) => {
-        const items = e.clipboardData.items;
-        for (let i = 0; i < items.length; i++) {
-            if (items[i].type.indexOf('image') !== -1) {
-                e.preventDefault();
-                const blob = items[i].getAsFile();
-                if (blob) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        const result = e.target?.result as string;
-                        if (result) {
-                            setImages(prev => [...prev, result]);
-                        }
-                    };
-                    reader.readAsDataURL(blob);
-                }
-            }
-        }
-    };
-
-    const removeImage = (index: number) => {
-        setImages(prev => prev.filter((_, i) => i !== index));
-    };
+    // Image Input Handlers 现在由 useFileUpload Hook 提供
 
     // General drag handling - works for all states
     const dragRef = useRef({ isDragging: false, startX: 0, startY: 0, moved: false });
@@ -381,7 +341,7 @@ export function FloatingBallPage() {
                             onClick={() => {
                                 window.ipcRenderer.invoke('agent:new-session');
                                 setMessages([]);
-                                setImages([]);
+                                clearImages();
                             }}
                             className="flex items-center gap-1 px-2 py-1 text-xs text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-lg transition-colors"
                         >
@@ -475,13 +435,13 @@ export function FloatingBallPage() {
 
             {/* Header */}
             <div className="flex items-center justify-between px-3 py-2 border-b border-stone-100 shrink-0">
-                <span className="text-sm font-medium text-stone-700">WeChat_Flowwork</span>
+                <span className="text-sm font-medium text-stone-700">SkillMate</span>
                 <div className="flex items-center gap-1">
                     <button
                         onClick={() => {
                             window.ipcRenderer.invoke('agent:new-session');
                             setMessages([]);
-                            setImages([]);
+                            clearImages();
                         }}
                         className="p-1 text-stone-400 hover:text-stone-600 rounded transition-colors"
                     >

@@ -1,9 +1,9 @@
 // @see - https://www.electron.build/configuration/configuration
 {
   "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
-  "appId": "com.wechatflowwork.app",
+  "appId": "ai.skillmate.desktop",
   "asar": true,
-  "productName": "WeChat_Flowwork",
+  "productName": "SkillMate",
 
   "directories": {
     "output": "release/${version}",
@@ -12,7 +12,7 @@
   "publish": {
     "provider": "github",
     "owner": "hhhh124hhhh",
-    "repo": "wechat-flowwork",
+    "repo": "skill-mate",
     "releaseType": "release"
   },
   "files": [
@@ -59,7 +59,7 @@
       "deb"
     ],
     "icon": "build/icons",
-    "maintainer": "WeChat_Flowwork Team <support@wechatflowwork.com>",
+    "maintainer": "SkillMate Team <support@skillmate.ai>",
     "category": "Utility",
     "artifactName": "${productName}-Linux-${version}.${ext}"
   }

@@ -305,7 +305,7 @@ ipcMain.handle('permissions:clear', () => {
 ipcMain.handle('fs:save-temp-file', async (_event, { name, data }: { name: string, data: number[] }) => {
   try {
     // Create temp directory
-    const tmpDir = path.join(os.tmpdir(), 'wechat-flowwork')
+    const tmpDir = path.join(os.tmpdir(), 'skill-mate')
     if (!fs.existsSync(tmpDir)) {
       fs.mkdirSync(tmpDir, { recursive: true })
     }

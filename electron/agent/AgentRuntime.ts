@@ -12,6 +12,7 @@ import { promptInjectionDefense } from '../security/PromptInjectionDefense.js';
 import { dlp } from '../data-loss-prevention/DataLossPrevention.js';
 import { CommandRegistry, SlashCommandParser, ShortcutManager, MCPToolEnhanced } from './commands/index.js';
 import { ParsedCommand, CommandType, CommandDefinition } from './commands/types.js';
+import { pythonErrorTranslator } from './PythonErrorTranslator.js';
 import os from 'os';
 
 
@@ -71,26 +72,50 @@ export class AgentRuntime {
         return this.skillManager;
     }
 
+    // Public getter for mcpService
+    public getMCPService(): MCPClientService {
+        return this.mcpService;
+    }
+
     public async initialize() {
-        log.log('Initializing AgentRuntime...');
+        log.log('[AgentRuntime] =======================================');
+        log.log('[AgentRuntime] Starting AgentRuntime initialization...');
+        log.log('[AgentRuntime] =======================================');
+        const startTime = Date.now();
         try {
+            // 1. 加载技能
+            log.log('[AgentRuntime] Step 1/3: Loading skills...');
             await this.skillManager.loadSkills();
+            const skillCount = this.skillManager.getTools().length;
+            log.log(`[AgentRuntime] ✓ Loaded ${skillCount} skills`);
+
+            // 2. 加载 MCP 客户端
+            log.log('[AgentRuntime] Step 2/3: Loading MCP clients...');
             await this.mcpService.loadClients();
+            const mcpTools = await this.mcpService.getTools();
+            log.log(`[AgentRuntime] ✓ Loaded ${mcpTools.length} MCP tools`);
 
-            log.log('[AgentRuntime] Skills and MCP loaded, initializing command system...');
-
-            // 初始化命令系统
+            // 3. 初始化命令系统
+            log.log('[AgentRuntime] Step 3/3: Initializing command system...');
             try {
                 await this.initializeCommands();
+                const commandCount = this.commandRegistry.getAll().length;
+                log.log(`[AgentRuntime] ✓ Command system ready with ${commandCount} commands`);
             } catch (cmdError) {
-                log.error('[AgentRuntime] Failed to initialize command system:', cmdError);
+                log.error('[AgentRuntime] ✗ Failed to initialize command system:', cmdError);
                 log.error('[AgentRuntime] Error stack:', (cmdError as Error).stack);
                 // 继续运行，命令系统是可选的
             }
 
-            log.log('AgentRuntime initialized (Skills & MCP loaded)');
+            const elapsed = Date.now() - startTime;
+            log.log(`[AgentRuntime] =======================================`);
+            log.log(`[AgentRuntime] ✓ Initialization completed in ${elapsed}ms`);
+            log.log(`[AgentRuntime] - Skills: ${skillCount}`);
+            log.log(`[AgentRuntime] - MCP Tools: ${mcpTools.length}`);
+            log.log(`[AgentRuntime] - Total Commands: ${this.commandRegistry.getAll().length}`);
+            log.log(`[AgentRuntime] =======================================`);
         } catch (error) {
-            log.error('Failed to initialize AgentRuntime:', error);
+            log.error('[AgentRuntime] ✗ Failed to initialize AgentRuntime:', error);
         }
     }
 
@@ -98,16 +123,19 @@ export class AgentRuntime {
      * 初始化命令系统
      */
     private async initializeCommands() {
-        log.log('[CommandSystem] Initializing commands...');
+        log.log('[CommandSystem] =======================================');
+        log.log('[CommandSystem] Initializing command system...');
 
         // 1. 从技能注册命令
+        log.log('[CommandSystem] Registering skill commands...');
         const tools = this.skillManager.getTools();
         // 将 Anthropic.Tool 格式转换为技能定义格式
         const skillDefinitions = Array.isArray(tools) ? tools : [];
-
         this.commandRegistry.registerFromSkills(skillDefinitions as any);
+        log.log(`[CommandSystem] ✓ Registered ${skillDefinitions.length} skill commands`);
 
         // 2. 从MCP工具注册命令
+        log.log('[CommandSystem] Registering MCP tool commands...');
         const mcpTools = await this.mcpService.getTools();
         const mcpToolsWithServer = mcpTools
           .filter(tool => tool.description !== undefined)
@@ -116,11 +144,15 @@ export class AgentRuntime {
             serverName: 'mcp'
           })) as MCPToolEnhanced[];
         this.commandRegistry.registerFromMCPTools(mcpToolsWithServer);
+        log.log(`[CommandSystem] ✓ Registered ${mcpToolsWithServer.length} MCP tool commands`);
 
         // 3. 注册系统命令
+        log.log('[CommandSystem] Registering system commands...');
         this.commandRegistry.registerSystemCommands();
+        log.log('[CommandSystem] ✓ Registered system commands');
 
         // 4. 注册快捷键
+        log.log('[CommandSystem] Registering shortcuts...');
         // 命令面板快捷键
         this.shortcutManager.register({
             id: 'command-palette',
@@ -136,8 +168,15 @@ export class AgentRuntime {
         const commands = this.commandRegistry.getAll();
         this.shortcutManager.registerFromCommands(commands);
 
-        log.log(`[CommandSystem] Initialized ${this.commandRegistry.getAll().length} commands`);
-        log.log(`[CommandSystem] Registered ${this.shortcutManager.getAllBindings().length} shortcuts`);
+        const totalCommands = this.commandRegistry.getAll().length;
+        const totalShortcuts = this.shortcutManager.getAllBindings().length;
+        log.log(`[CommandSystem] ✓ Registered ${totalShortcuts} shortcuts`);
+        log.log(`[CommandSystem] =======================================`);
+        log.log(`[CommandSystem] ✓ Total commands: ${totalCommands}`);
+        log.log(`[CommandSystem]   - Skills: ${skillDefinitions.length}`);
+        log.log(`[CommandSystem]   - MCP Tools: ${mcpToolsWithServer.length}`);
+        log.log(`[CommandSystem]   - System: 2`);
+        log.log(`[CommandSystem] =======================================`);
     }
 
     public removeWindow(win: BrowserWindow) {
@@ -384,7 +423,7 @@ export class AgentRuntime {
                 : '\n\nNote: No working directory has been selected yet. Ask the user to select a folder first.';
 
             const skillsDir = os.homedir() + '/.aiagent/skills';
-            const systemPrompt = `You are AI Agent Desktop, a versatile AI assistant designed to help users accomplish a wide variety of tasks through tool usage and skill execution.
+            const systemPrompt = `You are SkillMate, an AI skill ecosystem platform that helps users create, share, sell, and learn AI skills. You assist users through tool usage and skill execution.
 
 ## YOUR IDENTITY
 You are a helpful AI assistant with access to:
@@ -631,7 +670,22 @@ ${skillInfo.instructions}
                                     result = `Error: The tool input was not valid JSON. Please fix the JSON format and retry. Raw input: ${inputObj.raw}`;
                                 }
                             } catch (toolErr: unknown) {
-                                result = `Error executing tool: ${(toolErr as Error).message}`;
+                                const errorMessage = (toolErr as Error).message;
+
+                                // 使用错误翻译器将技术错误转换为友好提示
+                                const friendlyError = pythonErrorTranslator.translate(errorMessage, null);
+
+                                // 如果是依赖缺失错误，发送特殊事件到前端
+                                if (friendlyError.errorType === 'dependency' && friendlyError.canAutoFix) {
+                                    this.broadcast('slash-command:error', {
+                                        error: `${friendlyError.title}\n\n${friendlyError.message}\n\n${friendlyError.solution}`,
+                                        isDependencyError: true,
+                                        packageName: this.extractPackageName(errorMessage)
+                                    });
+                                }
+
+                                // 返回友好的错误消息给AI
+                                result = `Error: ${friendlyError.message}`;
                             }
 
                             toolResults.push({
@@ -673,6 +727,14 @@ ${skillInfo.instructions}
                 }
             }
         }
+    }
+
+    /**
+     * 从错误消息中提取 Python 包名
+     */
+    private extractPackageName(errorMessage: string): string {
+        const match = errorMessage.match(/No module named ['"]([^'"]+)['"]/i);
+        return match ? match[1] : 'unknown';
     }
 
     // Broadcast to all windows

@@ -1,6 +1,6 @@
-# AI Agent Desktop - 快速开始指南
+# SkillMate - 快速开始指南
 
-欢迎使用 AI Agent Desktop！本指南将帮助您快速上手。
+欢迎使用 SkillMate！本指南将帮助您快速上手。
 
 ---
 
@@ -11,19 +11,19 @@
 **Windows**:
 ```bash
 # 下载并运行安装包
-WeChat_Flowwork-Windows-2.0.0-Setup.exe
+SkillMate-Windows-2.0.0-Setup.exe
 ```
 
 **macOS**:
 ```bash
 # 下载并打开 DMG 文件
-WeChat_Flowwork-Mac-2.0.0-Installer.dmg
+SkillMate-Mac-2.0.0-Installer.dmg
 ```
 
 **Linux**:
 ```bash
 # 下载并运行 AppImage
-WeChat_Flowwork-Linux-2.0.0.AppImage
+SkillMate-Linux-2.0.0.AppImage
 ```
 
 ### 2. 配置 API
@@ -63,7 +63,7 @@ WeChat_Flowwork-Linux-2.0.0.AppImage
 
 ### 1. 技能系统（35个内置技能）
 
-AI Agent Desktop 内置 35 个开箱即用的技能，涵盖：
+SkillMate 内置 35 个开箱即用的技能，涵盖：
 - 📚 文档处理（PDF、Excel、Word、PPT）
 - 🎨 设计创作（前端设计、算法艺术）
 - 🛠️ 开发工具（MCP服务器、Web测试）
@@ -411,7 +411,7 @@ A: 部分功能可以离线使用：
 
 ## 🎉 开始探索
 
-现在您已经准备好使用 AI Agent Desktop 了！
+现在您已经准备好使用 SkillMate 了！
 
 **试试这些**：
 1. 📝 处理文档：`提取这个 PDF 的文本内容`
@@ -430,4 +430,4 @@ A: 部分功能可以离线使用：
 
 **版本**：v2.0
 **更新日期**：2025-01-21
-**维护者**：AI Agent Desktop Team
+**维护者**：SkillMate Team

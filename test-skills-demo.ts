@@ -7,7 +7,7 @@ import { SkillManager } from './electron/agent/skills/SkillManager.js';
 
 async function demoSkills() {
     console.log('========================================');
-    console.log('  AI Agent Desktop - 技能系统演示');
+    console.log('  SkillMate - 技能系统演示');
     console.log('========================================\n');
 
     // 初始化技能管理器

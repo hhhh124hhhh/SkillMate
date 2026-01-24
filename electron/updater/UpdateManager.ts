@@ -31,7 +31,7 @@ export class UpdateManager {
     autoUpdater.setFeedURL({
       provider: 'github',
       owner: 'hhhh124hhhh',
-      repo: 'wechat-flowwork'
+      repo: 'skill-mate'
     })
 
     // 自动下载更新
