@@ -2,8 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import { Square, ArrowUp, ChevronDown, ChevronUp, Download, FolderOpen, MessageCircle, Zap, AlertTriangle, Check, X, Settings, History, Plus, Trash2, FileUp, FileText, FileSpreadsheet, Braces, Eye, Image, Code, FileSearch, Wrench, Lightbulb, PenTool, BarChart, Server, HelpCircle } from 'lucide-react';
 import { MarkdownRenderer } from './MarkdownRenderer.js';
 import { FilePreview } from './FilePreview.js';
+import { SkillSuggestionBubble } from './SkillSuggestionBubble.js';
+import { DependencyInstallDialog } from './DependencyInstallDialog.js';
 import Anthropic from '@anthropic-ai/sdk';
 import type { CommandDefinition } from '../electron/agent/commands/types.js';
+import { detectIntent, type SkillRecommendation } from '../utils/intentDetector.js';
 
 type Mode = 'chat' | 'work';
 
@@ -54,6 +57,20 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
     const [showCommandSuggestions, setShowCommandSuggestions] = useState(false);
     const [commandSuggestions, setCommandSuggestions] = useState<CommandDefinition[]>([]);
     const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0);
+
+    // 技能推荐状态
+    const [skillRecommendation, setSkillRecommendation] = useState<SkillRecommendation | null>(null);
+
+    // 依赖安装对话框状态
+    const [showDependencyDialog, setShowDependencyDialog] = useState(false);
+    const [dependencyInfo, setDependencyInfo] = useState({
+      title: '',
+      message: '',
+      solution: '',
+      canAutoFix: false,
+      packageName: ''
+    });
+
     const scrollRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -132,9 +149,27 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
         });
 
         const removeSlashErrorListener = window.ipcRenderer.on('slash-command:error', (_event, data) => {
-            console.error('[CoworkView] Slash command error:', data);
-            // 显示错误消息
-            const errorData = data as { error: string };
+            console.log('[CoworkView] Slash command error:', data);
+            const errorData = data as {
+                error: string;
+                isDependencyError?: boolean;
+                packageName?: string;
+            };
+
+            // 如果是依赖缺失错误，显示安装对话框
+            if (errorData.isDependencyError) {
+                const lines = errorData.error.split('\n\n');
+                setDependencyInfo({
+                    title: lines[0] || '😊 需要安装一个小工具',
+                    message: lines[1] || '',
+                    solution: lines[2] || '点击下方按钮自动安装所需组件',
+                    canAutoFix: true,
+                    packageName: errorData.packageName || 'unknown'
+                });
+                setShowDependencyDialog(true);
+            }
+
+            // 同时也显示错误消息
             setStreamingText(prev => prev + `\n\n❌ ${errorData.error}`);
         });
 
@@ -327,6 +362,7 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
         setInput('');
         setImages([]);
         setDocuments([]);
+        setSkillRecommendation(null); // 清除技能推荐
     };
 
     // 处理输入变化，检测 slash command
@@ -349,13 +385,19 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                 setCommandSuggestions(results);
                 setShowCommandSuggestions(true);
                 setSelectedSuggestionIndex(0);
+                // 清除技能推荐
+                setSkillRecommendation(null);
             } catch (err) {
                 console.error('[CoworkView] Failed to search commands:', err);
             }
         } else {
-            // 不以 / 开头，隐藏建议
+            // 不以 / 开头，隐藏命令建议
             setShowCommandSuggestions(false);
             setCommandSuggestions([]);
+
+            // 智能技能推荐
+            const recommendation = detectIntent(value);
+            setSkillRecommendation(recommendation);
         }
     };
 
@@ -367,6 +409,8 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
         if (command.requiresInput) {
             setInput(`/${command.id} `);
             setShowCommandSuggestions(false);
+            // 清除技能推荐
+            setSkillRecommendation(null);
 
             // 聚焦到输入框
             setTimeout(() => {
@@ -388,6 +432,44 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                     setShowCommandSuggestions(false);
                 });
         }
+    };
+
+    // 处理技能推荐应用
+    const handleApplySkillRecommendation = () => {
+        if (!skillRecommendation) return;
+
+        // 自动填充技能命令到输入框
+        setInput(`/${skillRecommendation.skillId} `);
+        setSkillRecommendation(null);
+
+        // 聚焦到输入框
+        setTimeout(() => {
+            inputRef.current?.focus();
+        }, 100);
+    };
+
+    // 处理技能推荐忽略
+    const handleDismissSkillRecommendation = () => {
+        setSkillRecommendation(null);
+    };
+
+    // 处理依赖安装
+    const handleInstallDependency = async (): Promise<boolean> => {
+        try {
+            const result = await window.ipcRenderer.invoke(
+                'python:install-dependency',
+                dependencyInfo.packageName
+            ) as { success: boolean };
+
+            return result.success;
+        } catch (error) {
+            console.error('[CoworkView] Failed to install dependency:', error);
+            return false;
+        }
+    };
+
+    const handleDismissDependencyDialog = () => {
+        setShowDependencyDialog(false);
     };
 
     // 处理键盘导航
@@ -703,6 +785,17 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                     </div>
                 </div>
             )}
+
+            {/* Dependency Install Dialog */}
+            <DependencyInstallDialog
+                isOpen={showDependencyDialog}
+                title={dependencyInfo.title}
+                message={dependencyInfo.message}
+                solution={dependencyInfo.solution}
+                canAutoFix={dependencyInfo.canAutoFix}
+                onInstall={handleInstallDependency}
+                onDismiss={handleDismissDependencyDialog}
+            />
 
             {/* Image Lightbox */}
             {selectedImage && (
@@ -1103,6 +1196,18 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                                 </div>
                             </div>
 
+                            {/* 智能技能推荐气泡 */}
+                            {skillRecommendation && !showCommandSuggestions && (
+                                <div className="absolute bottom-full left-0 right-0 mb-2 z-50">
+                                    <SkillSuggestionBubble
+                                        skillName={skillRecommendation.skillName}
+                                        reason={skillRecommendation.reason}
+                                        onApply={handleApplySkillRecommendation}
+                                        onDismiss={handleDismissSkillRecommendation}
+                                    />
+                                </div>
+                            )}
+
                             {/* 命令建议列表 */}
                             {showCommandSuggestions && commandSuggestions.length > 0 && (
                                 <div
@@ -1115,38 +1220,55 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                                                 key={cmd.id}
                                                 type="button"
                                                 onClick={() => handleSelectCommand(cmd)}
-                                                className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
+                                                className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
                                                     index === selectedSuggestionIndex
                                                         ? 'bg-blue-50 text-blue-700'
                                                         : 'hover:bg-slate-50 text-slate-700'
                                                 }`}
                                             >
-                                                <div className={`p-1.5 rounded-lg shrink-0 ${
-                                                    index === selectedSuggestionIndex
-                                                        ? 'bg-blue-100 text-blue-600'
-                                                        : 'bg-slate-100 text-slate-500'
+                                                {/* Emoji 或图标 */}
+                                                <div className={`text-2xl shrink-0 ${
+                                                    index === selectedSuggestionIndex ? 'transform scale-110' : ''
                                                 }`}>
-                                                    {getCommandIcon(cmd.icon)}
+                                                    {cmd.emoji || getCommandIcon(cmd.icon)}
                                                 </div>
+
+                                                {/* 主要信息 */}
                                                 <div className="flex-1 min-w-0">
-                                                    <div className={`font-medium text-sm truncate ${
+                                                    {/* 标题 */}
+                                                    <div className={`font-semibold text-base truncate ${
                                                         index === selectedSuggestionIndex ? 'text-blue-700' : 'text-slate-800'
                                                     }`}>
-                                                        {cmd.name}
+                                                        {(cmd as any).title || cmd.name}
                                                     </div>
-                                                    <div className={`text-xs truncate ${
+
+                                                    {/* 描述 */}
+                                                    <div className={`text-sm truncate mt-0.5 ${
                                                         index === selectedSuggestionIndex ? 'text-blue-600' : 'text-slate-500'
                                                     }`}>
                                                         {cmd.description}
                                                     </div>
+
+                                                    {/* 使用场景（如果有） */}
+                                                    {(cmd as any).scenarios && (cmd as any).scenarios.length > 0 && (
+                                                        <div className={`text-xs mt-1 italic ${
+                                                            index === selectedSuggestionIndex ? 'text-blue-500' : 'text-slate-400'
+                                                        }`}>
+                                                            💡 {(cmd as any).scenarios[0]}
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                <div className={`text-xs px-2 py-1 rounded-md shrink-0 ${
-                                                    index === selectedSuggestionIndex
-                                                        ? 'bg-blue-200 text-blue-700'
-                                                        : 'bg-slate-100 text-slate-500'
-                                                }`}>
-                                                    {cmd.type}
-                                                </div>
+
+                                                {/* 难度评级 */}
+                                                {(cmd as any).difficulty && (
+                                                    <div className={`text-xs px-2 py-1 rounded-md shrink-0 font-medium ${
+                                                        index === selectedSuggestionIndex
+                                                            ? 'bg-blue-100 text-blue-700'
+                                                            : 'bg-slate-100 text-slate-500'
+                                                    }`}>
+                                                        {(cmd as any).difficulty}
+                                                    </div>
+                                                )}
                                             </button>
                                         ))}
                                     </div>
@@ -1155,7 +1277,7 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                                             使用 ↑↓ 导航，Enter 选择，Esc 关闭
                                         </p>
                                         <p className="text-[11px] text-slate-400">
-                                            {commandSuggestions.length} 个命令
+                                            {commandSuggestions.length} 个技能
                                         </p>
                                     </div>
                                 </div>
@@ -1328,10 +1450,10 @@ function EmptyState({ mode: _mode, workingDir: _workingDir, onAction }: { mode: 
             </div>
             <div className="space-y-3 max-w-md">
                 <h2 className="text-2xl font-bold text-slate-800 tracking-tight">
-                    AI Agent Desktop
+                    SkillMate
                 </h2>
                 <p className="text-slate-500 text-sm leading-relaxed">
-                    嗨，我是你的 AI 助手！我可以帮你编写代码、分析数据、创建内容、管理文件等各种任务，让工作更高效～
+                    你的AI技能伙伴！通过技能生态轻松构建、分享、售卖和学习 AI 技能，让创意无限可能～
                 </p>
             </div>
             <div className="grid grid-cols-2 gap-3 w-full max-w-lg px-4">

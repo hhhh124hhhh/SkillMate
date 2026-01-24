@@ -7,6 +7,8 @@ import { ConfirmDialog, useConfirmations } from './components/ConfirmDialog.js';
 import { FloatingBallPage } from './components/FloatingBallPage.js';
 import { UpdateNotification } from './components/UpdateNotification.js';
 import { CommandPalette } from './components/CommandPalette.js';
+import { ErrorBoundary } from './components/ErrorBoundary.js';
+import { ToastProvider } from './components/ui/ToastProvider.js';
 import Anthropic from '@anthropic-ai/sdk';
 import type { CommandDefinition as FullCommandDefinition } from '../electron/agent/commands/types.js';
 
@@ -167,7 +169,9 @@ function App() {
 
   // Main App - Narrow vertical layout
   return (
-    <div className="h-screen w-full bg-slate-50 flex flex-col overflow-hidden font-sans">
+    <ErrorBoundary>
+      <ToastProvider>
+        <div className="h-screen w-full bg-slate-50 flex flex-col overflow-hidden font-sans">
       {/* Custom Titlebar */}
       <header
         className="h-10 border-b border-slate-200 bg-white/90 backdrop-blur-sm shrink-0 flex items-center justify-between px-3"
@@ -175,7 +179,7 @@ function App() {
       >
         <div className="flex items-center gap-2" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
           <img src="/logo_new.svg" alt="Logo" className="w-6 h-6 object-contain" />
-          <span className="font-semibold text-slate-700 text-sm tracking-tight">AI Agent Desktop</span>
+          <span className="font-semibold text-slate-700 text-sm tracking-tight">SkillMate</span>
         </div>
 
         <div className="flex items-center gap-1 z-50" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
@@ -296,7 +300,9 @@ function App() {
           onSelectCommand={handleCommandExecute}
         />
       )}
-    </div>
+        </div>
+      </ToastProvider>
+    </ErrorBoundary>
   );
 }
 

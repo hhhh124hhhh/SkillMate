@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 项目概述
 
-**WeChat_Flowwork** 是一个激发人性的公众号创作AI助手，基于 Electron + React + TypeScript 构建。
+**SkillMate** 是一个激发人性的公众号创作AI助手，基于 Electron + React + TypeScript 构建。
 
 ## 核心特性
 
@@ -47,7 +47,7 @@ git push origin v1.0.0
 
 ### 目录结构
 ```
-wechat-flowwork/
+skill-mate/
 ├── electron/                    # Electron 主进程代码
 │   ├── main.ts                 # 主进程入口（窗口管理、IPC 注册、Agent 初始化）
 │   ├── preload.ts              # 预加载脚本（IPC 桥接）
@@ -301,9 +301,9 @@ export default {
 5. 构建产物位置: `release/{version}/`
 
 **构建产物**:
-- Windows: `WeChat_Flowwork-Windows-{version}-Setup.exe`
-- macOS: `WeChat_Flowwork-Mac-{version}-Installer.dmg`
-- Linux: `WeChat_Flowwork-Linux-{version}.AppImage` / `.deb`
+- Windows: `SkillMate-Windows-{version}-Setup.exe`
+- macOS: `SkillMate-Mac-{version}-Installer.dmg`
+- Linux: `SkillMate-Linux-{version}.AppImage` / `.deb`
 
 ## 常见问题
 

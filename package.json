@@ -1,19 +1,19 @@
 {
-  "name": "ai-agent-desktop",
+  "name": "skill-mate",
   "private": true,
   "version": "2.0.0",
-  "description": "AI Agent Desktop - 开源AI Agent教学项目，学习如何构建Electron + AI桌面应用",
+  "description": "SkillMate - Your AI Skill Partner. AI技能生态平台，支持技能构建、分享、售卖和学习",
   "author": {
-    "name": "AI Agent Desktop Team",
-    "email": "support@aiagent.desktop"
+    "name": "SkillMate Team",
+    "email": "support@skillmate.ai"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hhhh124hhhh/wechat-flowwork.git"
+    "url": "git+https://github.com/hhhh124hhhh/skill-mate.git"
   },
-  "homepage": "https://github.com/hhhh124hhhh/wechat-flowwork#readme",
+  "homepage": "https://github.com/hhhh124hhhh/skill-mate#readme",
   "bugs": {
-    "url": "https://github.com/hhhh124hhhh/wechat-flowwork/issues"
+    "url": "https://github.com/hhhh124hhhh/skill-mate/issues"
   },
   "license": "Apache-2.0",
   "type": "module",
@@ -83,8 +83,8 @@
   },
   "main": "dist-electron/main.js",
   "build": {
-    "appId": "com.aiagent.desktop",
-    "productName": "AI Agent Desktop",
+    "appId": "ai.skillmate.desktop",
+    "productName": "SkillMate",
     "directories": {
       "output": "release"
     },

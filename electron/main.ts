@@ -201,7 +201,7 @@ app.whenReady().then(async () => {
     mainWin?.show()
   }
 
-  log.log('WeChat_Flowwork started. Press Alt+Space to toggle floating ball.')
+  log.log('SkillMate started. Press Alt+Space to toggle floating ball.')
 })
 
 
@@ -458,6 +458,9 @@ ipcMain.handle('config:set-all', async (_, cfg) => {
 
   // authorizedFolders（关键修复）
   try {
+    // 获取旧的授权文件夹
+    const oldFolders = configStore.get('authorizedFolders') || []
+
     log.log('[config:set-all] Saving authorizedFolders:', {
       count: cfg.authorizedFolders?.length || 0,
       folders: cfg.authorizedFolders
@@ -472,6 +475,21 @@ ipcMain.handle('config:set-all', async (_, cfg) => {
       count: savedFolders?.length || 0,
       folders: savedFolders
     })
+
+    // 🔧 新增：检测授权文件夹变更，更新 MCP 配置
+    const newFolders = cfg.authorizedFolders || []
+    const foldersChanged =
+      oldFolders.length !== newFolders.length ||
+      !oldFolders.every((f: string, i: number) => f === newFolders[i])
+
+    if (foldersChanged && agent) {
+      log.log('[Main] 🔄 Authorized folders changed, updating MCP config')
+
+      // 异步更新 MCP 配置，不阻塞保存操作
+      updateMCPFilesystemPath(newFolders[0] || os.homedir()).catch(err => {
+        log.error('[Main] Failed to update MCP config:', err)
+      })
+    }
   } catch (error) {
     const errorMsg = (error as Error).message
     saveErrors.push({field: 'authorizedFolders', error: errorMsg})
@@ -933,6 +951,68 @@ ipcMain.handle('config:reset-first-launch', () => {
   return { success: true };
 });
 
+// 📦 安装 Python 依赖包
+ipcMain.handle('python:install-dependency', async (_, packageName: string) => {
+  log.log(`[python:install-dependency] Installing package: ${packageName}`);
+
+  try {
+    const pythonExe = pythonRuntime.getPythonExecutable();
+    if (!pythonExe) {
+      throw new Error('Python runtime not available');
+    }
+
+    const libPath = pythonRuntime.getLibPath();
+    if (!libPath) {
+      throw new Error('Python lib path not available');
+    }
+
+    const { spawn } = await import('child_process');
+
+    return new Promise((resolve, reject) => {
+      const proc = spawn(pythonExe, ['-m', 'pip', 'install', packageName], {
+        env: {
+          ...process.env,
+          PYTHONPATH: libPath,
+          PYTHONIOENCODING: 'utf-8'
+        },
+        shell: true,
+        cwd: libPath
+      });
+
+      let output = '';
+      let error = '';
+
+      proc.stdout.on('data', (data) => {
+        output += data.toString();
+        log.log(`[pip install] ${data.toString().trim()}`);
+      });
+
+      proc.stderr.on('data', (data) => {
+        error += data.toString();
+        log.log(`[pip install] ${data.toString().trim()}`);
+      });
+
+      proc.on('close', (code) => {
+        log.log(`[python:install-dependency] Process exited with code: ${code}`);
+        if (code === 0) {
+          resolve({ success: true, output });
+        } else {
+          reject(new Error(`Installation failed (code ${code}): ${error || output}`));
+        }
+      });
+
+      proc.on('error', (err) => {
+        log.error(`[python:install-dependency] Failed to spawn process:`, err);
+        reject(err);
+      });
+    });
+  } catch (error) {
+    const err = error as Error;
+    log.error(`[python:install-dependency] Installation failed:`, err);
+    throw err;
+  }
+});
+
 // Shortcut update handler
 ipcMain.handle('shortcut:update', (_, newShortcut: string) => {
   try {
@@ -1269,7 +1349,28 @@ ipcMain.handle('commands:search', async (_, options: {
   type?: string;
   limit?: number
 }) => {
-  if (!agent) return [];
+  if (!agent) {
+    log.warn('[commands:search] Agent not initialized');
+    return [];
+  }
+
+  // 防御性检查：等待命令系统初始化完成
+  if (agent.commandRegistry.getAll().length === 0) {
+    log.warn('[commands:search] Command registry is empty, waiting for initialization...');
+    // 短暂等待后重试（最多 3 秒）
+    for (let i = 0; i < 30; i++) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      if (agent.commandRegistry.getAll().length > 0) {
+        log.log(`[commands:search] Commands loaded after ${i * 100}ms, total: ${agent.commandRegistry.getAll().length} commands`);
+        break;
+      }
+    }
+    // 最终检查
+    if (agent.commandRegistry.getAll().length === 0) {
+      log.error('[commands:search] Command registry still empty after waiting, returning empty results');
+      return [];
+    }
+  }
 
   const searchOptions: {
     query?: string;
@@ -1284,6 +1385,7 @@ ipcMain.handle('commands:search', async (_, options: {
   };
 
   const results = agent.commandRegistry.search(searchOptions as any);
+  log.log(`[commands:search] Found ${results.length} commands for query: "${options.query || 'all'}"`);
 
   // 移除不可序列化的属性（如 execute 函数）
   return results.map(cmd => ({
@@ -1370,6 +1472,73 @@ ipcMain.handle('commands:check-conflict', async (_, accelerator: string, exclude
   return agent.shortcutManager.checkConflict(accelerator, excludeId);
 });
 
+// ========== MCP 配置管理 ==========
+
+/**
+ * 更新 MCP filesystem 服务器的路径
+ * @param newPath 新的文件系统路径
+ */
+async function updateMCPFilesystemPath(newPath: string) {
+  const mcpConfigPath = path.join(os.homedir(), '.aiagent', 'mcp.json');
+
+  try {
+    const content = await fs.promises.readFile(mcpConfigPath, 'utf-8');
+    const config = JSON.parse(content);
+
+    if (config.mcpServers?.filesystem?.args) {
+      const args = config.mcpServers.filesystem.args;
+      const pathIndex = args.findIndex((arg: string) =>
+        arg.startsWith('/') || arg.startsWith('C:') || arg === 'ALLOWED_PATH'
+      );
+
+      if (pathIndex !== -1) {
+        args[pathIndex] = newPath;
+        await fs.promises.writeFile(mcpConfigPath, JSON.stringify(config, null, 2), 'utf-8');
+        log.log('[Main] ✅ MCP filesystem path updated to:', newPath);
+
+        // 重新加载 MCP 客户端以应用新配置
+        if (agent) {
+          const mcpService = agent.getMCPService();
+          await mcpService.loadClients();
+          log.log('[Main] ✅ MCP clients reloaded');
+        }
+      }
+    }
+  } catch (error) {
+    log.error('[Main] Failed to update MCP config:', error);
+  }
+}
+
+// MCP 状态查询 IPC 处理器
+ipcMain.handle('mcp:get-status', async () => {
+  if (!agent) {
+    return [];
+  }
+
+  try {
+    const status = agent.getMCPService().getConnectionStatus();
+    return status;
+  } catch (error) {
+    log.error('[mcp:get-status] Failed to get MCP status:', error);
+    return [];
+  }
+});
+
+// MCP 手动重试 IPC 处理器
+ipcMain.handle('mcp:reconnect', async (_event, name: string) => {
+  if (!agent) {
+    return false;
+  }
+
+  try {
+    const success = await agent.getMCPService().reconnectServer(name);
+    return success;
+  } catch (error) {
+    log.error('[mcp:reconnect] Failed to reconnect MCP server:', error);
+    return false;
+  }
+});
+
 
 async function initializeAgent() {
   const apiKey = await configStore.getApiKey() || process.env.ANTHROPIC_API_KEY
@@ -1410,8 +1579,13 @@ async function initializeAgent() {
       log.log('[Main] No current session found, starting fresh')
     }
 
-    // Trigger async initialization for MCP and Skills
-    agent.initialize().catch(err => log.error('Agent initialization failed:', err));
+    // 等待 Agent 完全初始化（包括命令系统）
+    try {
+      await agent.initialize();
+      log.log('[Main] Agent initialization completed, commands ready');
+    } catch (err) {
+      log.error('[Main] Agent initialization failed:', err);
+    }
 
     log.log('Agent initialized with model:', configStore.getModel())
     log.log('API URL:', configStore.getApiUrl())

@@ -1,24 +1,24 @@
 <p align="center">
-  <img src="./public/icon.png" width="100" height="100" alt="AI Agent Desktop Logo">
+  <img src="./public/icon.png" width="100" height="100" alt="SkillMate Logo">
 </p>
 
-<h1 align="center">AI Agent Desktop</h1>
+<h1 align="center">SkillMate</h1>
 
 <p align="center">
   🚀 一个开源的 AI Agent 桌面应用框架，用于学习如何构建现代化的 AI 助手
 </p>
 
 <p align="center">
-  <a href="https://github.com/yourname/aiagent-desktop"><img src="https://img.shields.io/github/v/release/yourname/aiagent-desktop?style=flat-square&color=orange" alt="Release"></a>
-  <a href="https://github.com/yourname/aiagent-desktop/actions"><img src="https://img.shields.io/github/actions/workflow/status/yourname/aiagent-desktop/release.yml?style=flat-square" alt="Build"></a>
-  <a href="./LICENSE"><img src="https://img.shields.io/github/license/yourname/aiagent-desktop?style=flat-square" alt="License"></a>
+  <a href="https://github.com/yourname/skill-mate"><img src="https://img.shields.io/github/v/release/yourname/skill-mate?style=flat-square&color=orange" alt="Release"></a>
+  <a href="https://github.com/yourname/skill-mate/actions"><img src="https://img.shields.io/github/actions/workflow/status/yourname/skill-mate/release.yml?style=flat-square" alt="Build"></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/github/license/yourname/skill-mate?style=flat-square" alt="License"></a>
 </p>
 
 ---
 
 ## ✨ 特性
 
-### 为什么选择 AI Agent Desktop？
+### 为什么选择 SkillMate？
 
 - 🎯 **通用架构** - 不绑定任何特定领域，自由扩展
 - 🔧 **高度可定制** - 支持自定义技能和 MCP 服务器
@@ -63,7 +63,7 @@
 
 ## ⚠️ Risk Notice
 
-AI Agent Desktop allows AI to operate on local file systems and terminals. Please note:
+SkillMate allows AI to operate on local file systems and terminals. Please note:
 
 - AI may accidentally delete files or execute incorrect commands
 - Prompt injection risks may exist
@@ -96,7 +96,7 @@ AI Agent Desktop allows AI to operate on local file systems and terminals. Pleas
 ### 目录结构
 
 ```
-aiagent-desktop/
+skill-mate/
 ├── electron/                    # Electron 主进程代码
 │   ├── main.ts                 # 主进程入口（窗口管理、IPC 注册）
 │   ├── agent/                  # AI Agent 系统
@@ -147,8 +147,8 @@ aiagent-desktop/
 
 ```bash
 # 克隆仓库
-git clone https://github.com/yourname/aiagent-desktop.git
-cd aiagent-desktop
+git clone https://github.com/yourname/skill-mate.git
+cd skill-mate
 
 # 安装依赖
 npm install
@@ -166,7 +166,7 @@ npm run dev
 
 ### 下载安装包
 
-从 [Releases](https://github.com/yourname/aiagent-desktop/releases) 下载最新版本：
+从 [Releases](https://github.com/yourname/skill-mate/releases) 下载最新版本：
 
 - **Windows**: `AI-Agent-Desktop-Windows-{version}-Setup.exe`
 - **macOS**: `AI-Agent-Desktop-Mac-{version}-Installer.dmg`
@@ -292,7 +292,7 @@ npm run lint -- --fix
 
 Apache License 2.0 - 详见 [LICENSE](./LICENSE)
 
-Copyright © 2024 [AI Agent Desktop Team](https://github.com/yourname/aiagent-desktop)
+Copyright © 2024 [SkillMate Team](https://github.com/yourname/skill-mate)
 
 ---
 
