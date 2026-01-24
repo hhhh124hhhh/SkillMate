@@ -784,7 +784,7 @@ description: 新技能描述
 
                       {/* Help Text */}
                       <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                        <p className="text-xs text-blue-800 font-medium mb-1">💡 技能格式说明</p>
+                        <p className="text-xs text-orange-800 font-medium mb-1">💡 技能格式说明</p>
                         <ul className="text-xs text-orange-700 space-y-1 list-disc list-inside">
                           <li>技能名称：唯一标识，英文，使用连字符</li>
                           <li>技能描述：清晰说明功能和触发条件</li>

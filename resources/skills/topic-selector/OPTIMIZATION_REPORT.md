@@ -286,7 +286,7 @@
 
 ```bash
 # 回滚到优化前版本
-cd D:\wechat-flowwork\resources\skills\topic-selector
+cd D:\skill-mate\resources\skills\topic-selector
 cp SKILL.md.backup SKILL.md
 ```
 
@@ -337,5 +337,5 @@ cp SKILL.md.backup SKILL.md
 ---
 
 **优化完成时间**：2026-01-16
-**文件备份位置**：`D:\wechat-flowwork\resources\skills\topic-selector\SKILL.md.backup`
-**优化文件位置**：`D:\wechat-flowwork\resources\skills\topic-selector\SKILL.md`
+**文件备份位置**：`D:\skill-mate\resources\skills\topic-selector\SKILL.md.backup`
+**优化文件位置**：`D:\skill-mate\resources\skills\topic-selector\SKILL.md`

@@ -563,7 +563,7 @@ ${cfg.styleGuide.structureHabits.length > 0
                 <div className="flex items-start gap-3">
                     <Sparkles className="w-5 h-5 text-orange-600 mt-0.5 shrink-0" />
                     <div>
-                        <h3 className="text-sm font-semibold text-blue-900 mb-1">个人风格学习器</h3>
+                        <h3 className="text-sm font-semibold text-orange-900 mb-1">个人风格学习器</h3>
                         <p className="text-xs text-orange-700 leading-relaxed">
                             上传 10-20 篇你的文章，AI 会分析你的写作风格，让以后的文章写得像你亲手写的。
                             <span className="block mt-1 text-orange-600">🔒 所有文章仅保存在本地，不会上传到云端。</span>
@@ -690,7 +690,7 @@ ${cfg.styleGuide.structureHabits.length > 0
                         <button
                             onClick={handleAnalyze}
                             disabled={isAnalyzing}
-                            className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-orange-600 to-indigo-600 rounded-lg hover:from-orange-700 hover:to-indigo-700 disabled:from-stone-400 disabled:to-stone-500 disabled:cursor-not-allowed transition-all flex items-center gap-2 shadow-lg shadow-blue-200"
+                            className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-orange-600 to-indigo-600 rounded-lg hover:from-orange-700 hover:to-indigo-700 disabled:from-stone-400 disabled:to-stone-500 disabled:cursor-not-allowed transition-all flex items-center gap-2 shadow-lg shadow-orange-200"
                         >
                             {isAnalyzing ? (
                                 <>

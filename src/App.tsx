@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
 import { Minus, Square, X, HelpCircle, Command } from 'lucide-react';
-import { CoworkView } from './components/CoworkView.js';
-import { SettingsView } from './components/SettingsView.js';
-import { UserGuideView } from './components/UserGuideView.js';
-import { ConfirmDialog, useConfirmations } from './components/ConfirmDialog.js';
-import { FloatingBallPage } from './components/FloatingBallPage.js';
-import { UpdateNotification } from './components/UpdateNotification.js';
-import { CommandPalette } from './components/CommandPalette.js';
-import { ErrorBoundary } from './components/ErrorBoundary.js';
-import { ToastProvider } from './components/ui/ToastProvider.js';
+import {
+  CoworkView,
+  SettingsView,
+  UserGuideView,
+  ConfirmDialog,
+  useConfirmations,
+  FloatingBallPage,
+  UpdateNotification,
+  CommandPalette,
+  ErrorBoundary,
+  ToastProvider
+} from './components/index.js';
 import Anthropic from '@anthropic-ai/sdk';
 import type { CommandDefinition as FullCommandDefinition } from '../electron/agent/commands/types.js';
 
@@ -189,7 +192,7 @@ function App() {
               console.log('Command Palette button clicked');
               setShowCommandPalette(true);
             }}
-            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+            className="p-1.5 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-md transition-colors"
             title="打开命令面板 (Ctrl+Shift+P)"
           >
             <Command size={14} />
@@ -198,7 +201,7 @@ function App() {
           {/* 新增：帮助按钮 */}
           <button
             onClick={() => setShowUserGuide(true)}
-            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+            className="p-1.5 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-md transition-colors"
             title="查看帮助"
           >
             <HelpCircle size={14} />

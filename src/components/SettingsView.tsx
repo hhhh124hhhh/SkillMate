@@ -279,11 +279,11 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
                                     )}
                                     {/* 新增：获取 API Key 说明 */}
                                     <div className="mt-2 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                                        <p className="text-xs font-medium text-blue-900 mb-2">
+                                        <p className="text-xs font-medium text-orange-900 mb-2">
                                             如何获取智谱 AI API Key？
                                         </p>
-                                        <ol className="text-xs text-blue-800 space-y-1 list-decimal list-inside">
-                                            <li>访问 <a href="https://open.bigmodel.cn" target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-900">智谱 AI 开放平台</a></li>
+                                        <ol className="text-xs text-orange-800 space-y-1 list-decimal list-inside">
+                                            <li>访问 <a href="https://open.bigmodel.cn" target="_blank" rel="noopener noreferrer" className="underline hover:text-orange-900">智谱 AI 开放平台</a></li>
                                             <li>注册/登录并进入「API Key」页面</li>
                                             <li>生成并复制 API Key</li>
                                         </ol>
@@ -333,7 +333,7 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
                                         disabled={saved}
                                         className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all shadow-sm ${saved
                                             ? 'bg-green-50 text-green-600 border border-green-200'
-                                            : 'bg-orange-600 text-white hover:bg-orange-700 shadow-blue-200'
+                                            : 'bg-orange-600 text-white hover:bg-orange-700 shadow-orange-200'
                                             }`}
                                     >
                                         {saved ? <Check size={16} /> : null}
@@ -391,7 +391,7 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
                                         disabled={saved}
                                         className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all shadow-sm ${saved
                                             ? 'bg-green-50 text-green-600 border border-green-200'
-                                            : 'bg-orange-600 text-white hover:bg-orange-700 shadow-blue-200'
+                                            : 'bg-orange-600 text-white hover:bg-orange-700 shadow-orange-200'
                                             }`}
                                     >
                                         {saved ? <Check size={16} /> : null}
@@ -545,7 +545,7 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
                                         disabled={saved}
                                         className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all shadow-sm ${saved
                                             ? 'bg-green-50 text-green-600 border border-green-200'
-                                            : 'bg-orange-600 text-white hover:bg-orange-700 shadow-blue-200'
+                                            : 'bg-orange-600 text-white hover:bg-orange-700 shadow-orange-200'
                                             }`}
                                     >
                                         {saved ? <Check size={16} /> : null}

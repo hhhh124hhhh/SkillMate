@@ -11,9 +11,9 @@
 
 ## 设计文件
 
-- **HTML 预览**: `D:\wechat-flowwork\mcp-config-editor-redesign.html`
-- **React 组件**: `D:\wechat-flowwork\src\components\MCPConfigEditorRedesign.tsx`
-- **Pencil 设计**: `D:\wechat-flowwork\mcp-config-editor.pen`
+- **HTML 预览**: `D:\skill-mate\mcp-config-editor-redesign.html`
+- **React 组件**: `D:\skill-mate\src\components\MCPConfigEditorRedesign.tsx`
+- **Pencil 设计**: `D:\skill-mate\mcp-config-editor.pen`
 - **尺寸**: 1400px × 800px（响应式）
 
 ## 设计规范
@@ -309,8 +309,8 @@ MCPConfigEditor
 
 ### 设计文件位置
 
-- Pencil 设计文件: `D:\wechat-flowwork\mcp-config-editor.pen`
-- 本说明文档: `D:\wechat-flowwork\MCP_CONFIG_EDITOR_DESIGN.md`
+- Pencil 设计文件: `D:\skill-mate\mcp-config-editor.pen`
+- 本说明文档: `D:\skill-mate\MCP_CONFIG_EDITOR_DESIGN.md`
 
 ### 相关文件
 

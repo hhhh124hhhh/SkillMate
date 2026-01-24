@@ -22,7 +22,7 @@ enum CommandType {
   SYSTEM = 'system'
 }
 
-interface CommandDefinition {
+export interface CommandDefinition {
   id: string;
   type: CommandType;
   name: string;
@@ -30,6 +30,7 @@ interface CommandDefinition {
   keywords: string[];
   category: CommandCategory;
   icon?: string;
+  emoji?: string;
   shortcut?: string;
   requiresInput?: boolean;
 }
@@ -214,7 +215,7 @@ export function CommandPalette({ isOpen, onClose, onSelectCommand }: CommandPale
                   onClick={() => handleSelect(cmd)}
                   className={`flex items-center justify-between px-4 py-3 cursor-pointer transition-colors ${
                     idx === selectedIndex
-                      ? 'bg-orange-50 dark:bg-blue-900/20'
+                      ? 'bg-orange-50 dark:bg-orange-900/20'
                       : 'hover:bg-slate-50 dark:hover:bg-gray-700/50'
                   }`}
                 >

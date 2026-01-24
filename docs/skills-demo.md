@@ -24,7 +24,7 @@
 
 [SKILL LOADED: pdf-processor]
 
-SKILL DIRECTORY: D:\wechat-flowwork\resources\skills\pdf-processor
+SKILL DIRECTORY: D:\skill-mate\resources\skills\pdf-processor
 
 ## Python 库
 
@@ -55,7 +55,7 @@ with pdfplumber.open("document.pdf") as pdf:
 
 我将为您编写一个 Python 脚本来提取这个 PDF 的内容...
 
-run_command: python "D:\wechat-flowwork\resources\skills\pdf-processor\scripts\extract.py" "document.pdf"
+run_command: python "D:\skill-mate\resources\skills\pdf-processor\scripts\extract.py" "document.pdf"
 ```
 
 **结果**：
@@ -102,7 +102,7 @@ print(f"总销售额: {df['Sales'].sum()}")
 print(f"平均销售额: {df['Sales'].mean()}")
 ```
 
-run_command: python "D:\wechat-flowwork\temp\analyze_sales.py"
+run_command: python "D:\skill-mate\temp\analyze_sales.py"
 ```
 
 **结果**：

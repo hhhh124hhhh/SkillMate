@@ -260,7 +260,7 @@ export function MCPConfigEditorRedesign({ onClose }: MCPConfigEditorRedesignProp
 
           <button
             onClick={addServer}
-            className="h-10 px-4 bg-orange-500 rounded-lg text-sm font-medium text-white hover:bg-blue-600 transition-all flex items-center gap-2 shadow-[0_2px_8px_rgba(59,130,246,0.3)]"
+            className="h-10 px-4 bg-orange-500 rounded-lg text-sm font-medium text-white hover:bg-orange-600 transition-all flex items-center gap-2 shadow-[0_2px_8px_rgba(59,130,246,0.3)]"
           >
             <Plus size={16} />
             添加服务器
@@ -595,7 +595,7 @@ export function MCPConfigEditorRedesign({ onClose }: MCPConfigEditorRedesignProp
                   </button>
                   <button
                     onClick={() => { saveCurrentServer(); handleSave(); }}
-                    className="h-10 px-4 bg-orange-500 rounded-lg text-sm font-medium text-white hover:bg-blue-600 transition-all flex items-center gap-2 shadow-[0_2px_8px_rgba(59,130,246,0.3)]"
+                    className="h-10 px-4 bg-orange-500 rounded-lg text-sm font-medium text-white hover:bg-orange-600 transition-all flex items-center gap-2 shadow-[0_2px_8px_rgba(59,130,246,0.3)]"
                   >
                     <Check size={14} />
                     保存配置
@@ -659,7 +659,7 @@ export function MCPConfigEditorRedesign({ onClose }: MCPConfigEditorRedesignProp
                         }
                       </div>
                       <div className="mt-4 pt-4 border-t border-[#2d343d]">
-                        <button className="w-full h-10 bg-orange-500 text-white rounded-lg hover:bg-blue-600 transition-all text-sm font-medium flex items-center justify-center gap-2 group-hover:shadow-[0_2px_8px_rgba(59,130,246,0.3)]">
+                        <button className="w-full h-10 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-all text-sm font-medium flex items-center justify-center gap-2 group-hover:shadow-[0_2px_8px_rgba(59,130,246,0.3)]">
                           <Plus size={14} />
                           应用模板
                         </button>

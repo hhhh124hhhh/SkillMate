@@ -359,7 +359,7 @@ export function MCPConfigEditor({ onClose }: MCPConfigEditorProps) {
                         {!server.connected && (
                           <button
                             onClick={() => handleReconnect(server.name)}
-                            className="text-xs px-2 py-1 bg-orange-500 text-white rounded hover:bg-blue-600 transition-colors"
+                            className="text-xs px-2 py-1 bg-orange-500 text-white rounded hover:bg-orange-600 transition-colors"
                             title="重新连接"
                           >
                             重试
@@ -751,7 +751,7 @@ export function MCPConfigEditor({ onClose }: MCPConfigEditorProps) {
 
                 {/* Help Text */}
                 <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                  <p className="text-xs text-blue-800 mb-2 font-medium">
+                  <p className="text-xs text-orange-800 mb-2 font-medium">
                     📚 MCP 配置说明：
                   </p>
                   <ul className="text-xs text-orange-700 space-y-1 list-disc list-inside">

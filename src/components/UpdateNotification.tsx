@@ -204,7 +204,7 @@ export function UpdateNotification() {
           <>
             <button
               onClick={handleInstallNow}
-              className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-orange-500 hover:bg-blue-600 text-white rounded-md transition-colors text-sm font-medium"
+              className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-md transition-colors text-sm font-medium"
             >
               <Zap className="w-4 h-4" />
               立即重启

@@ -97,6 +97,9 @@ const ALLOWED_CHANNELS = [
   // MCP
   'mcp:get-config',
   'mcp:save-config',
+  'mcp:get-status',
+  'mcp:reconnect',
+  'mcp:state-changed',          // MCP 状态变化广播
 
   // 技能
   'skills:list',

@@ -226,7 +226,7 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
                 </button>
                 <div className="h-full w-full flex items-center justify-center">
                     <div className="text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
                         <p className="text-slate-600">正在加载...</p>
                     </div>
                 </div>
@@ -530,7 +530,7 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
                                     console.error('[UserGuideView] Failed to set first launch:', error);
                                 });
                         }}
-                        className="bg-blue-600 text-white px-10 py-3.5 rounded-xl hover:bg-orange-700 transition-colors text-lg font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all"
+                        className="bg-orange-600 text-white px-10 py-3.5 rounded-xl hover:bg-orange-700 transition-colors text-lg font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all"
                     >
                         开始使用 →
                     </button>
@@ -560,7 +560,7 @@ function WorkflowCard({ step }: WorkflowCardProps) {
     return (
         <div className="bg-white p-5 rounded-xl border border-slate-200 hover:border-orange-300 hover:shadow-md transition-all cursor-default group">
             <div className="flex items-center gap-3 mb-3">
-                <div className="p-2.5 bg-orange-50 rounded-lg text-orange-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                <div className="p-2.5 bg-orange-50 rounded-lg text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-colors">
                     {step.icon}
                 </div>
                 <h3 className="font-bold text-slate-800">{step.name}</h3>
