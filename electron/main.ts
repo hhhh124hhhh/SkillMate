@@ -1,4 +1,5 @@
 import { app, BrowserWindow, shell, ipcMain, screen, dialog, globalShortcut, Tray, Menu, nativeImage } from 'electron'
+
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import os from 'node:os'
@@ -31,30 +32,32 @@ process.env.APP_ROOT = path.join(__dirname, '..')
 
 // Function to update .env file
 function updateEnvFile(key: string, value: string) {
-  const envPath = path.join(process.env.APP_ROOT || '', '.env')
-  
+  // 使用项目根目录或开发目录
+  const projectRoot = process.env.APP_ROOT || process.cwd();
+  const envPath = path.join(projectRoot, '.env');
+
   try {
-    if (fs.existsSync(envPath)) {
-      let content = fs.readFileSync(envPath, 'utf8')
-      const regex = new RegExp(`${key}=.*`, 'g')
-      
-      if (regex.test(content)) {
-        // Replace existing value
-        content = content.replace(regex, `${key}=${value}`)
-        log.log(`[updateEnvFile] Updated ${key} in .env file`)
-      } else {
-        // Add new value
-        content += `\n${key}=${value}`
-        log.log(`[updateEnvFile] Added ${key} to .env file`)
-      }
-      
-      fs.writeFileSync(envPath, content)
-      log.log(`[updateEnvFile] Saved ${key} to .env file`)
-    } else {
-      log.log(`[updateEnvFile] .env file not found at ${envPath}`)
+    // 确保 .env 文件存在
+    if (!fs.existsSync(envPath)) {
+      log.log(`[updateEnvFile] .env file not found at ${envPath}, creating...`);
+      fs.writeFileSync(envPath, '', 'utf8');
     }
+
+    let content = fs.readFileSync(envPath, 'utf8');
+    const regex = new RegExp(`${key}=.*`, 'g');
+
+    if (regex.test(content)) {
+      content = content.replace(regex, `${key}=${value}`);
+      log.log(`[updateEnvFile] Updated ${key} in .env file`);
+    } else {
+      content += `\n${key}=${value}`;
+      log.log(`[updateEnvFile] Added ${key} to .env file`);
+    }
+
+    fs.writeFileSync(envPath, content.trim());
+    log.log(`[updateEnvFile] Successfully saved ${key} to .env file (path: ${envPath})`);
   } catch (error) {
-    log.error(`[updateEnvFile] Failed to update .env file:`, error)
+    log.error(`[updateEnvFile] Failed to update .env file:`, error);
   }
 }
 
@@ -63,15 +66,6 @@ export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron')
 export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 'public') : RENDERER_DIST
-
-// [Fix] Set specific userData path for dev mode to avoid permission/locking issues
-if (VITE_DEV_SERVER_URL) {
-  const devUserData = path.join(process.env.APP_ROOT, '.vscode', 'electron-userdata');
-  if (!fs.existsSync(devUserData)) {
-    fs.mkdirSync(devUserData, { recursive: true });
-  }
-  app.setPath('userData', devUserData);
-}
 
 // Internal MCP Server Runner
 // MiniMax startup removed
@@ -83,12 +77,68 @@ let tray: Tray | null = null
 let agent: AgentRuntime | null = null
 let updateManager: UpdateManager | null = null
 
+// 旧 Agent 实例备份（用于回滚）
+let previousAgent: AgentRuntime | null = null
+let previousConfig: { apiKey: string; model: string; apiUrl: string } | null = null
+
 // Ball state
 let isBallExpanded = false
 const BALL_SIZE = 64
-const EXPANDED_WIDTH = 340    // Match w-80 (320px) + padding
+const EXPANDED_WIDTH = 280    // 优化宽度以适应更多屏幕位置
 const EXPANDED_HEIGHT = 480   // 增加高度以显示完整的对话界面
 
+// ========== 全局异常处理器 ==========
+// 防止未捕获异常导致进程崩溃
+process.on('uncaughtException', (error: Error) => {
+  log.error('[Fatal] Uncaught Exception:', error)
+  log.error('[Fatal] Stack:', error.stack)
+
+  // 记录崩溃现场
+  const crashInfo = {
+    timestamp: new Date().toISOString(),
+    error: error.message,
+    stack: error.stack,
+    config: configStore.getAll()
+  }
+
+  // 保存崩溃日志到文件
+  try {
+    const crashLogPath = path.join(os.homedir(), '.aiagent', 'crash-logs.json')
+    fs.mkdirSync(path.dirname(crashLogPath), { recursive: true })
+    const crashLogs = JSON.parse(fs.readFileSync(crashLogPath, 'utf8') || '[]')
+    crashLogs.push(crashInfo)
+    fs.writeFileSync(crashLogPath, JSON.stringify(crashLogs.slice(-10), null, 2))
+    log.log('[Fatal] Crash log saved to:', crashLogPath)
+  } catch (logError) {
+    log.error('[Fatal] Failed to save crash log:', logError)
+  }
+
+  // 向所有窗口显示错误通知
+  BrowserWindow.getAllWindows().forEach(win => {
+    if (!win.isDestroyed()) {
+      win.webContents.send('app:crash', {
+        message: '应用遇到了严重错误',
+        error: error.message
+      })
+    }
+  })
+
+  // 不退出进程，保持应用运行
+  log.warn('[Fatal] Process survived uncaught exception')
+})
+
+process.on('unhandledRejection', (reason: unknown) => {
+  log.error('[Fatal] Unhandled Promise Rejection:', reason)
+
+  if (reason instanceof Error) {
+    log.error('[Fatal] Stack:', reason.stack)
+  }
+
+  // 不退出进程，保持应用运行
+  log.warn('[Fatal] Process survived unhandled rejection')
+})
+
+// Register app event listeners
 app.on('before-quit', () => {
   app.isQuitting = true
 })
@@ -106,6 +156,15 @@ app.on('activate', () => {
 })
 
 app.whenReady().then(async () => {
+  // [Fix] Set specific userData path for dev mode to avoid permission/locking issues
+  if (VITE_DEV_SERVER_URL) {
+    const devUserData = path.join(process.env.APP_ROOT, '.vscode', 'electron-userdata');
+    if (!fs.existsSync(devUserData)) {
+      fs.mkdirSync(devUserData, { recursive: true });
+    }
+    app.setPath('userData', devUserData);
+  }
+
   // Set App User Model ID for Windows notifications
   app.setAppUserModelId('com.wechatflowwork.app')
 
@@ -218,14 +277,6 @@ ipcMain.handle('agent:abort', () => {
   agent?.abort()
 })
 
-ipcMain.handle('agent:confirm-response', (_, { id, approved, remember, tool, path }: { id: string, approved: boolean, remember?: boolean, tool?: string, path?: string }) => {
-  if (approved && remember && tool) {
-    configStore.addPermission(tool, path)
-    log.log(`[Permission] Saved: ${tool} for path: ${path || '*'}`)
-  }
-  agent?.handleConfirmResponse(id, approved)
-})
-
 ipcMain.handle('agent:new-session', () => {
   agent?.clearHistory()
   const session = sessionStore.createSession()
@@ -286,19 +337,33 @@ ipcMain.handle('agent:get-authorized-folders', () => {
   return configStore.getAll().authorizedFolders || []
 })
 
-// Permission Management
-ipcMain.handle('permissions:list', () => {
-  return configStore.getAllowedPermissions()
+// ========== 信任项目管理 IPC 处理器 ==========
+
+import { permissionManager } from './agent/security/PermissionManager.js'
+
+ipcMain.handle('permissions:trust-project', async (_event, projectPath: string) => {
+  log.log('[permissions:trust-project] Trusting project:', projectPath)
+  const success = permissionManager.trustProject(projectPath)
+  return { success }
 })
 
-ipcMain.handle('permissions:revoke', (_, { tool, pathPattern }: { tool: string, pathPattern?: string }) => {
-  configStore.removePermission(tool, pathPattern)
+ipcMain.handle('permissions:revoke-trust', async (_event, projectPath: string) => {
+  log.log('[permissions:revoke-trust] Revoking trust for project:', projectPath)
+  permissionManager.revokeTrust(projectPath)
   return { success: true }
 })
 
-ipcMain.handle('permissions:clear', () => {
-  configStore.clearAllPermissions()
-  return { success: true }
+ipcMain.handle('permissions:get-trusted-projects', async () => {
+  const projects = permissionManager.getTrustedProjects()
+  log.log('[permissions:get-trusted-projects] Returning', projects.length, 'trusted projects')
+  return projects
+})
+
+ipcMain.on('agent:delete-confirmation', async (_event, { id, approved }: { id: string, approved: boolean }) => {
+  log.log('[agent:delete-confirmation] Received confirmation for', id, 'approved:', approved)
+  if (agent) {
+    agent.handleDeleteConfirmation(id, approved)
+  }
 })
 
 // File system operations for drag and drop
@@ -393,6 +458,9 @@ ipcMain.handle('config:set-all', async (_, cfg) => {
     hasApiKey: !!cfg.apiKey
   })
 
+  // ✅ 获取旧配置，用于判断是否需要重启 Agent
+  const oldConfig = configStore.getAll()
+
   // 分别处理每个配置项，避免一个失败影响全部
   const saveErrors: Array<{field: string, error: string}> = []
 
@@ -412,8 +480,9 @@ ipcMain.handle('config:set-all', async (_, cfg) => {
   try {
     if (cfg.doubaoApiKey !== undefined) {
       await configStore.setDoubaoApiKey(cfg.doubaoApiKey)
-      // Update .env file
-      updateEnvFile('DOUBAO_API_KEY', cfg.doubaoApiKey)
+      // ✅ 移除 .env 文件更新，避免触发 Vite 重启（开发模式）
+      // 配置已通过 electron-store 持久化，环境变量直接注入到 process.env
+      // updateEnvFile('DOUBAO_API_KEY', cfg.doubaoApiKey)
     }
   } catch (error) {
     const errorMsg = (error as Error).message
@@ -552,8 +621,59 @@ ipcMain.handle('config:set-all', async (_, cfg) => {
     authorizedFoldersCount: savedConfig.authorizedFolders?.length || 0
   })
 
-  // Reinitialize agent
-  await initializeAgent()
+  // ✅ 仅在关键配置变化时重启 Agent（忽略 undefined 值）
+  log.log('[config:set-all] ⚠️ Config comparison details:', {
+    cfgApiKey: cfg.apiKey ? '***' + cfg.apiKey.slice(-4) : 'undefined',
+    oldApiKey: oldConfig.apiKey ? '***' + oldConfig.apiKey.slice(-4) : 'value',
+    apiKeyChanged: cfg.apiKey !== oldConfig.apiKey,
+    cfgApiUrl: cfg.apiUrl,
+    oldApiUrl: oldConfig.apiUrl,
+    apiUrlChanged: cfg.apiUrl !== oldConfig.apiUrl,
+    cfgModel: cfg.model,
+    oldModel: oldConfig.model,
+    modelChanged: cfg.model !== oldConfig.model
+  })
+
+  // ✅ 仅在实际有值变更时才重启 Agent（忽略 undefined 和空字符串）
+  const shouldRestartAgent =
+    (cfg.apiKey !== undefined && cfg.apiKey !== oldConfig.apiKey && cfg.apiKey !== '') ||
+    (cfg.apiUrl !== undefined && cfg.apiUrl !== oldConfig.apiUrl && cfg.apiUrl !== '') ||
+    (cfg.model !== undefined && cfg.model !== oldConfig.model && cfg.model !== '')
+
+  log.log('[config:set-all] shouldRestartAgent:', shouldRestartAgent)
+
+  if (shouldRestartAgent) {
+    log.log('[config:set-all] Reinitializing agent...')
+
+    // ✅ 检查 Agent 重启结果
+    const result = await initializeAgent()
+
+    if (!result.success) {
+      log.error('[config:set-all] Agent restart failed:', result.error)
+
+      // ✅ 返回失败信息给前端
+      return {
+        success: false,
+        errors: saveErrors,
+        agentRestarted: false,
+        agentError: result.error || 'Agent 初始化失败'
+      }
+    }
+
+    log.log('[config:set-all] ✓ Agent restart successful')
+  } else {
+    log.log('[config:set-all] Non-key config changed, skipping agent restart')
+
+    // 更新环境变量
+    if (cfg.doubaoApiKey !== oldConfig.doubaoApiKey && cfg.doubaoApiKey) {
+      process.env.DOUBAO_API_KEY = cfg.doubaoApiKey
+      log.log('[config:set-all] Updated DOUBAO_API_KEY environment variable')
+    }
+    if (cfg.zhipuApiKey !== oldConfig.zhipuApiKey && cfg.zhipuApiKey) {
+      process.env.ZHIPU_API_KEY = cfg.zhipuApiKey
+      log.log('[config:set-all] Updated ZHIPU_API_KEY environment variable')
+    }
+  }
 
   // 广播配置更新事件到所有窗口
   BrowserWindow.getAllWindows().forEach(win => {
@@ -563,7 +683,8 @@ ipcMain.handle('config:set-all', async (_, cfg) => {
 
   return {
     success: saveErrors.length === 0,
-    errors: saveErrors
+    errors: saveErrors,
+    agentRestarted: shouldRestartAgent  // ✅ 返回是否重启了 Agent
   }
 })
 
@@ -687,7 +808,9 @@ ipcMain.handle('config:analyze-style', async (_event, { articlePaths }: { articl
         env: {
           ...process.env,
           PYTHONIOENCODING: 'utf-8'
-        }
+        },
+        timeout: 30000, // 30 秒超时
+        shell: false // 🔒 禁用 shell，防止命令注入
       })
 
       let stdout = ''
@@ -969,13 +1092,21 @@ ipcMain.handle('python:install-dependency', async (_, packageName: string) => {
     const { spawn } = await import('child_process');
 
     return new Promise((resolve, reject) => {
+      // 🔒 安全检查：验证包名格式，防止命令注入
+      const packageNamePattern = /^[a-zA-Z0-9_-]+$/;
+      if (!packageNamePattern.test(packageName)) {
+        reject(new Error(`Invalid package name: ${packageName}`));
+        return;
+      }
+
       const proc = spawn(pythonExe, ['-m', 'pip', 'install', packageName], {
         env: {
           ...process.env,
           PYTHONPATH: libPath,
           PYTHONIOENCODING: 'utf-8'
         },
-        shell: true,
+        timeout: 120000, // 2 分钟超时
+        shell: false, // 🔒 禁用 shell，防止命令注入
         cwd: libPath
       });
 
@@ -1166,7 +1297,8 @@ ipcMain.handle('window:close', async () => {
 })
 
 // MCP Configuration Handlers
-const mcpConfigPath = path.join(os.homedir(), '.wechatflowwork', 'mcp.json');
+// 统一使用 .aiagent 目录，与 MCPClientService 保持一致
+const mcpConfigPath = path.join(os.homedir(), '.aiagent', 'mcp.json');
 
 ipcMain.handle('mcp:get-config', async () => {
   try {
@@ -1178,16 +1310,56 @@ ipcMain.handle('mcp:get-config', async () => {
   }
 });
 
+// 🔧 读取 MCP 模板配置
+ipcMain.handle('mcp:get-templates', async () => {
+  try {
+    console.log('[mcp:get-templates] IPC handler called');
+
+    // 根据环境决定模板文件路径
+    let templatePath: string;
+    if (app.isPackaged) {
+      // 生产环境：使用打包后的资源路径
+      templatePath = path.join(process.resourcesPath, 'resources', 'mcp-templates.json');
+    } else {
+      // 开发环境：使用项目根目录
+      templatePath = path.join(process.cwd(), 'resources', 'mcp-templates.json');
+    }
+
+    console.log('[mcp:get-templates] Template path:', templatePath);
+    console.log('[mcp:get-templates] File exists:', fs.existsSync(templatePath));
+
+    if (!fs.existsSync(templatePath)) {
+      log.warn('[mcp:get-templates] Template file not found:', templatePath);
+      console.warn('[mcp:get-templates] Returning empty template');
+      return JSON.stringify({ mcpServers: {} });
+    }
+
+    const content = fs.readFileSync(templatePath, 'utf-8');
+    console.log('[mcp:get-templates] Read content length:', content.length);
+    console.log('[mcp:get-templates] Returning content preview:', content.substring(0, 100));
+    return content;
+  } catch (e) {
+    log.error('[mcp:get-templates] Failed to read template file:', e);
+    console.error('[mcp:get-templates] Error:', e);
+    return JSON.stringify({ mcpServers: {} });
+  }
+});
+
 ipcMain.handle('mcp:save-config', async (_, content: string) => {
   try {
     const dir = path.dirname(mcpConfigPath);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(mcpConfigPath, content, 'utf-8');
 
-    // Update agent services
+    // 🔥 热重载：重新加载 MCP 服务
     if (agent) {
-      // We might need to reload MCP client here, but for now just saving is enough.
-      // The user might need to restart app or we can add a reload capability later.
+      try {
+        await agent.getMCPService().reloadAllServers();
+        log.log('[mcp:save-config] ✅ MCP servers reloaded successfully');
+      } catch (reloadError) {
+        log.error('[mcp:save-config] ⚠️ Failed to reload MCP servers:', reloadError);
+        // 不抛出错误，允许保存成功但记录重载失败
+      }
     }
     return { success: true };
   } catch (e) {
@@ -1196,18 +1368,94 @@ ipcMain.handle('mcp:save-config', async (_, content: string) => {
   }
 });
 
+// 🔧 修复不完整的 MCP 配置
+ipcMain.handle('mcp:repair-config', async () => {
+  try {
+    // 读取用户配置
+    const userConfigContent = fs.existsSync(mcpConfigPath)
+      ? fs.readFileSync(mcpConfigPath, 'utf-8')
+      : '{}';
+    const userConfig = JSON.parse(userConfigContent || '{}');
+
+    // 读取模板配置
+    const templatesPath = path.join(process.env.APP_ROOT || '', 'resources', 'mcp-templates.json');
+    if (!fs.existsSync(templatesPath)) {
+      return { success: false, error: '模板配置文件不存在' };
+    }
+    const templatesContent = fs.readFileSync(templatesPath, 'utf-8');
+    const templatesConfig = JSON.parse(templatesContent);
+
+    let repairedCount = 0;
+    const repairedServers: string[] = [];
+
+    // 遍历用户配置中的每个服务器
+    for (const [serverName, serverConfig] of Object.entries(userConfig.mcpServers || {})) {
+      const config = serverConfig as any;
+
+      // 检查配置是否完整（缺少 command 或 args）
+      if (!config.command || !config.args) {
+        // 从模板中查找完整配置
+        if (templatesConfig.mcpServers && templatesConfig.mcpServers[serverName]) {
+          const template = templatesConfig.mcpServers[serverName] as any;
+
+          // 保留用户的 disabled 状态
+          const wasDisabled = config.disabled;
+          const userEnv = config.env || {};
+
+          // 用模板配置替换不完整配置
+          userConfig.mcpServers[serverName] = {
+            ...template,
+            // 保留用户的设置
+            disabled: wasDisabled !== undefined ? wasDisabled : template.disabled,
+            // 如果用户有自定义 env，则合并（用户值优先）
+            env: { ...template.env, ...userEnv }
+          };
+
+          repairedCount++;
+          repairedServers.push(serverName);
+          log.log(`[MCP] ✅ Repaired config for ${serverName}`);
+        } else {
+          log.warn(`[MCP] ⚠️ No template found for ${serverName}, removing incomplete config`);
+          delete userConfig.mcpServers[serverName];
+        }
+      }
+    }
+
+    // 保存修复后的配置
+    const dir = path.dirname(mcpConfigPath);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(mcpConfigPath, JSON.stringify(userConfig, null, 2), 'utf-8');
+
+    log.log(`[MCP] ✅ Repaired ${repairedCount} server(s): ${repairedServers.join(', ')}`);
+
+    return {
+      success: true,
+      repairedCount,
+      repairedServers,
+      newConfig: JSON.stringify(userConfig, null, 2)
+    };
+  } catch (e) {
+    log.error('[MCP] Failed to repair config:', e);
+    return { success: false, error: (e as Error).message };
+  }
+});
+
 // Skills Management Handlers
-const skillsDir = path.join(os.homedir(), '.opencowork', 'skills');
+// Helper to get built-in skills directory path
+const getBuiltinSkillsDir = () => {
+  let sourceDir = path.join(process.cwd(), 'resources', 'skills');
+  if (app.isPackaged) {
+    const possiblePath = path.join(process.resourcesPath, 'resources', 'skills');
+    if (fs.existsSync(possiblePath)) sourceDir = possiblePath;
+    else sourceDir = path.join(process.resourcesPath, 'skills');
+  }
+  return sourceDir;
+};
 
 // Helper to get built-in skill names
 const getBuiltinSkillNames = () => {
   try {
-    let sourceDir = path.join(process.cwd(), 'resources', 'skills');
-    if (app.isPackaged) {
-      const possiblePath = path.join(process.resourcesPath, 'resources', 'skills');
-      if (fs.existsSync(possiblePath)) sourceDir = possiblePath;
-      else sourceDir = path.join(process.resourcesPath, 'skills');
-    }
+    const sourceDir = getBuiltinSkillsDir();
     if (fs.existsSync(sourceDir)) {
       return fs.readdirSync(sourceDir).filter(f => fs.statSync(path.join(sourceDir, f)).isDirectory());
     }
@@ -1217,18 +1465,63 @@ const getBuiltinSkillNames = () => {
 
 ipcMain.handle('skills:list', async () => {
   try {
-    if (!fs.existsSync(skillsDir)) return [];
-    const builtinSkills = getBuiltinSkillNames();
-    const files = fs.readdirSync(skillsDir);
+    const skills = [];
+    const builtinSkills = new Set<string>();
 
-    return files.filter(f => {
-      try { return fs.statSync(path.join(skillsDir, f)).isDirectory(); } catch { return false; }
-    }).map(f => ({
-      id: f,
-      name: f,
-      path: path.join(skillsDir, f),
-      isBuiltin: builtinSkills.includes(f)
-    }));
+    // 1. 扫描内置技能目录
+    const builtinSkillsDir = getBuiltinSkillsDir();
+    log.log(`[skills:list] Builtin skills dir: ${builtinSkillsDir}`);
+    log.log(`[skills:list] Directory exists: ${fs.existsSync(builtinSkillsDir)}`);
+
+    if (fs.existsSync(builtinSkillsDir)) {
+      const files = fs.readdirSync(builtinSkillsDir);
+      log.log(`[skills:list] Found ${files.length} entries in builtin dir`);
+
+      for (const f of files) {
+        const filePath = path.join(builtinSkillsDir, f);
+        try {
+          if (fs.statSync(filePath).isDirectory()) {
+            builtinSkills.add(f);
+            skills.push({
+              id: f,
+              name: f,
+              path: filePath,
+              isBuiltin: true
+            });
+          }
+        } catch { continue; }
+      }
+
+      log.log(`[skills:list] Found ${skills.length} builtin skills`);
+    } else {
+      log.warn(`[skills:list] Builtin skills directory does not exist: ${builtinSkillsDir}`);
+    }
+
+    // 2. 扫描用户技能目录
+    const userSkillsDir = path.join(os.homedir(), '.aiagent', 'skills');
+    log.log(`[skills:list] User skills dir: ${userSkillsDir}`);
+
+    if (fs.existsSync(userSkillsDir)) {
+      const files = fs.readdirSync(userSkillsDir);
+      for (const f of files) {
+        const filePath = path.join(userSkillsDir, f);
+        try {
+          if (fs.statSync(filePath).isDirectory()) {
+            skills.push({
+              id: f,
+              name: f,
+              path: filePath,
+              isBuiltin: false
+            });
+          }
+        } catch { continue; }
+      }
+
+      log.log(`[skills:list] Found ${skills.filter(s => !s.isBuiltin).length} user skills`);
+    }
+
+    log.log(`[skills:list] Total skills to return: ${skills.length}`);
+    return skills;
   } catch (e) {
     log.error('Failed to list skills:', e);
     return [];
@@ -1237,12 +1530,20 @@ ipcMain.handle('skills:list', async () => {
 
 ipcMain.handle('skills:get', async (_, skillId: string) => {
   try {
-    const skillPath = path.join(skillsDir, skillId);
+    // 尝试从内置技能目录读取
+    const builtinSkillsDir = getBuiltinSkillsDir();
+    let skillPath = path.join(builtinSkillsDir, skillId);
+    if (!fs.existsSync(skillPath)) {
+      // 如果不存在，尝试从用户技能目录读取
+      const userSkillsDir = path.join(os.homedir(), '.aiagent', 'skills');
+      skillPath = path.join(userSkillsDir, skillId);
+    }
+
     if (!fs.existsSync(skillPath)) return '';
 
     // Look for MD file inside
     const files = fs.readdirSync(skillPath);
-    const mdFile = files.find(f => f.toLowerCase().endsWith('.md'));
+    const mdFile = files.find(f => f.toLowerCase() === 'skill.md' || f.toLowerCase().endsWith('.md'));
 
     if (!mdFile) return '';
     return fs.readFileSync(path.join(skillPath, mdFile), 'utf-8');
@@ -1262,6 +1563,12 @@ ipcMain.handle('skills:save', async (_event, skillId: string, content: string) =
     await fs.writeFile(skillPath, content, 'utf-8' as any);
 
     log.log(`[skills:save] Saved skill: ${skillId}`);
+
+    // ✨ 重新加载技能列表
+    if (agent) {
+      await agent.getSkillManager().loadSkills();
+    }
+
     return { success: true };
   } catch (error) {
     log.error('[skills:save] Error:', error);
@@ -1286,6 +1593,85 @@ ipcMain.handle('skills:delete', async (_event, skillId: string) => {
   } catch (error) {
     log.error('[skills:delete] Error:', error);
     return { success: false, error: (error as Error).message };
+  }
+});
+
+// ✨ 新增：技能导入/导出相关处理器
+ipcMain.handle('skills:import-file', async (_event, filePath: string) => {
+  try {
+    if (!agent) {
+      return { success: false, error: 'Agent 未初始化' };
+    }
+
+    const result = await agent.getSkillManager().importSkillFromFile(filePath);
+    log.log(`[skills:import-file] Imported from: ${filePath}`);
+    return result;
+  } catch (error) {
+    log.error('[skills:import-file] Error:', error);
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+ipcMain.handle('skills:import-url', async (_event, url: string) => {
+  try {
+    if (!agent) {
+      return { success: false, error: 'Agent 未初始化' };
+    }
+
+    const result = await agent.getSkillManager().importSkillFromURL(url);
+    log.log(`[skills:import-url] Imported from URL: ${url}`);
+    return result;
+  } catch (error) {
+    log.error('[skills:import-url] Error:', error);
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+ipcMain.handle('skills:import-github', async (_event, repoUrl: string) => {
+  try {
+    if (!agent) {
+      return { success: false, error: 'Agent 未初始化' };
+    }
+
+    const result = await agent.getSkillManager().importSkillFromGitHub(repoUrl);
+    log.log(`[skills:import-github] Imported from GitHub: ${repoUrl}`);
+    return result;
+  } catch (error) {
+    log.error('[skills:import-github] Error:', error);
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+ipcMain.handle('skills:export', async (_event, skillId: string, outputPath: string) => {
+  try {
+    if (!agent) {
+      return { success: false, error: 'Agent 未初始化' };
+    }
+
+    const result = await agent.getSkillManager().exportSkill(skillId, outputPath);
+    log.log(`[skills:export] Exported skill: ${skillId} to ${outputPath}`);
+    return result;
+  } catch (error) {
+    log.error('[skills:export] Error:', error);
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+ipcMain.handle('skills:validate', async (_event, content: string) => {
+  try {
+    if (!agent) {
+      return { valid: false, errors: ['Agent 未初始化'], warnings: [] };
+    }
+
+    const result = agent.getSkillManager().validateSkill(content);
+    return result;
+  } catch (error) {
+    log.error('[skills:validate] Error:', error);
+    return {
+      valid: false,
+      errors: [(error as Error).message],
+      warnings: []
+    };
   }
 });
 
@@ -1539,58 +1925,245 @@ ipcMain.handle('mcp:reconnect', async (_event, name: string) => {
   }
 });
 
-
-async function initializeAgent() {
-  const apiKey = await configStore.getApiKey() || process.env.ANTHROPIC_API_KEY
-
-  // 注入豆包 API Key 到环境变量,供 Skills 使用
-  const doubaoApiKey = await configStore.getDoubaoApiKey()
-  if (doubaoApiKey) {
-    process.env.DOUBAO_API_KEY = doubaoApiKey
-    log.log('Doubao API Key已配置并注入到环境变量')
+// MCP 重新加载所有服务器 IPC 处理器
+ipcMain.handle('mcp:reload-all', async () => {
+  if (!agent) {
+    return { success: false, error: 'Agent not initialized' };
   }
 
-  // 注入智谱 API Key 到环境变量,供 Skills 使用
-  const zhipuApiKey = await configStore.getZhipuApiKey()
-  if (zhipuApiKey) {
-    process.env.ZHIPU_API_KEY = zhipuApiKey
-    log.log('Zhipu API Key已配置并注入到环境变量')
+  try {
+    await agent.getMCPService().reloadAllServers();
+    return { success: true };
+  } catch (error) {
+    log.error('[mcp:reload-all] Failed to reload all MCP servers:', error);
+    return { success: false, error: String(error) };
+  }
+});
+
+// MCP 自定义服务器管理 IPC 处理器
+ipcMain.handle('mcp:add-custom-server', async (_event, name: string, config: any) => {
+  if (!agent) {
+    return { success: false, error: 'Agent not initialized' };
   }
 
-  if (apiKey && mainWin) {
-    agent = new AgentRuntime(apiKey, mainWin, configStore.getModel(), configStore.getApiUrl())
-    // Add floating ball window to receive updates
+  try {
+    const success = await agent.getMCPService().addCustomServer(name, config);
+    return { success };
+  } catch (error) {
+    log.error('[mcp:add-custom-server] Failed to add custom server:', error);
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+ipcMain.handle('mcp:update-custom-server', async (_event, name: string, config: any) => {
+  if (!agent) {
+    return { success: false, error: 'Agent not initialized' };
+  }
+
+  try {
+    const success = await agent.getMCPService().updateCustomServer(name, config);
+    return { success };
+  } catch (error) {
+    log.error('[mcp:update-custom-server] Failed to update custom server:', error);
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+ipcMain.handle('mcp:remove-custom-server', async (_event, name: string) => {
+  if (!agent) {
+    return { success: false, error: 'Agent not initialized' };
+  }
+
+  try {
+    const success = await agent.getMCPService().removeCustomServer(name);
+    return { success };
+  } catch (error) {
+    log.error('[mcp:remove-custom-server] Failed to remove custom server:', error);
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+ipcMain.handle('mcp:get-custom-servers', async () => {
+  if (!agent) {
+    return {};
+  }
+
+  try {
+    const servers = agent.getMCPService().getCustomServers();
+    return servers;
+  } catch (error) {
+    log.error('[mcp:get-custom-servers] Failed to get custom servers:', error);
+    return {};
+  }
+});
+
+ipcMain.handle('mcp:test-connection', async (_event, name: string, config: any) => {
+  if (!agent) {
+    return { success: false, error: 'Agent not initialized' };
+  }
+
+  try {
+    const result = await agent.getMCPService().testConnection(name, config);
+    return result;
+  } catch (error) {
+    log.error('[mcp:test-connection] Failed to test connection:', error);
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+ipcMain.handle('mcp:validate-config', async (_event, config: any) => {
+  if (!agent) {
+    return { valid: false, errors: ['Agent not initialized'], warnings: [] };
+  }
+
+  try {
+    const result = agent.getMCPService().validateConfig(config);
+    return result;
+  } catch (error) {
+    log.error('[mcp:validate-config] Failed to validate config:', error);
+    return { valid: false, errors: [(error as Error).message], warnings: [] };
+  }
+});
+
+
+async function initializeAgent(): Promise<{ success: boolean; error?: string }> {
+  const startTime = Date.now()
+  log.log('[initializeAgent] =======================================')
+  log.log('[initializeAgent] Starting Agent initialization...')
+
+  try {
+    const apiKey = await configStore.getApiKey() || process.env.ANTHROPIC_API_KEY
+    const model = configStore.getModel()
+    const apiUrl = configStore.getApiUrl()
+
+    if (!apiKey || !mainWin) {
+      log.warn('[initializeAgent] Missing required config, skipping initialization')
+      return { success: false, error: 'Missing API Key or main window' }
+    }
+
+    // ✅ 步骤 1: 备份旧 Agent 和配置
+    if (agent) {
+      previousAgent = agent
+      previousConfig = { apiKey, model, apiUrl }
+      log.log('[initializeAgent] Backed up previous Agent instance')
+    }
+
+    // ✅ 步骤 2: 注入环境变量
+    const doubaoApiKey = await configStore.getDoubaoApiKey()
+    if (doubaoApiKey) {
+      process.env.DOUBAO_API_KEY = doubaoApiKey
+      log.log('[initializeAgent] ✅ DOUBAO_API_KEY injected (length: ' + doubaoApiKey.length + ')')
+    } else {
+      log.log('[initializeAgent] ⚠️ No DOUBAO_API_KEY found')
+    }
+
+    const zhipuApiKey = await configStore.getZhipuApiKey()
+    if (zhipuApiKey) {
+      process.env.ZHIPU_API_KEY = zhipuApiKey
+      log.log('[initializeAgent] ✅ ZHIPU_API_KEY injected (length: ' + zhipuApiKey.length + ')')
+    } else {
+      log.log('[initializeAgent] ⚠️ No ZHIPU_API_KEY found')
+    }
+
+    // ✅ 步骤 3: 创建新 Agent 实例
+    log.log('[initializeAgent] Creating new AgentRuntime instance...')
+    agent = new AgentRuntime(apiKey, mainWin, model, apiUrl)
+
     if (floatingBallWin) {
       agent.addWindow(floatingBallWin)
     }
     (global as Record<string, unknown>).agent = agent
 
-    // 自动加载当前会话的历史记录
+    // ✅ 步骤 4: 加载历史消息
     const currentSessionId = sessionStore.getCurrentSessionId()
     if (currentSessionId) {
       const session = sessionStore.getSession(currentSessionId)
       if (session && session.messages.length > 0) {
-        log.log(`[Main] Auto-loading session: ${session.title} (${session.messages.length} messages)`)
+        log.log(`[initializeAgent] Auto-loading session: ${session.title}`)
         agent.loadHistory(session.messages)
       } else {
-        log.log('[Main] Current session is empty, starting fresh')
+        log.log('[initializeAgent] Current session is empty, starting fresh')
       }
     } else {
-      log.log('[Main] No current session found, starting fresh')
+      log.log('[initializeAgent] No current session found, starting fresh')
     }
 
-    // 等待 Agent 完全初始化（包括命令系统）
-    try {
-      await agent.initialize();
-      log.log('[Main] Agent initialization completed, commands ready');
-    } catch (err) {
-      log.error('[Main] Agent initialization failed:', err);
+    // ✅ 步骤 5: 初始化命令系统（带超时保护）
+    log.log('[initializeAgent] Initializing Agent...')
+    const initPromise = agent.initialize()
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Agent initialization timeout (30s)')), 30000)
+    )
+
+    await Promise.race([initPromise, timeoutPromise])
+    log.log('[initializeAgent] ✓ Agent initialized successfully')
+
+    // ✅ 步骤 6: 清理旧实例
+    previousAgent = null
+    previousConfig = null
+
+    const elapsed = Date.now() - startTime
+    log.log(`[initializeAgent] ✓ Completed in ${elapsed}ms`)
+    log.log('[initializeAgent] Model:', model)
+    log.log('[initializeAgent] API URL:', apiUrl)
+    log.log('[initializeAgent] =======================================')
+
+    // 通知所有窗口 Agent 已就绪
+    BrowserWindow.getAllWindows().forEach(win => {
+      if (!win.isDestroyed()) {
+        win.webContents.send('agent:ready')
+      }
+    })
+
+    return { success: true }
+
+  } catch (error) {
+    const elapsed = Date.now() - startTime
+    const errorMsg = (error as Error).message
+    const errorStack = (error as Error).stack
+
+    log.error(`[initializeAgent] ✗ Failed after ${elapsed}ms:`, errorMsg)
+    log.error('[initializeAgent] Stack:', errorStack)
+
+    // ✅ 回滚到旧 Agent 实例
+    if (previousAgent && previousConfig) {
+      log.log('[initializeAgent] Rolling back to previous Agent instance...')
+      agent = previousAgent
+      (global as Record<string, unknown>).agent = agent
+
+      // 恢复配置
+      if (previousConfig.apiKey) await configStore.setApiKey(previousConfig.apiKey)
+      if (previousConfig.model) configStore.setModel(previousConfig.model)
+      if (previousConfig.apiUrl) configStore.setApiUrl(previousConfig.apiUrl)
+
+      log.log('[initializeAgent] ✓ Rollback completed')
+
+      // 通知用户
+      BrowserWindow.getAllWindows().forEach(win => {
+        if (!win.isDestroyed()) {
+          win.webContents.send('agent:restart-failed', {
+            error: 'Agent 初始化失败，已恢复到之前的配置',
+            rolledBack: true
+          })
+        }
+      })
+
+      return { success: false, error: errorMsg }
     }
 
-    log.log('Agent initialized with model:', configStore.getModel())
-    log.log('API URL:', configStore.getApiUrl())
-  } else {
-    log.warn('No API Key found. Please configure in Settings.')
+    // 没有旧实例可回退，Agent 处于不可用状态
+    log.error('[initializeAgent] No previous Agent to rollback to, Agent is unavailable')
+
+    BrowserWindow.getAllWindows().forEach(win => {
+      if (!win.isDestroyed()) {
+        win.webContents.send('agent:restart-failed', {
+          error: 'Agent 初始化失败，请重新配置',
+          rolledBack: false
+        })
+      }
+    })
+
+    return { success: false, error: errorMsg }
   }
 }
 
@@ -1659,8 +2232,8 @@ function createMainWindow() {
       preload: preloadPath,
       // 🔒 安全配置
       contextIsolation: true,          // 启用上下文隔离（防止渲染进程访问 Node.js）
-      nodeIntegration: false,           // 禁用 Node.js 集成（默认值，显式声明）
-      sandbox: false,                   // 暂时禁用沙箱（preload 需要访问 Node.js 的某些功能）
+      nodeIntegration: false,           // 禁用 Node.js 集成
+      sandbox: false,                   // ⚠️ 暂时禁用沙箱（待后续调试启用）
       webSecurity: true,                // 启用 Web 安全策略
       allowRunningInsecureContent: false, // 禁止 HTTPS 页面加载 HTTP 资源
     },
@@ -1726,7 +2299,7 @@ function createFloatingBallWindow() {
       // 🔒 安全配置
       contextIsolation: true,          // 启用上下文隔离
       nodeIntegration: false,           // 禁用 Node.js 集成
-      sandbox: false,                   // 暂时禁用沙箱
+      sandbox: false,                   // ⚠️ 暂时禁用沙箱（待后续调试启用）
       webSecurity: true,                // 启用 Web 安全策略
       allowRunningInsecureContent: false, // 禁止混合内容
     },

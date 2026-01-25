@@ -10,15 +10,13 @@
  */
 
 import type { UpdateInfo } from 'electron-updater'
-import pkg from 'electron-updater'
 import { BrowserWindow, app } from 'electron'
 import log from 'electron-log'
-
-const { autoUpdater } = pkg
 
 export class UpdateManager {
   private mainWindow: BrowserWindow | null = null
   private isDownloading = false
+  private autoUpdater: any = null
 
   constructor(mainWindow: BrowserWindow) {
     this.mainWindow = mainWindow
@@ -26,34 +24,43 @@ export class UpdateManager {
     this.registerEvents()
   }
 
+  private getAutoUpdater() {
+    if (!this.autoUpdater) {
+      // 延迟导入 autoUpdater，确保 app 已经 ready
+      const pkg = require('electron-updater')
+      this.autoUpdater = pkg.autoUpdater
+    }
+    return this.autoUpdater
+  }
+
   private configureUpdater() {
     // GitHub Releases 配置
-    autoUpdater.setFeedURL({
+    this.getAutoUpdater().setFeedURL({
       provider: 'github',
       owner: 'hhhh124hhhh',
       repo: 'skill-mate'
     })
 
     // 自动下载更新
-    autoUpdater.autoDownload = true
+    this.getAutoUpdater().autoDownload = true
 
     // 退出时自动安装（无感升级关键）
-    autoUpdater.autoInstallOnAppQuit = true
+    this.getAutoUpdater().autoInstallOnAppQuit = true
 
     // 开发环境禁用更新
     if (process.env.NODE_ENV === 'development') {
-      autoUpdater.autoDownload = false
+      this.getAutoUpdater().autoDownload = false
       log.log('[Update] Auto-update disabled in development mode')
     }
 
     // 配置日志
     log.transports.file.level = 'info'
-    autoUpdater.logger = log
+    this.getAutoUpdater().logger = log
   }
 
   private registerEvents() {
     // 发现更新
-    autoUpdater.on('update-available', (info: UpdateInfo) => {
+    this.getAutoUpdater().on('update-available', (info: UpdateInfo) => {
       log.log('[Update] Update available:', info.version)
 
       this.mainWindow?.webContents.send('update:available', {
@@ -66,7 +73,7 @@ export class UpdateManager {
     })
 
     // 更新已下载
-    autoUpdater.on('update-downloaded', (info: UpdateInfo) => {
+    this.getAutoUpdater().on('update-downloaded', (info: UpdateInfo) => {
       log.log('[Update] Update downloaded:', info.version)
       this.isDownloading = false
 
@@ -79,7 +86,7 @@ export class UpdateManager {
     })
 
     // 下载进度
-    autoUpdater.on('download-progress', (progress) => {
+    this.getAutoUpdater().on('download-progress', (progress) => {
       log.log(`[Update] Download progress: ${progress.percent}%`)
 
       this.mainWindow?.webContents.send('update:progress', {
@@ -91,7 +98,7 @@ export class UpdateManager {
     })
 
     // 无更新
-    autoUpdater.on('update-not-available', (info: UpdateInfo) => {
+    this.getAutoUpdater().on('update-not-available', (info: UpdateInfo) => {
       log.log('[Update] No update available, current version:', info.version)
 
       this.mainWindow?.webContents.send('update:not-available', {
@@ -102,7 +109,7 @@ export class UpdateManager {
     })
 
     // 错误处理
-    autoUpdater.on('error', (error: Error) => {
+    this.getAutoUpdater().on('error', (error: Error) => {
       log.error('[Update] Error:', error)
       this.isDownloading = false
 
@@ -136,7 +143,7 @@ export class UpdateManager {
       log.log('[Update] Checking for updates...')
       log.info('[Update] Checking for updates...')
 
-      await autoUpdater.checkForUpdates()
+      await this.getAutoUpdater().checkForUpdates()
     } catch (error) {
       log.error('[Update] Failed to check for updates:', error)
       log.error('[Update] Failed to check for updates:', error)
@@ -150,7 +157,7 @@ export class UpdateManager {
     log.log('[Update] Quitting and installing update...')
     log.info('[Update] Quitting and installing update')
 
-    autoUpdater.quitAndInstall(true, true)
+    this.getAutoUpdater().quitAndInstall(true, true)
   }
 
   /**

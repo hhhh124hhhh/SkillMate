@@ -258,7 +258,7 @@ export const MCPFeatureToggle: React.FC<MCPFeatureToggleProps> = ({ onClose }) =
                 <p className="text-sm font-medium text-orange-900 dark:text-orange-100 mb-1">
                   需要联网才能使用这些功能
                 </p>
-                <p className="text-xs text-orange-700 dark:text-orange-300">
+                <p className="text-xs text-orange-700 dark:text-orange-200">
                   启用高级功能可能需要配置 API 密钥，具体请参考设置中的说明。
                 </p>
               </div>

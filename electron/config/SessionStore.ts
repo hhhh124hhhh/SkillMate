@@ -27,6 +27,7 @@ class SessionStore {
     constructor() {
         this.store = new Store<SessionStoreSchema>({
             name: 'opencowork-sessions',
+            projectName: 'skill-mate',
             defaults
         });
         log.log('[SessionStore] Initialized with path:', this.store.path);

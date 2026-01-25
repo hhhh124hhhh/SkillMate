@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { X, Download, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Button } from './ui/Button';
 
 export interface DependencyInstallDialogProps {
   isOpen: boolean;
@@ -59,28 +60,28 @@ export const DependencyInstallDialog: React.FC<DependencyInstallDialogProps> = (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 animate-in fade-in duration-200">
       <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden animate-in zoom-in-95 duration-200">
         {/* 头部 */}
-        <div className="bg-gradient-to-r from-orange-500 to-indigo-500 px-6 py-4">
+        <div className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 px-6 py-4">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
               {installSuccess ? (
-                <div className="p-2 bg-white/20 rounded-full">
-                  <CheckCircle className="w-6 h-6 text-white" />
+                <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-full">
+                  <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
                 </div>
               ) : installError ? (
-                <div className="p-2 bg-red-500/30 rounded-full">
-                  <AlertCircle className="w-6 h-6 text-white" />
+                <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-full">
+                  <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
                 </div>
               ) : (
-                <div className="p-2 bg-white/20 rounded-full">
-                  <Download className="w-6 h-6 text-white" />
+                <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-full">
+                  <Download className="w-6 h-6 text-orange-600 dark:text-orange-300" />
                 </div>
               )}
               <div>
-                <h3 className="text-lg font-semibold text-white">
+                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
                   {title}
                 </h3>
                 {!installSuccess && !installError && (
-                  <p className="text-sm text-orange-100 mt-0.5">
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">
                     💡 只需要安装一次
                   </p>
                 )}
@@ -147,7 +148,7 @@ export const DependencyInstallDialog: React.FC<DependencyInstallDialogProps> = (
                     <p className="text-sm font-medium text-orange-900 dark:text-orange-100 mb-1">
                       解决方案
                     </p>
-                    <p className="text-sm text-orange-700 dark:text-orange-300">
+                    <p className="text-sm text-orange-700 dark:text-orange-200">
                       {solution}
                     </p>
                   </div>
@@ -169,31 +170,23 @@ export const DependencyInstallDialog: React.FC<DependencyInstallDialogProps> = (
         {/* 底部按钮 */}
         {!installSuccess && !installError && (
           <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-end gap-3">
-            <button
+            <Button
+              variant="secondary"
               onClick={onDismiss}
               disabled={isInstalling}
-              className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               稍后手动安装
-            </button>
+            </Button>
             {canAutoFix && (
-              <button
+              <Button
+                variant="primary"
                 onClick={handleInstall}
                 disabled={isInstalling}
-                className="px-4 py-2 text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                loading={isInstalling}
+                icon={isInstalling ? Loader2 : Download}
               >
-                {isInstalling ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>安装中...</span>
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-4 h-4" />
-                    <span>自动安装</span>
-                  </>
-                )}
-              </button>
+                {isInstalling ? '安装中...' : '自动安装'}
+              </Button>
             )}
           </div>
         )}

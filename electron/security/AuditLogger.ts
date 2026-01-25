@@ -32,14 +32,28 @@ export class AuditLogger {
   private retentionDays = 180; // 6个月
   private logDir: string;
   private currentLogFile: string;
+  private initialized = false;
 
   constructor() {
+    // 延迟初始化，等待 app.ready()
+    this.logDir = '';
+    this.currentLogFile = '';
+  }
+
+  /**
+   * 初始化日志系统（必须在 app.ready() 之后调用）
+   */
+  private ensureInitialized() {
+    if (this.initialized) return;
+
     // 日志目录：userData/logs/audit
     this.logDir = path.join(app.getPath('userData'), 'logs', 'audit');
 
     // 当前日志文件：audit-YYYY-MM-DD.log
     const date = new Date().toISOString().split('T')[0];
     this.currentLogFile = path.join(this.logDir, `audit-${date}.log`);
+
+    this.initialized = true;
   }
 
   /**
@@ -53,6 +67,8 @@ export class AuditLogger {
     userId?: string,
     sessionId?: string
   ): Promise<void> {
+    this.ensureInitialized();  // ✅ 确保已初始化
+
     try {
       // 确保日志目录存在
       await this.ensureLogDirectory();

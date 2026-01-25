@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Minus, Square, X, HelpCircle, Command } from 'lucide-react';
+import { Minus, Square, X, HelpCircle } from 'lucide-react';
 import {
   CoworkView,
   SettingsView,
   UserGuideView,
-  ConfirmDialog,
-  useConfirmations,
   FloatingBallPage,
   UpdateNotification,
   CommandPalette,
@@ -26,7 +24,6 @@ function App() {
   const [isFirstLaunch, setIsFirstLaunch] = useState(false);
   const [settingsInitialTab, setSettingsInitialTab] = useState<'api' | 'folders' | 'advanced'>('api');
   const [showCommandPalette, setShowCommandPalette] = useState(false);
-  const { pendingRequest, handleConfirm, handleDeny } = useConfirmations();
 
   // Check if this is the floating ball window
   const isFloatingBall = window.location.hash === '#/floating-ball' || window.location.hash === '#floating-ball';
@@ -84,6 +81,35 @@ function App() {
       removeListener();
       removeCompleteListener();
       removeErrorListener();
+    };
+  }, []);
+
+  // 监听 Agent 重启失败和应用崩溃事件
+  useEffect(() => {
+    const handleAgentRestartFailed = (_event: unknown, data: { error: string; rolledBack: boolean }) => {
+      const message = data.rolledBack
+        ? `Agent 初始化失败，已自动恢复到之前的配置\n\n错误: ${data.error}`
+        : `Agent 初始化失败，请检查配置后重试\n\n错误: ${data.error}`;
+
+      alert(`⚠️ ${message}`);
+    };
+
+    const handleAppCrash = (_event: unknown, data: { message: string; error: string }) => {
+      alert(`💥 应用遇到严重错误\n\n${data.message}\n\n错误: ${data.error}\n\n请查看日志: ~/.aiagent/crash-logs.json`);
+    };
+
+    const handleAgentReady = () => {
+      console.log('✅ Agent is ready');
+    };
+
+    const removeAgentFailed = window.ipcRenderer.on('agent:restart-failed', handleAgentRestartFailed);
+    const removeAppCrash = window.ipcRenderer.on('app:crash', handleAppCrash);
+    const removeAgentReady = window.ipcRenderer.on('agent:ready', handleAgentReady);
+
+    return () => {
+      removeAgentFailed();
+      removeAppCrash();
+      removeAgentReady();
     };
   }, []);
 
@@ -158,16 +184,7 @@ function App() {
 
   // 如果是首次启动，显示引导页面
   if (isFirstLaunch) {
-    return (
-      <>
-        <UserGuideView onClose={() => setIsFirstLaunch(false)} />
-        <ConfirmDialog
-          request={pendingRequest}
-          onConfirm={handleConfirm}
-          onDeny={handleDeny}
-        />
-      </>
-    );
+    return <UserGuideView onClose={() => setIsFirstLaunch(false)} />;
   }
 
   // Main App - Narrow vertical layout
@@ -186,22 +203,10 @@ function App() {
         </div>
 
         <div className="flex items-center gap-1 z-50" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-          {/* 命令面板按钮 */}
-          <button
-            onClick={() => {
-              console.log('Command Palette button clicked');
-              setShowCommandPalette(true);
-            }}
-            className="p-1.5 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-md transition-colors"
-            title="打开命令面板 (Ctrl+Shift+P)"
-          >
-            <Command size={14} />
-          </button>
-
           {/* 新增：帮助按钮 */}
           <button
             onClick={() => setShowUserGuide(true)}
-            className="p-1.5 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-md transition-colors"
+            className="p-1.5 text-slate-400 hover:text-primaryCustom-600 hover:bg-primaryCustom-50 rounded-md transition-colors"
             title="查看帮助"
           >
             <HelpCircle size={14} />
@@ -284,13 +289,6 @@ function App() {
           />
         )}
       </main>
-
-      {/* Confirmation Dialog */}
-      <ConfirmDialog
-        request={pendingRequest}
-        onConfirm={handleConfirm}
-        onDeny={handleDeny}
-      />
 
       {/* Update Notification */}
       <UpdateNotification />

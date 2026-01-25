@@ -1,13 +1,15 @@
 {
+  "_comment": "内置 MCP 服务器配置模板 - 请使用占位符，不要提交真实密钥到代码仓库",
   "mcpServers": {
-    "aisearch-mcp-server": {
-      "name": "aisearch-mcp-server",
+    "baidu-search": {
+      "name": "baidu-search",
       "type": "streamableHttp",
-      "description": "搜索实时信息，支持使用大模型进行总结回复。",
+      "description": "百度千帆AI搜索 - 实时信息检索与总结，支持使用大模型进行回复",
       "baseUrl": "https://qianfan.baidubce.com/v2/ai_search/mcp",
       "headers": {
-        "Authorization": "Bearer bce-v3/ALTAK-X3DOuOCoMr7Xu6HpO4y1A/9fc254e544523856d80b7a43f9c348f69b276aea"
-      }
+        "Authorization": "Bearer YOUR_BAIDU_API_KEY_HERE"
+      },
+      "_docs": "获取 API Key: https://cloud.baidu.com/doc/WENXINWORKSHOP/s/Ilkkrb0i5"
     }
   }
 }

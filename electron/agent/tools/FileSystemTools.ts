@@ -1,67 +1,85 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { spawn } from 'child_process';
 import log from 'electron-log';
 import { pythonRuntime } from '../PythonRuntime.js';
 import { configStore } from '../../config/ConfigStore.js';
 import { permissionManager } from '../security/PermissionManager.js';
 import { auditLogger } from '../../security/AuditLogger.js';
 
-const execAsync = promisify(exec);
+// AgentRuntime 实例（运行时设置）
+let agentRuntimeInstance: any = null;
+
+export function setAgentRuntime(instance: any): void {
+    agentRuntimeInstance = instance;
+}
 
 // 🔒 命令执行安全配置
 
-// 命令白名单（仅允许安全命令）
+// 命令白名单（仅允许安全命令）- 放宽参数限制，添加危险字符检查
 const ALLOWED_COMMANDS = [
-    // Python 相关
-    /^python\s+[\w\-./\\]+\.py(\s+[\w\-./\\]+)*$/i,
-    /^python3\s+[\w\-./\\]+\.py(\s+[\w\-./\\]+)*$/i,
-    /^[\w\-./\\]+\.py$/i,
+    // Python 相关（放宽限制 - 允许脚本文件名、Windows路径和参数）
+    // 无引号路径（支持 Windows 盘符）
+    /^python\s+[a-zA-Z]:(\\[^\s";|&`$<>]+)+\.py(\s+--[a-zA-Z0-9-]+(\s+[^\s";|&`$<>]+)*)*$/i,
+    /^python\s+[a-zA-Z0-9_\-./\\]+\.py(\s+--[a-zA-Z0-9-]+(\s+[^\s";|&`$<>]+)*)*$/i,
+    /^python3\s+[a-zA-Z]:(\\[^\s";|&`$<>]+)+\.py(\s+--[a-zA-Z0-9-]+(\s+[^\s";|&`$<>]+)*)*$/i,
+    /^python3\s+[a-zA-Z0-9_\-./\\]+\.py(\s+--[a-zA-Z0-9-]+(\s+[^\s";|&`$<>]+)*)*$/i,
+    /^[a-zA-Z0-9_\-./\\]+\.py$/i,
+
+    // ✅ 新增：允许带引号的路径（Windows 路径，但严格验证）
+    /^python\s+"[a-zA-Z]:(\\[^"]+)+\.py"(\s+--[a-zA-Z0-9-]+(\s+[^"\s;|&`$<>]+)*)*$/i,
+    /^python3\s+"[a-zA-Z]:(\\[^"]+)+\.py"(\s+--[a-zA-Z0-9-]+(\s+[^"\s;|&`$<>]+)*)*$/i,
+
+    // ✅ 新增：允许 Python 版本查询（诊断用）
+    /^python\s+--version$/i,
+    /^python3\s+--version$/i,
 
     // Node.js 相关
-    /^node\s+[\w\-./\\]+\.js(\s+[\w\-./\\]+)*$/i,
-    /^npm\s+(install|test|run|start)(\s+[\w@\-./\\]+)*$/i,
-    /^yarn\s+(add|install|test|run)(\s+[\w@\-./\\]+)*$/i,
-    /^pnpm\s+(add|install|test|run)(\s+[\w@\-./\\]+)*$/i,
+    /^node\s+[a-zA-Z0-9_\-./\\]+\.js$/i,
+    /^npm\s+(install|test|run|start)(\s+[a-zA-Z0-9@\-./\\]+)*$/i,
+    /^yarn\s+(add|install|test|run)(\s+[a-zA-Z0-9@\-./\\]+)*$/i,
+    /^pnpm\s+(add|install|test|run)(\s+[a-zA-Z0-9@\-./\\]+)*$/i,
 
     // Git 相关
-    /^git\s+(status|log|diff|show|branch|checkout|clone|init|add|commit|push|pull|fetch|remote)(\s+[\w\-./\\]+)*$/i,
+    /^git\s+(status|log|diff|show|branch|checkout|clone|init|add|commit|push|pull|fetch|remote)(\s+[a-zA-Z0-9_\-./\\]+)*$/i,
 
     // 包管理器
-    /^pip\s+install(\s+[\w\-./\\]+)*$/i,
-    /^pip3\s+install(\s+[\w\-./\\]+)*$/i,
-    /^poetry\s+(add|install|update)(\s+[\w\-./\\]+)*$/i,
+    /^pip\s+install(\s+[a-zA-Z0-9_\-./\\]+)*$/i,
+    /^pip3\s+install(\s+[a-zA-Z0-9_\-./\\]+)*$/i,
+    /^poetry\s+(add|install|update)(\s+[a-zA-Z0-9_\-./\\]+)*$/i,
 
     // 构建工具
     /^make\s*$/i,
-    /^make\s+[\w-]+$/i,
-    /^npx\s+[\w@\-./\\]+(\s+[\w\-./\\]+)*$/i,
+    /^make\s+[a-zA-Z0-9_-]+$/i,
+    /^npx\s+[a-zA-Z0-9@\-./\\]+$/i,
 
     // 文件操作（只读）
-    /^cat\s+[\w\-./\\]+$/i,
+    /^cat\s+[a-zA-Z0-9_\-./\\]+$/i,
     /^ls\s*$/i,
-    /^ls\s+[\w\-./\\]+$/i,
+    /^ls\s+[a-zA-Z0-9_\-./\\]+$/i,
     /^dir\s*$/i,
-    /^dir\s+[\w\-./\\]+$/i,
+    /^dir\s+[a-zA-Z0-9_\-./\\]+$/i,
 
     // 系统信息
     /^pwd$/i,
-    /^which\s+\w+$/i,
-    /^where\s+\w+$/i,
-    /^echo\s+[\w\s\-./\\]+$/i,
+    /^which\s+[a-zA-Z0-9_]+$/i,
+    /^where\s+[a-zA-Z0-9_]+$/i,
+    /^echo\s+[a-zA-Z0-9\s\-./\\]+$/i,
 
     // 压缩解压
-    /^tar\s+(x|c)[zj]f\s+[\w\-./\\]+.*$/i,
-    /^unzip\s+[\w\-./\\]+.*$/i,
-    /^zip\s+[\w\-./\\]+.*$/i,
+    /^tar\s+(x|c)[zj]f\s+[a-zA-Z0-9_\-./\\]+$/i,
+    /^unzip\s+[a-zA-Z0-9_\-./\\]+$/i,
+    /^zip\s+[a-zA-Z0-9_\-./\\]+$/i,
 
     // 文本处理
-    /^grep\s+[\w\s\-./\\]+$/i,
-    /^head\s+[\w\-./\\]+.*$/i,
-    /^tail\s+[\w\-./\\]+.*$/i,
-    /^wc\s+[\w\-./\\]+.*$/i,
+    /^grep\s+[a-zA-Z0-9\s\-./\\]+$/i,
+    /^head\s+[a-zA-Z0-9_\-./\\]+$/i,
+    /^tail\s+[a-zA-Z0-9_\-./\\]+$/i,
+    /^wc\s+[a-zA-Z0-9_\-./\\]+$/i,
 ];
+
+// ✅ 新增：危险字符黑名单（防止命令注入）
+const DANGEROUS_CHARS_PATTERN = /[;&|`$()<>]/;
 
 // 危险命令黑名单（永远阻止）
 const BLOCKED_COMMANDS = [
@@ -229,6 +247,13 @@ export class FileSystemTools {
             return `Error: Command not in whitelist. Allowed commands: Python, Node.js, Git, NPM, Yarn, Pip, file operations, and text processing tools.\nCommand: ${originalCommand}`;
         }
 
+        // ✅ 新增：安全检查 - 危险字符检测（防止命令注入）
+        if (DANGEROUS_CHARS_PATTERN.test(originalCommand)) {
+            log.error(`[Security] ❌ Blocked command with dangerous characters: ${originalCommand}`);
+            await auditLogger.log('security', 'command_blocked', { reason: 'dangerous_chars', command: originalCommand }, 'warning');
+            return `Error: Command contains dangerous characters (; & | \` $ ( ) < >) that are not allowed for security reasons.\nCommand: ${originalCommand}`;
+        }
+
         // 🔒 安全检查：路径授权验证
         if (args.cwd && !permissionManager.isPathAuthorized(args.cwd)) {
             log.error(`[Security] ❌ Unauthorized working directory: ${args.cwd}`);
@@ -237,7 +262,8 @@ export class FileSystemTools {
         }
 
         try {
-            let command = originalCommand;
+            // 解析命令为可执行文件和参数（参数化执行，防止注入）
+            const parsedCommand = this.parseCommand(originalCommand);
             const env = { ...process.env };
 
             // 自动注入豆包 API Key 到环境变量
@@ -247,25 +273,22 @@ export class FileSystemTools {
                 log.log('[FileSystemTools] Injected DOUBAO_API_KEY into environment');
             }
 
-            // 检测是否是 Python 命令
-            if (this.isPythonCommand(command)) {
+            // 检测是否是 Python 命令并替换为内置运行时
+            if (this.isPythonCommand(originalCommand)) {
                 if (!pythonRuntime.isAvailable()) {
                     return 'Error: Python runtime is not available. Please run "npm run setup-python" first.';
                 }
 
-                // 替换为内置 Python
                 const bundledPython = pythonRuntime.getPythonExecutable();
                 if (bundledPython) {
-                    command = this.replacePythonCommand(command, bundledPython);
-
+                    parsedCommand.command = bundledPython;
                     // 添加 PYTHONPATH 环境变量
                     Object.assign(env, pythonRuntime.getEnvironment());
-
                     log.log(`[FileSystemTools] Using bundled Python: ${bundledPython}`);
                 }
             }
 
-            log.log(`[FileSystemTools] Executing command: ${command} in ${workingDir}`);
+            log.log(`[FileSystemTools] Executing command: ${parsedCommand.command} ${parsedCommand.args.join(' ')} in ${workingDir}`);
 
             // 🔒 记录审计日志（命令执行开始）
             await auditLogger.log(
@@ -279,14 +302,14 @@ export class FileSystemTools {
                 'info'
             );
 
-            const { stdout, stderr } = await execAsync(command, {
-                cwd: workingDir,
-                timeout: timeout,
-                maxBuffer: 1024 * 1024 * 10, // 10MB buffer
-                encoding: 'utf-8',
-                env: env, // 传递环境变量
-                shell: process.platform === 'win32' ? 'cmd.exe' : '/bin/bash'
-            });
+            // 🔒 使用 spawn 参数化执行，防止命令注入
+            const { stdout, stderr } = await this.executeCommand(
+                parsedCommand.command,
+                parsedCommand.args,
+                workingDir,
+                env,
+                timeout
+            );
 
             let result = `Command executed in ${workingDir}:\n$ ${args.command}\n\n`;
             if (stdout) result += `STDOUT:\n${stdout}\n`;
@@ -314,28 +337,203 @@ export class FileSystemTools {
     }
 
     /**
-     * 替换 Python 命令为内置运行时
+     * 解析命令字符串为可执行文件和参数数组
+     * 使用参数化执行防止命令注入
      *
-     * @param command - 原始命令
-     * @param bundledPython - 内置 Python 可执行文件路径
-     * @returns 替换后的命令
+     * @param command - 命令字符串
+     * @returns 包含可执行文件和参数数组的对象
      */
-    private replacePythonCommand(command: string, bundledPython: string): string {
-        const cmd = command.trim();
+    private parseCommand(command: string): { command: string; args: string[] } {
+        const trimmed = command.trim();
+        const parts = trimmed.split(/\s+/);
 
-        // python script.py -> "bundled/python.exe" script.py
-        if (cmd.startsWith('python ')) {
-            return `"${bundledPython}" ${cmd.substring(7)}`;
-        }
-        // python3 script.py -> "bundled/python.exe" script.py
-        else if (cmd.startsWith('python3 ')) {
-            return `"${bundledPython}" ${cmd.substring(8)}`;
-        }
-        // 直接调用 .py 文件 -> "bundled/python.exe" script.py
-        else if (cmd.endsWith('.py')) {
-            return `"${bundledPython}" ${cmd}`;
+        if (parts.length === 0) {
+            return { command: trimmed, args: [] };
         }
 
-        return command;
+        // 第一个部分是命令
+        const executable = parts[0];
+        // 剩余部分是参数（保持原样，不进行shell扩展）
+        const args = parts.slice(1);
+
+        return { command: executable, args };
     }
+
+    /**
+     * 使用 spawn 参数化执行命令（防止命令注入）
+     *
+     * @param command - 可执行文件
+     * @param args - 参数数组
+     * @param cwd - 工作目录
+     * @param env - 环境变量
+     * @param timeout - 超时时间（毫秒）
+     * @returns stdout 和 stderr
+     */
+    private executeCommand(
+        command: string,
+        args: string[],
+        cwd: string,
+        env: Record<string, string>,
+        timeout: number
+    ): Promise<{ stdout: string; stderr: string }> {
+        return new Promise((resolve, reject) => {
+            let stdout = '';
+            let stderr = '';
+            let killed = false;
+
+            // 使用 spawn 参数化执行，不使用 shell
+            const proc = spawn(command, args, {
+                cwd,
+                env,
+                timeout,
+                maxBuffer: 10 * 1024 * 1024, // 10MB
+                shell: false, // 🔒 关键：不使用 shell，防止命令注入
+                windowsHide: true // 隐藏命令行窗口（Windows）
+            });
+
+            // 收集 stdout
+            proc.stdout?.on('data', (data) => {
+                stdout += data.toString();
+            });
+
+            // 收集 stderr
+            proc.stderr?.on('data', (data) => {
+                stderr += data.toString();
+            });
+
+            // 进程结束
+            proc.on('close', (code) => {
+                if (killed) {
+                    reject(new Error(`Command execution timeout or killed`));
+                } else if (code === 0) {
+                    resolve({ stdout, stderr });
+                } else {
+                    reject(new Error(`Command failed with exit code ${code}\n${stderr}`));
+                }
+            });
+
+            // 错误处理
+            proc.on('error', (error) => {
+                reject(new Error(`Failed to execute command: ${error.message}`));
+            });
+
+            // 超时处理
+            setTimeout(() => {
+                if (!killed) {
+                    killed = true;
+                    proc.kill('SIGKILL');
+                }
+            }, timeout);
+        });
+    }
+
+    // ========== 删除工具 ==========
+
+    /**
+     * 删除文件
+     * 注意：此工具应该在 AgentRuntime 中被调用，并由 AgentRuntime 处理确认逻辑
+     */
+    async deleteFile(args: { path: string }): Promise<string> {
+        try {
+            // 1. 检查路径权限
+            if (!permissionManager.isPathAuthorized(args.path)) {
+                throw new Error(`Path not authorized: ${args.path}`);
+            }
+
+            // 2. 检查项目信任状态
+            const isTrusted = permissionManager.isProjectTrusted(args.path);
+
+            // 3. 如果项目未信任，需要确认（由 AgentRuntime 处理）
+            if (!isTrusted && agentRuntimeInstance) {
+                const approved = await agentRuntimeInstance.requestDeleteConfirmation({
+                    type: 'delete_file',
+                    path: args.path
+                });
+
+                if (!approved) {
+                    return 'Delete operation cancelled by user.';
+                }
+            }
+
+            // 4. 执行删除
+            await fs.unlink(args.path);
+
+            // 5. 记录审计日志
+            await auditLogger.log('file_op', 'delete_file_success', { filePath: args.path });
+
+            // 6. 通知前端（如果可用）
+            if (agentRuntimeInstance) {
+                agentRuntimeInstance.broadcast('agent:operation-completed', {
+                    type: 'delete_file',
+                    path: args.path,
+                    timestamp: Date.now()
+                });
+            }
+
+            return `Successfully deleted file: ${args.path}`;
+        } catch (error) {
+            await auditLogger.log('file_op', 'delete_file_error', {
+                filePath: args.path,
+                error: (error as Error).message
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * 删除目录
+     * 注意：此工具应该在 AgentRuntime 中被调用，并由 AgentRuntime 处理确认逻辑
+     */
+    async deleteDirectory(args: { path: string }): Promise<string> {
+        try {
+            // 1. 检查路径权限
+            if (!permissionManager.isPathAuthorized(args.path)) {
+                throw new Error(`Path not authorized: ${args.path}`);
+            }
+
+            // 2. 统计将删除的文件数量
+            let itemCount = 0;
+            try {
+                const files = await fs.readdir(args.path, { recursive: true });
+                itemCount = files.length;
+            } catch {
+                // 目录不存在或为空
+            }
+
+            // 3. 无论项目是否信任，删除目录都需要确认（由 AgentRuntime 处理）
+            if (agentRuntimeInstance) {
+                const approved = await agentRuntimeInstance.requestDeleteConfirmation({
+                    type: 'delete_directory',
+                    path: args.path,
+                    itemCount
+                });
+
+                if (!approved) {
+                    return `Delete operation cancelled by user. Would have deleted ${itemCount} items.`;
+                }
+            } else {
+                // 如果没有 AgentRuntime 实例，直接拒绝（安全第一）
+                return `Cannot delete directory: ${args.path} (${itemCount} items). Confirmation required but no agent runtime available.`;
+            }
+
+            // 4. 执行删除
+            await fs.rm(args.path, { recursive: true, force: true });
+
+            // 5. 记录审计日志
+            await auditLogger.log('file_op', 'delete_directory_success', {
+                dirPath: args.path,
+                itemCount
+            });
+
+            return `Successfully deleted directory: ${args.path} (${itemCount} items)`;
+        } catch (error) {
+            await auditLogger.log('file_op', 'delete_directory_error', {
+                dirPath: args.path,
+                error: (error as Error).message
+            });
+            throw error;
+        }
+    }
+
+    // ========== 结束删除工具 ==========
 }

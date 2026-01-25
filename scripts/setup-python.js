@@ -52,7 +52,9 @@ const REQUIREMENTS = [
     'openai==1.12.0',
     'requests==2.31.0',
     'Pillow==10.2.0',
-    'PyYAML==6.0.1'
+    'PyYAML==6.0.1',
+    'mcp-server-fetch>=0.2.0',  // ✨ MCP 网页抓取服务器
+    'regex<=2022.1.18'  // 🔧 修复：与嵌入式 Python 3.11.8 兼容
 ];
 
 /**
@@ -206,9 +208,9 @@ async function patchPythonPTH(pythonDir) {
         content = content.replace(/^#import\s+site/m, 'import site');
 
         // 添加 lib 目录到 Python 路径
-        // 注意：pythonDir 现在等于 PYTHON_RUNTIME_DIR，不需要再取 dirname
-        const sitePackagesPath = path.join(pythonDir, 'lib', 'Lib', 'site-packages');
-        content += `\n${sitePackagesPath}\n`;
+        // 注意：使用 --target 安装方式，包直接安装在 lib/ 目录下
+        const libPath = path.join(pythonDir, 'lib');
+        content += `\n${libPath}\n`;
 
         await fs.writeFile(pthPath, content, 'utf-8');
         console.log('[Patch] ✓ Fixed python311._pth');

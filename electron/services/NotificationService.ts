@@ -57,17 +57,17 @@ export class NotificationService {
    */
   public sendWorkCompleteNotification(taskType: string, _result?: string): Notification | null {
     const titles = [
-      '牛马工作完成！',
-      '任务搞定啦！',
-      '活干完了！',
-      '工作完成✅'
+      'SkillMate 任务完成！🎉',
+      '任务搞定啦！✨',
+      '工作完成，干得漂亮！💪',
+      '任务完成✅'
     ];
 
     const bodies = [
       `已完成${taskType}任务，快来查看结果吧！`,
-      `${taskType}搞定了，牛马效率杠杠的！`,
+      `${taskType}搞定了，SkillMate 效率杠杠的！`,
       `任务完成：${taskType}，完美收工！`,
-      `${taskType}已完成，准备接下一个活！`
+      `${taskType}已完成，准备接下一个挑战！`
     ];
 
     const title = titles[Math.floor(Math.random() * titles.length)];
@@ -86,7 +86,7 @@ export class NotificationService {
    */
   public sendErrorNotification(error: string): Notification | null {
     return this.sendNotification({
-      title: '牛马遇到问题',
+      title: 'SkillMate 遇到问题',
       body: error,
       type: 'error',
       timeout: 8000

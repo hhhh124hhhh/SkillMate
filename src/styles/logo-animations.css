@@ -1,0 +1,506 @@
+/**
+ * SkillMate Logo Animations
+ *
+ * Logo 动画效果库，支持加载、悬停、点击等交互动画。
+ */
+
+/* ============================================
+   旋转动画 (Rotation)
+   ============================================ */
+
+/**
+ * Logo 旋转动画
+ * 适用于：加载状态、处理中等场景
+ * 动画时长：3秒/圈
+ */
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/**
+ * Logo 反向旋转
+ * 动画时长：3秒/圈
+ */
+@keyframes logo-spin-reverse {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+/* ============================================
+   脉冲动画 (Pulse)
+   ============================================ */
+
+/**
+ * Logo 脉冲动画
+ * 适用于：吸引注意力、强调等场景
+ */
+@keyframes logo-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+/**
+ * Logo 快速脉冲
+ * 动画时长：1秒
+ */
+@keyframes logo-pulse-fast {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+}
+
+/* ============================================
+   摇摆动画 (Swing)
+   ============================================ */
+
+/**
+ * Logo 摇摆动画
+ * 适用于：悬停状态、交互反馈
+ */
+@keyframes logo-swing {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(10deg);
+  }
+  75% {
+    transform: rotate(-10deg);
+  }
+}
+
+/**
+ * Logo 轻微摇摆
+ */
+@keyframes logo-swing-subtle {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(5deg);
+  }
+  75% {
+    transform: rotate(-5deg);
+  }
+}
+
+/* ============================================
+   浮动动画 (Float)
+   ============================================ */
+
+/**
+ * Logo 浮动动画
+ * 适用于：悬停、强调等场景
+ */
+@keyframes logo-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/**
+ * Logo 快速浮动
+ */
+@keyframes logo-float-fast {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+/* ============================================
+   闪烁动画 (Blink)
+   ============================================ */
+
+/**
+ * Logo 闪烁动画
+ * 适用于：加载状态、等待中等场景
+ */
+@keyframes logo-blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/**
+ * Logo 快速闪烁
+ */
+@keyframes logo-blink-fast {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* ============================================
+   发光动画 (Glow)
+   ============================================ */
+
+/**
+ * Logo 发光动画
+ * 适用于：悬停、强调等场景
+ */
+@keyframes logo-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 5px rgba(255, 112, 67, 0.5));
+  }
+  50% {
+    filter: drop-shadow(0 0 20px rgba(255, 112, 67, 0.8));
+  }
+}
+
+/**
+ * Logo 绿色发光
+ */
+@keyframes logo-glow-green {
+  0%, 100% {
+    filter: drop-shadow(0 0 5px rgba(67, 160, 71, 0.5));
+  }
+  50% {
+    filter: drop-shadow(0 0 20px rgba(67, 160, 71, 0.8));
+  }
+}
+
+/* ============================================
+   挥手动画 (Wave - Robot专用)
+   ============================================ */
+
+/**
+ * 机器人挥手动画
+ * 适用于：欢迎、打招呼等场景
+ */
+@keyframes robot-wave {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(20deg);
+  }
+  75% {
+    transform: rotate(-10deg);
+  }
+}
+
+/**
+ * 机器人点头动画
+ * 适用于：思考、确认等场景
+ */
+@keyframes robot-nod {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(10deg);
+  }
+}
+
+/**
+ * 机器人跳跃动画
+ * 适用于：成功、庆祝等场景
+ */
+@keyframes robot-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+/* ============================================
+   弹跳动画 (Bounce)
+   ============================================ */
+
+/**
+ * Logo 弹跳动画
+ * 适用于：成功、完成等场景
+ */
+@keyframes logo-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-15px);
+  }
+  25%, 75% {
+    transform: translateY(-7px);
+  }
+}
+
+/* ============================================
+   摇晃动画 (Shake)
+   ============================================ */
+
+/**
+ * Logo 摇晃动画
+ * 适用于：错误、警告等场景
+ */
+@keyframes logo-shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-5px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(5px);
+  }
+}
+
+/* ============================================
+   缩放动画 (Scale)
+   ============================================ */
+
+/**
+ * Logo 缩放动画
+ * 适用于：点击反馈、强调等场景
+ */
+@keyframes logo-scale {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+}
+
+/**
+ * Logo 缩小动画
+ */
+@keyframes logo-scale-down {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.9);
+  }
+}
+
+/* ============================================
+   组合动画类
+   ============================================ */
+
+/**
+ * Logo 动画基础类
+ */
+.logo {
+  display: inline-block;
+  transition: all 0.3s ease;
+}
+
+/**
+ * 动画 Logo
+ */
+.logo-animated {
+  animation: logo-pulse 2s ease-in-out infinite;
+}
+
+/**
+ * Logo 加载状态（旋转）
+ */
+.logo-loading {
+  animation: logo-spin 3s linear infinite;
+}
+
+/**
+ * Logo 快速加载
+ */
+.logo-loading-fast {
+  animation: logo-spin 1s linear infinite;
+}
+
+/**
+ * Logo 悬停效果
+ */
+.logo:hover {
+  animation: logo-float 2s ease-in-out infinite;
+  cursor: pointer;
+}
+
+/**
+ * Logo 点击效果
+ */
+.logo:active {
+  animation: logo-scale 0.2s ease-in-out;
+}
+
+/* ============================================
+   六边形 Logo 特定动画
+   ============================================ */
+
+/**
+ * 六边形旋转加载
+ */
+.logo-hexagon.logo-loading {
+  animation: logo-spin 3s linear infinite;
+}
+
+/**
+ * 六边形发光效果
+ */
+.logo-hexagon:hover {
+  animation: logo-glow 2s ease-in-out infinite;
+}
+
+/* ============================================
+   机器人 Logo 特定动画
+   ============================================ */
+
+/**
+ * 机器人思考（摇摆）
+ */
+.logo-robot-thinking.logo-animated {
+  animation: robot-nod 1s ease-in-out infinite;
+}
+
+/**
+ * 机器人成功（跳跃）
+ */
+.logo-robot-success.logo-animated {
+  animation: robot-bounce 1s ease-in-out;
+}
+
+/**
+ * 机器人错误（摇晃）
+ */
+.logo-robot-error.logo-animated {
+  animation: logo-shake 0.5s ease-in-out;
+}
+
+/**
+ * 机器人欢迎（挥手）
+ */
+.logo-robot-welcome.logo-animated {
+  animation: robot-wave 1s ease-in-out infinite;
+}
+
+/* ============================================
+   深色模式适配
+   ============================================ */
+
+/**
+ * 深色模式下调整发光效果
+ */
+.logo-dark:hover {
+  animation: logo-glow-green 2s ease-in-out infinite;
+}
+
+/* ============================================
+   响应式动画
+   ============================================ */
+
+/**
+ * 小尺寸 Logo 减少动画
+ */
+@media (max-width: 768px) {
+  .logo-animated {
+    animation-duration: 3s; /* 减缓动画速度 */
+  }
+}
+
+/**
+ * 减少用户偏好设置的动画
+ */
+@media (prefers-reduced-motion: reduce) {
+  .logo-animated,
+  .logo-loading,
+  .logo:hover {
+    animation: none !important;
+  }
+}
+
+/* ============================================
+   工具类 (Utility Classes)
+   ============================================ */
+
+/**
+ * 暂停动画
+ */
+.logo-paused {
+  animation-play-state: paused !important;
+}
+
+/**
+ * 禁用过渡
+ */
+.logo-no-transition {
+  transition: none !important;
+}
+
+/**
+ * 禁用动画
+ */
+.logo-no-animation {
+  animation: none !important;
+}
+
+/* ============================================
+   加载动画变体
+   ============================================ */
+
+/**
+ * 缓慢旋转
+ */
+.logo-spin-slow {
+  animation: logo-spin 6s linear infinite;
+}
+
+/**
+ * 快速旋转
+ */
+.logo-spin-fast {
+  animation: logo-spin 1s linear infinite;
+}
+
+/**
+ * 反向旋转
+ */
+.logo-spin-reverse {
+  animation: logo-spin-reverse 3s linear infinite;
+}
+
+/* ============================================
+   脉冲动画变体
+   ============================================ */
+
+/**
+ * 缓慢脉冲
+ */
+.logo-pulse-slow {
+  animation: logo-pulse 3s ease-in-out infinite;
+}
+
+/**
+ * 快速脉冲
+ */
+.logo-pulse-fast {
+  animation: logo-pulse-fast 1s ease-in-out infinite;
+}

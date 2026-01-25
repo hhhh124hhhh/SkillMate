@@ -2,6 +2,7 @@ import crypto from 'crypto'
 import os from 'os'
 import { app } from 'electron'
 import fs from 'fs/promises'
+
 import path from 'path'
 import log from 'electron-log'
 

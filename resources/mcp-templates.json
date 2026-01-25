@@ -2,31 +2,44 @@
   "mcpServers": {
     "filesystem": {
       "description": "文件系统访问 - 允许AI访问指定目录的文件",
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "ALLOWED_PATH"],
-      "env": {}
+      "command": "node",
+      "args": ["node_modules/@modelcontextprotocol/server-filesystem/dist/index.js", "ALLOWED_PATH"],
+      "env": {},
+      "_preinstalled": true
     },
     "fetch": {
-      "description": "网页抓取 - 允许AI获取网页内容",
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-fetch"],
-      "env": {}
+      "description": "网页抓取 - 允许AI获取网页内容（需要Python环境）",
+      "command": "python",
+      "args": ["-m", "mcp_server_fetch"],
+      "env": {},
+      "disabled": false,
+      "_preinstalled": true,
+      "_note": "Python 依赖已包含在 python-runtime/lib/ 中（已降级 regex 包修复兼容性，且 pth 文件已修复）",
+      "_alternative": "如遇问题，可使用系统 Python: pip install mcp-server-fetch && 修改 command 为 'python3'"
     },
-    "brave-search": {
-      "description": "网页搜索 - 使用Brave搜索API（需要API Key）",
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-brave-search"],
-      "env": {
-        "BRAVE_API_KEY": "YOUR_BRAVE_API_KEY_HERE"
-      }
+    "baidu-search": {
+      "description": "百度千帆AI搜索 - 实时信息检索与总结，支持使用大模型进行回复（需要千帆 AppBuilder API Key）",
+      "type": "streamableHttp",
+      "baseUrl": "https://qianfan.baidubce.com/v2/ai_search/mcp",
+      "headers": {
+        "Authorization": "Bearer YOUR_BAIDU_API_KEY_HERE"
+      },
+      "disabled": true,
+      "_docs": "获取 API Key: https://console.bce.baidu.com/qianfan/planet/apiKey （服务选择「千帆 AppBuilder」）",
+      "_note": "请将 YOUR_BAIDU_API_KEY_HERE 替换为实际的千帆 AppBuilder API Key（格式：Bearer bce-v3/ALTAK...Altc/...）。配置后自动启用。",
+      "_alternative": "备用格式：http://appbuilder.baidu.com/v2/ai_search/mcp/sse?api_key=Bearer+YOUR_API_KEY"
     },
-    "github": {
-      "description": "GitHub集成 - 访问仓库、问题、PR等（需要GitHub Token）",
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-github"],
-      "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "YOUR_GITHUB_TOKEN_HERE"
-      }
+    "doubao-search": {
+      "description": "豆包火山引擎 - 豆包扣子 AI 搜索与问答（需要豆包 API Key）",
+      "type": "streamableHttp",
+      "baseUrl": "https://mcp.coze.cn/v1/plugins/7516843396187766818",
+      "headers": {
+        "Authorization": "Bearer YOUR_DOUBAO_API_KEY_HERE"
+      },
+      "disabled": true,
+      "_coming_soon": true,
+      "_docs": "获取 API Key: https://www.coze.cn/",
+      "_note": "豆包搜索与百度搜索功能重复，建议优先使用百度千帆搜索。如需启用豆包，请将 _coming_soon 设置为 false。"
     }
   }
 }

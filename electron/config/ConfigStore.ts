@@ -9,6 +9,12 @@ export interface ToolPermission {
     grantedAt: number;      // Timestamp
 }
 
+export interface TrustedProjectData {
+    path: string;
+    trustedAt: number;
+    lastUsed: number;
+}
+
 export interface UserStyleConfig {
     articles: string[];              // 用户文章路径列表
     styleGuide: {
@@ -36,7 +42,6 @@ export interface AppConfig {
     networkAccess: boolean;
     shortcut: string;
     shortcuts?: Record<string, string>;  // 快捷键绑定配置
-    allowedPermissions: ToolPermission[];
     notifications: boolean;
     notificationTypes: {
         workComplete: boolean;
@@ -44,6 +49,7 @@ export interface AppConfig {
         info: boolean;
     };
     userStyleConfig?: UserStyleConfig;  // 个人风格配置
+    disabledSkills?: string[];  // 禁用的技能ID列表
 }
 
 const defaults: AppConfig = {
@@ -56,7 +62,6 @@ const defaults: AppConfig = {
     networkAccess: true, // "Open and use" implies network should be on
     shortcut: 'Alt+Space',
     shortcuts: {},  // 快捷键绑定配置
-    allowedPermissions: [],
     notifications: true,
     notificationTypes: {
         workComplete: true,
@@ -77,7 +82,8 @@ const defaults: AppConfig = {
         },
         lastUpdated: '',
         learningCount: 0
-    }
+    },
+    disabledSkills: []  // 默认不禁用任何技能
 };
 
 class ConfigStore {
@@ -86,6 +92,7 @@ class ConfigStore {
     constructor() {
         this.store = new Store<AppConfig>({
             name: 'wechatflowwork-config',
+            projectName: 'skill-mate',
             defaults
         });
 
@@ -93,6 +100,17 @@ class ConfigStore {
         if (this.store.get('firstLaunch') === undefined) {
             this.store.set('firstLaunch', true);
             log.log('[ConfigStore] Initialized firstLaunch to true');
+        }
+
+        // 清理已废弃的 allowedPermissions 配置（如果存在）
+        try {
+            const storeData = this.store.store as any;
+            if (storeData && storeData.hasOwnProperty('allowedPermissions')) {
+                delete storeData['allowedPermissions'];
+                log.log('[ConfigStore] Cleaned up deprecated allowedPermissions');
+            }
+        } catch (error) {
+            // 忽略清理错误
         }
 
         log.log('[ConfigStore] Initialized with path:', this.store.path);
@@ -315,71 +333,6 @@ class ConfigStore {
         this.store.set('networkAccess', enabled);
     }
 
-    // Tool Permissions
-    getAllowedPermissions(): ToolPermission[] {
-        return this.store.get('allowedPermissions') || [];
-    }
-
-    addPermission(tool: string, pathPattern?: string): void {
-        const permissions = this.getAllowedPermissions();
-        // Check if already exists
-        const exists = permissions.some(p =>
-            p.tool === tool && p.pathPattern === (pathPattern || '*')
-        );
-        if (!exists) {
-            permissions.push({
-                tool,
-                pathPattern: pathPattern || '*',
-                grantedAt: Date.now()
-            });
-            this.store.set('allowedPermissions', permissions);
-
-            // 🔒 记录审计日志
-            auditLogger.log(
-                'permission',
-                'permission_granted',
-                {
-                    tool,
-                    pathPattern: pathPattern || '*'
-                },
-                'info'
-            );
-        }
-    }
-
-    removePermission(tool: string, pathPattern?: string): void {
-        const permissions = this.getAllowedPermissions().filter(p =>
-            !(p.tool === tool && p.pathPattern === (pathPattern || '*'))
-        );
-        this.store.set('allowedPermissions', permissions);
-
-        // 🔒 记录审计日志
-        auditLogger.log(
-            'permission',
-            'permission_revoked',
-            {
-                tool,
-                pathPattern: pathPattern || '*'
-            },
-            'warning'
-        );
-    }
-
-    hasPermission(tool: string, path?: string): boolean {
-        const permissions = this.getAllowedPermissions();
-        return permissions.some(p => {
-            if (p.tool !== tool) return false;
-            if (p.pathPattern === '*') return true;
-            if (!path) return p.pathPattern === '*';
-            // Check if path matches pattern (simple prefix match)
-            return path.startsWith(p.pathPattern || '');
-        });
-    }
-
-    clearAllPermissions(): void {
-        this.store.set('allowedPermissions', []);
-    }
-
     // First Launch Management
     getFirstLaunch(): boolean {
         const value = this.store.get('firstLaunch');
@@ -481,6 +434,26 @@ class ConfigStore {
 
         this.setUserStyleConfig(defaultConfig);
         log.log('[ConfigStore.clearStyleConfig] Style config cleared');
+    }
+
+    // ========== 信任项目管理 ==========
+
+    /**
+     * 获取所有信任项目
+     */
+    getTrustedProjects(): TrustedProjectData[] {
+        const projects = this.store.get('trustedProjects') as TrustedProjectData[];
+        return projects || [];
+    }
+
+    /**
+     * 设置信任项目列表
+     */
+    setTrustedProjects(projects: TrustedProjectData[]): void {
+        log.log('[ConfigStore.setTrustedProjects] Saving trusted projects:', {
+            count: projects.length
+        });
+        this.store.set('trustedProjects', projects);
     }
 }
 

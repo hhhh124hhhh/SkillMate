@@ -29,7 +29,7 @@ export const SkillSuggestionBubble: React.FC<SkillSuggestionBubbleProps> = ({
         <div className="text-sm font-medium text-orange-900 dark:text-orange-100">
           建议使用「{skillName}」技能
         </div>
-        <div className="text-xs text-orange-700 dark:text-orange-300 mt-0.5">
+        <div className="text-xs text-orange-700 dark:text-orange-200 mt-0.5">
           {reason}
         </div>
       </div>
@@ -45,7 +45,7 @@ export const SkillSuggestionBubble: React.FC<SkillSuggestionBubbleProps> = ({
         </button>
         <button
           onClick={onDismiss}
-          className="p-1.5 text-orange-600 hover:text-orange-800 dark:text-orange-400 dark:hover:text-orange-200 transition-colors rounded-md hover:bg-orange-100 dark:hover:bg-orange-900"
+          className="p-1.5 text-orange-600 hover:text-orange-800 dark:text-orange-300 dark:hover:text-orange-100 transition-colors rounded-md hover:bg-orange-100 dark:hover:bg-orange-900"
           aria-label="忽略建议"
         >
           <X className="w-4 h-4" />

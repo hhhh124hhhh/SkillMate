@@ -1,31 +1,33 @@
 import { ipcRenderer, contextBridge, IpcRendererEvent } from 'electron'
 import log from 'electron-log'
 
-// 🔍 设置明确的 Electron 标记（在 contextBridge 之前）
-window.__IS_ELECTRON__ = true
 log.info('✅ [Preload] Electron preload script loaded')
-log.info('✅ [Preload] Set __IS_ELECTRON__ = true')
 
 // 🔒 IPC 通道白名单（仅允许渲染进程访问这些通道）
 const ALLOWED_CHANNELS = [
   // Agent 相关 - 调用通道
   'agent:send-message',
   'agent:abort',
-  'agent:confirm-response',
   'agent:new-session',
   'agent:authorize-folder',
   'agent:get-authorized-folders',
   'agent:set-working-dir',
-  'agent:security-warning',  // 🔒 安全警告
-  'agent:privacy-warning',   // 🔒 隐私警告
 
   // Agent 相关 - 事件监听通道（主进程广播）
-  'agent:stream-token',      // 流式响应 token
-  'agent:confirm-request',   // 权限确认请求
-  'agent:history-update',    // 历史消息更新
-  'agent:error',             // 错误事件
-  'agent:complete',          // 任务完成
-  'agent:artifact-created',  // 文件创建事件
+  'agent:stream-token',           // 流式响应 token
+  'agent:history-update',         // 历史消息更新
+  'agent:error',                  // 错误事件
+  'agent:complete',               // 任务完成
+  'agent:artifact-created',       // 文件创建事件
+  'agent:restart-failed',         // Agent 重启失败事件通知
+  'agent:ready',                  // Agent 就绪事件
+  'agent:delete-confirm-request', // 删除确认请求
+  'agent:delete-confirmation',    // 删除确认响应
+
+  // 权限管理
+  'permissions:trust-project',    // 信任项目
+  'permissions:revoke-trust',     // 取消信任
+  'permissions:get-trusted-projects', // 获取信任项目列表
 
   // Session 管理
   'session:list',
@@ -34,11 +36,6 @@ const ALLOWED_CHANNELS = [
   'session:save',
   'session:delete',
   'session:current',
-
-  // 权限管理
-  'permissions:list',
-  'permissions:revoke',
-  'permissions:clear',
 
   // 文件系统
   'fs:save-temp-file',
@@ -85,6 +82,9 @@ const ALLOWED_CHANNELS = [
   // 快捷键
   'shortcut:update',
 
+  // 应用事件
+  'app:crash',                // 应用崩溃事件
+
   // 更新管理
   'update:check',
   'update:install',
@@ -96,16 +96,30 @@ const ALLOWED_CHANNELS = [
 
   // MCP
   'mcp:get-config',
+  'mcp:get-templates',         // 🔧 新增：获取 MCP 模板配置
   'mcp:save-config',
   'mcp:get-status',
   'mcp:reconnect',
   'mcp:state-changed',          // MCP 状态变化广播
+  'mcp:get-custom-servers',     // 获取自定义 MCP 服务器列表
+  'mcp:repair-config',          // 修复 MCP 配置
+  'mcp:add-custom-server',      // 添加自定义 MCP 服务器
+  'mcp:update-custom-server',   // 更新自定义 MCP 服务器
+  'mcp:remove-custom-server',   // 删除自定义 MCP 服务器
+  'mcp:test-connection',        // 测试 MCP 服务器连接
+  'mcp:validate-config',        // 验证 MCP 配置
+  'mcp:reload-all',             // 重新加载所有 MCP 服务器
 
   // 技能
   'skills:list',
   'skills:get',
   'skills:save',
   'skills:delete',
+  'skills:export',              // 导出技能
+  'skills:import-file',         // 从文件导入技能
+  'skills:import-url',          // 从 URL 导入技能
+  'skills:import-github',       // 从 GitHub 导入技能
+  'skills:validate',            // 验证技能内容
 
   // 通知
   'notification:send',
@@ -120,6 +134,14 @@ const ALLOWED_CHANNELS = [
   'command-palette:toggle',        // 命令面板切换
   'commands:execute',              // 执行命令
   'commands:search',               // 搜索命令
+  'commands:list',                 // 列出所有命令
+  'commands:set-shortcut',         // 设置命令快捷键
+  'commands:get-shortcuts',        // 获取所有快捷键
+  'commands:suggest',              // 命令建议
+  'commands:check-conflict',       // 检查快捷键冲突
+
+  // Python
+  'python:install-dependency',     // 安装 Python 依赖
 
   // Slash Command 状态广播
   'slash-command:success',         // 命令执行成功
@@ -193,4 +215,5 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
 
 // 🚀 暴露 Electron 环境标记（让渲染进程能检测到是 Electron 环境）
 contextBridge.exposeInMainWorld('__IS_ELECTRON__', true)
-log.log('✅ [Preload] Exposed __IS_ELECTRON__ to renderer')
+log.log('✅ [Preload] Exposed __IS_ELECTRON__ to renderer via contextBridge')
+log.log('✅ [Preload] Preload script completed successfully')

@@ -1,19 +1,26 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { BrowserWindow } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import log from 'electron-log';
+import path from 'path';
+import os from 'os';
+import fs from 'fs';
+import { spawn, exec } from 'child_process';
+import { promisify } from 'util';
 
-import { FileSystemTools, ReadFileSchema, WriteFileSchema, ListDirSchema, RunCommandSchema } from './tools/FileSystemTools.js';
+const execAsync = promisify(exec);
+
+import { FileSystemTools, ReadFileSchema, WriteFileSchema, ListDirSchema, RunCommandSchema, setAgentRuntime } from './tools/FileSystemTools.js';
 import { SkillManager } from './skills/SkillManager.js';
 import { MCPClientService } from './mcp/MCPClientService.js';
 import { permissionManager } from './security/PermissionManager.js';
 import { configStore } from '../config/ConfigStore.js';
 import { notificationService } from '../services/NotificationService.js';
+import { ImageCompressionService } from '../services/ImageCompressionService.js';
 import { promptInjectionDefense } from '../security/PromptInjectionDefense.js';
 import { dlp } from '../data-loss-prevention/DataLossPrevention.js';
 import { CommandRegistry, SlashCommandParser, ShortcutManager, MCPToolEnhanced } from './commands/index.js';
 import { ParsedCommand, CommandType, CommandDefinition } from './commands/types.js';
 import { pythonErrorTranslator } from './PythonErrorTranslator.js';
-import os from 'os';
 
 
 export type AgentMessage = {
@@ -31,8 +38,10 @@ export class AgentRuntime {
     private mcpService: MCPClientService;
     private abortController: AbortController | null = null;
     private isProcessing = false;
-    private pendingConfirmations: Map<string, { resolve: (approved: boolean) => void }> = new Map();
     private artifacts: { path: string; name: string; type: string }[] = [];
+    private hasShownImageTip = false;  // 图片配置提示标志
+    private imageCompressionService: ImageCompressionService;  // 图片压缩服务
+    private lastDoubaoAnalysis?: string;  // 豆包分析结果（注入到系统提示）
 
     private model: string;
 
@@ -51,11 +60,15 @@ export class AgentRuntime {
         this.fsTools = new FileSystemTools();
         this.skillManager = new SkillManager();
         this.mcpService = new MCPClientService();
+        this.imageCompressionService = new ImageCompressionService();  // 初始化图片压缩服务
 
         // 初始化命令系统
         this.commandRegistry = new CommandRegistry(this);
         this.slashParser = new SlashCommandParser(this.commandRegistry);
         this.shortcutManager = new ShortcutManager(window, this.commandRegistry);
+
+        // 设置 AgentRuntime 实例到 FileSystemTools（用于删除确认）
+        setAgentRuntime(this);
 
         // Note: IPC handlers are now registered in main.ts, not here
     }
@@ -183,15 +196,6 @@ export class AgentRuntime {
         this.windows = this.windows.filter(w => w !== win);
     }
 
-    // Handle confirmation response
-    public handleConfirmResponse(id: string, approved: boolean) {
-        const pending = this.pendingConfirmations.get(id);
-        if (pending) {
-            pending.resolve(approved);
-            this.pendingConfirmations.delete(id);
-        }
-    }
-
     // Clear history for new session
     public clearHistory() {
         this.history = [];
@@ -280,21 +284,72 @@ export class AgentRuntime {
                 }
             } else {
                 const blocks: Anthropic.ContentBlockParam[] = [];
-                // Process images
+                // Process images with intelligent integration
                 if (processedInput.images && processedInput.images.length > 0) {
-                    for (const img of processedInput.images) {
-                        // format: data:image/png;base64,......
-                        const match = img.match(/^data:(image\/[a-zA-Z]+);base64,(.+)$/);
-                        if (match) {
+                    const config = configStore.getAll();
+
+                    // 检查是否配置了豆包 API Key
+                    if (config.doubaoApiKey) {
+                        // ✅ 配置了豆包 API Key，使用豆包视觉识别增强
+                        log.log('[AgentRuntime] Using Doubao vision for image analysis');
+
+                        try {
+                            // ✅ 关键改进 1：先添加原始图片（确保前端显示）
+                            log.log('[AgentRuntime] Adding original image blocks for display');
+                            this.addOriginalImageBlocks(blocks, processedInput.images);
+
+                            // 直接执行 Python 脚本
+                            // 获取技能脚本路径
+                            let scriptPath: string;
+                            if (app.isPackaged) {
+                                scriptPath = path.join(process.resourcesPath, 'resources', 'skills', 'image-understanding', 'scripts', 'image_understanding.py');
+                            } else {
+                                scriptPath = path.join(process.cwd(), 'resources', 'skills', 'image-understanding', 'scripts', 'image_understanding.py');
+                            }
+
+                            // ✅ 关键改进 2：调用豆包视觉识别获取分析
+                            log.log('[AgentRuntime] Calling Doubao vision script for analysis');
+                            const result = await this.executeDoubaoVisionScript(scriptPath, processedInput.images[0], 'describe');
+
+                            if (result && result.success) {
+                                // ✅ 关键改进 3：将豆包分析存储到属性（不显示给用户）
+                                log.log('[AgentRuntime] Doubao vision analysis completed, storing for system prompt');
+                                this.lastDoubaoAnalysis = result.result;
+
+                                // 添加用户消息（不包含豆包分析）
+                                blocks.push({
+                                    type: 'text',
+                                    text: processedInput.content || '请分析这张图片'
+                                });
+                            } else {
+                                // 脚本执行失败，只使用图片和用户消息
+                                log.warn('[AgentRuntime] Doubao vision analysis failed, using original image only');
+                                this.lastDoubaoAnalysis = undefined;
+                                blocks.push({
+                                    type: 'text',
+                                    text: processedInput.content || '请分析这张图片'
+                                });
+                            }
+                        } catch (error) {
+                            log.error('[AgentRuntime] Error in Doubao vision processing:', error);
+                            // 降级：只使用图片
+                            this.lastDoubaoAnalysis = undefined;
                             blocks.push({
-                                type: 'image',
-                                source: {
-                                    type: 'base64',
-                                    media_type: match[1] as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
-                                    data: match[2]
-                                }
+                                type: 'text',
+                                text: processedInput.content || '请分析这张图片'
                             });
                         }
+                    } else {
+                        // ⚠️ 未配置豆包 API Key
+                        log.warn('[AgentRuntime] Doubao API Key not configured');
+                        this.addOriginalImageBlocks(blocks, processedInput.images);
+                        this.lastDoubaoAnalysis = undefined;
+
+                        // 添加用户消息
+                        blocks.push({
+                            type: 'text',
+                            text: processedInput.content || '请分析这张图片'
+                        });
                     }
                 }
                 // Add text with security check
@@ -422,7 +477,10 @@ export class AgentRuntime {
                 ? `\n\nWORKING DIRECTORY:\n- Primary: ${authorizedFolders[0]}\n- All authorized: ${authorizedFolders.join(', ')}\n\nYou should primarily work within these directories. Always use absolute paths.`
                 : '\n\nNote: No working directory has been selected yet. Ask the user to select a folder first.';
 
-            const skillsDir = os.homedir() + '/.aiagent/skills';
+            const builtinSkillsDir = app.isPackaged
+                ? path.join(process.resourcesPath, 'resources', 'skills')
+                : path.join(process.cwd(), 'resources', 'skills');
+            const userSkillsDir = path.join(os.homedir(), '.aiagent', 'skills');
             const systemPrompt = `You are SkillMate, an AI skill ecosystem platform that helps users create, share, sell, and learn AI skills. You assist users through tool usage and skill execution.
 
 ## YOUR IDENTITY
@@ -458,15 +516,47 @@ Your goal is to help users be productive by automating tasks, analyzing data, cr
 - Provide progress updates for long-running operations
 
 ## SKILLS SYSTEM
-- Skills are loaded from: ${skillsDir}
+- Built-in skills are loaded from: ${builtinSkillsDir}
+- User skills are loaded from: ${userSkillsDir}
 - Skills contain pre-built implementations - prefer skills over writing new code
 - When a skill is invoked, follow its instructions precisely
 - You can combine multiple skills to accomplish complex tasks
 
+## HOW TO CALL SKILLS
+When a user asks to use a skill (e.g., "use the wechat-writing skill" or "帮我写文章"):
+1. **Call the skill tool directly** by name (e.g., use the wechat-writing tool)
+2. **Read the returned skill instructions** carefully
+3. **Follow the instructions precisely** to complete the task
+4. **Use run_command** to execute any scripts mentioned in the skill
+
+Available skills will be shown in your tools list.
+**Important**: Always call the skill tool first, do not try to write your own code unless the skill instructs you to.
+
+## SCRIPT EXECUTION
+When executing Python scripts from skills:
+- Use the exact path provided in the skill instructions
+- Format: python D:\\path\\to\\script.py [args] (no quotes around the path)
+- Example: python D:\\skills\\wechat-writing\\main.py --topic AI
+- Use absolute paths only
+- Do NOT create new Python scripts unless explicitly requested by the user or skill instructions
+
 ## MCP INTEGRATION
 - MCP servers provide external tools and capabilities
-- MCP tools are prefixed with server name (e.g., 'filesystem:read_file')
+- MCP tools are prefixed with server name (e.g., 'filesystem:read_file', 'fetch__fetch')
 - Available MCP tools are loaded dynamically based on user configuration
+
+## 🌐 WEB ACCESS CAPABILITIES
+You have access to the following MCP tools for web access:
+- **fetch**: Fetch web pages and get real-time content
+  - Use when: User asks for web content, news, articles, or specific URLs
+  - Example: "Use fetch to get the latest news about AI"
+  - Example: "Fetch the content of https://example.com"
+- **baidu-search**: Baidu Qianfan AI search (if configured with API Key)
+  - Use when: User asks to search for information or current events
+  - Example: "Search for the latest developments in electric vehicles"
+  - Example: "Use baidu-search to find 2026 AI trends"
+
+When users need real-time information or web content, proactively use these tools.
 
 ## PLANNING FOR COMPLEX TASKS
 For multi-step tasks, ALWAYS start with a plan:
@@ -499,6 +589,13 @@ ${workingDirContext}
 
 You are a capable and helpful AI assistant. Help users accomplish their goals efficiently and safely.`;
 
+            // ✅ 注入豆包分析结果到系统提示
+            let finalSystemPrompt = systemPrompt;
+            if (this.lastDoubaoAnalysis) {
+                finalSystemPrompt += `\n\n---\n**图片分析参考**（豆包视觉识别）：\n${this.lastDoubaoAnalysis}\n---\n`;
+                log.log('[AgentRuntime] Injected Doubao analysis into system prompt');
+            }
+
             log.log('Sending request to API...');
             log.log('Model:', this.model);
             log.log('Base URL:', this.anthropic.baseURL);
@@ -507,7 +604,7 @@ You are a capable and helpful AI assistant. Help users accomplish their goals ef
                 const stream = await this.anthropic.messages.create({
                     model: this.model,
                     max_tokens: 4096,
-                    system: systemPrompt,
+                    system: finalSystemPrompt,
                     messages: this.history,
                     stream: true,
                     tools: tools
@@ -613,15 +710,10 @@ You are a capable and helpful AI assistant. Help users accomplish their goals ef
                                     if (!permissionManager.isPathAuthorized(args.path)) {
                                         result = `Error: Path ${args.path} is not in an authorized folder.`;
                                     } else {
-                                        const approved = await this.requestConfirmation(toolUse.name, `Write to file: ${args.path}`, args);
-                                        if (approved) {
-                                            result = await this.fsTools.writeFile(args);
-                                            const fileName = args.path.split(/[\\/]/).pop() || 'file';
-                                            this.artifacts.push({ path: args.path, name: fileName, type: 'file' });
-                                            this.broadcast('agent:artifact-created', { path: args.path, name: fileName, type: 'file' });
-                                        } else {
-                                            result = 'User denied the write operation.';
-                                        }
+                                        result = await this.fsTools.writeFile(args);
+                                        const fileName = args.path.split(/[\\/]/).pop() || 'file';
+                                        this.artifacts.push({ path: args.path, name: fileName, type: 'file' });
+                                        this.broadcast('agent:artifact-created', { path: args.path, name: fileName, type: 'file' });
                                     }
                                 } else if (toolUse.name === 'list_dir') {
                                     const args = toolUse.input as { path: string };
@@ -633,14 +725,7 @@ You are a capable and helpful AI assistant. Help users accomplish their goals ef
                                 } else if (toolUse.name === 'run_command') {
                                     const args = toolUse.input as { command: string, cwd?: string };
                                     const defaultCwd = authorizedFolders[0] || process.cwd();
-
-                                    // Require confirmation for command execution
-                                    const approved = await this.requestConfirmation(toolUse.name, `Execute command: ${args.command}`, args);
-                                    if (approved) {
-                                        result = await this.fsTools.runCommand(args, defaultCwd);
-                                    } else {
-                                        result = 'User denied the command execution.';
-                                    }
+                                    result = await this.fsTools.runCommand(args, defaultCwd);
                                 } else {
                                     const skillInfo = await this.skillManager.getSkillInfo(toolUse.name);
                                     log.log(`[Runtime] Skill ${toolUse.name} info found? ${!!skillInfo} (len: ${skillInfo?.instructions?.length})`);
@@ -750,40 +835,6 @@ ${skillInfo.instructions}
         this.broadcast('agent:history-update', this.history);
     }
 
-    private async requestConfirmation(tool: string, description: string, args: Record<string, unknown>): Promise<boolean> {
-        // Extract path from args if available
-        const path = (args?.path || args?.cwd) as string | undefined;
-
-        // Check if permission is already granted
-        if (configStore.hasPermission(tool, path)) {
-            log.log(`[AgentRuntime] Auto-approved ${tool} (saved permission)`);
-            return true;
-        }
-
-        // Send notification about permission request
-        notificationService.sendInfoNotification(
-            '牛马需要权限',
-            `需要您确认${this.getPermissionDescription(tool)}权限才能继续工作`
-        );
-
-        const id = `confirm-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-        return new Promise((resolve) => {
-            this.pendingConfirmations.set(id, { resolve });
-            this.broadcast('agent:confirm-request', { id, tool, description, args });
-        });
-    }
-
-    // Helper method to get permission description
-    private getPermissionDescription(tool: string): string {
-        const descriptions: Record<string, string> = {
-            'write_file': '写入文件',
-            'run_command': '执行命令',
-            'read_file': '读取文件',
-            'list_dir': '查看目录'
-        };
-        return descriptions[tool] || tool;
-    }
-
     // Helper method to detect relevant skills based on user input
     private detectRelevantSkills(input: string): string[] {
         const relevant: string[] = [];
@@ -799,6 +850,34 @@ ${skillInfo.instructions}
         }
         if (lowerInput.includes('文章') && (lowerInput.includes('配图') || lowerInput.includes('插图'))) {
             relevant.push('article-illustrator');
+        }
+
+        // ✅ 新增：检测技能名模式
+        // 匹配 "use the X skill" 或 "X skill" 模式
+        const skillNameMatch = lowerInput.match(/(?:use\s+the\s+)?(\w+)\s+skill/i);
+        if (skillNameMatch) {
+            const skillName = skillNameMatch[1];
+            // 检查是否是已注册的技能
+            if (this.skillManager.hasSkill(skillName)) {
+                if (!relevant.includes(skillName)) {
+                    relevant.push(skillName);
+                }
+            }
+        }
+
+        // ✅ 新增：直接检测已知技能名
+        const knownSkills = [
+            'wechat-writing', 'ai-writer', 'brainstorming', 'style-learner', 'natural-writer',
+            'cover-generator', 'image-cropper', 'image-generation', 'article-illustrator',
+            'title-generator', 'data-analyzer', 'algorithmic-art', 'canvas-design',
+            'docx-editor', 'pdf-processor', 'pptx-processor', 'get_current_time'
+        ];
+        for (const skill of knownSkills) {
+            if (lowerInput.includes(skill)) {
+                if (!relevant.includes(skill)) {
+                    relevant.push(skill);
+                }
+            }
         }
 
         return relevant;
@@ -879,25 +958,265 @@ ${skillInfo.instructions}
 
         // 如果用户有输入，组合技能和用户输入
         if (userInput.trim()) {
-            return `I want to use the ${skillName} skill (${skillDescription}).\n\nMy request: ${userInput}\n\nPlease use the ${skillName} skill to help me with this request.`;
+            return `Please use the ${skillName} tool to help me with this request: ${userInput}
+
+Instructions:
+1. Call the ${skillName} tool directly
+2. Read the returned skill instructions carefully
+3. Follow the instructions precisely
+4. Use run_command to execute any scripts mentioned in the skill
+
+Important: Always call the skill tool first, do not try to write your own code unless the skill instructs you to.`;
         } else {
             // 只有技能名，没有参数
-            return `I want to use the ${skillName} skill (${skillDescription}).\n\nPlease load this skill and ask me what I would like to do with it.`;
+            return `Please load the ${skillName} skill (${skillDescription}) and ask me what I would like to do with it.
+
+Instructions:
+1. Call the ${skillName} tool directly
+2. Read the returned skill instructions
+3. Ask the user what they would like to do with this skill`;
         }
     }
 
-    public handleConfirmResponseWithRemember(id: string, approved: boolean, remember: boolean): void {
-        const pending = this.pendingConfirmations.get(id);
-        if (pending) {
-            if (approved && remember) {
-                // Extract tool and path from the confirmation request
-                // The tool name is in the id or we need to pass it
-                // For now we'll extract from the most recent confirm request
+    /**
+     * 执行豆包视觉识别脚本
+     * @param scriptPath Python 脚本路径
+     * @param imageData Base64 编码的图片数据
+     * @param action 操作类型（describe/analyze/ocr/question）
+     * @returns Promise<{success: boolean, result?: string, error?: string}>
+     */
+    private async executeDoubaoVisionScript(
+        scriptPath: string,
+        imageData: string,
+        action: string = 'describe'
+    ): Promise<{ success: boolean; result?: string; error?: string }> {
+        let tempFilePath: string | null = null;
+
+        try {
+            // ✅ 添加诊断日志
+            log.log('[AgentRuntime] 🖼️ Executing Doubao vision script');
+            log.log('[AgentRuntime] 📁 Script path:', scriptPath);
+            log.log('[AgentRuntime] 🔑 API Key configured:', !!configStore.getAll().doubaoApiKey);
+            log.log('[AgentRuntime] 📝 Action:', action);
+
+            // ✨ 新增：压缩图片
+            const compressionResult = await this.imageCompressionService.compressImage(imageData);
+
+            if (compressionResult.success) {
+                if (compressionResult.compressionRatio && compressionResult.compressionRatio < 1) {
+                    log.log('[AgentRuntime] 📉 Image compressed:',
+                        (compressionResult.originalSize! / 1024).toFixed(2), 'KB →',
+                        (compressionResult.compressedSize! / 1024).toFixed(2), 'KB',
+                        `(${(compressionResult.compressionRatio * 100).toFixed(1)}%)`);
+                }
+                imageData = compressionResult.compressedData!;
+            } else {
+                log.warn('[AgentRuntime] ⚠️ Image compression failed:', compressionResult.error);
+                log.warn('[AgentRuntime] 🔄 Using original image');
+                // 继续使用原图，不中断流程
             }
-            pending.resolve(approved);
-            this.pendingConfirmations.delete(id);
+
+            // 创建临时文件保存图片数据（避免命令行参数过长）
+            const tempDir = os.tmpdir();
+            const tempFileName = `image_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.txt`;
+            tempFilePath = path.join(tempDir, tempFileName);
+
+            // 写入 base64 图片数据到临时文件
+            fs.writeFileSync(tempFilePath, imageData);
+            const stats = fs.statSync(tempFilePath);
+            log.log('[AgentRuntime] 📄 Temp file created:', tempFilePath);
+            log.log('[AgentRuntime] 📏 Temp file size:', stats.size, 'bytes');
+
+            // 构建命令
+            const args = [scriptPath, action, tempFilePath, '--language', 'zh-CN'];
+            const env = {
+                ...process.env,
+                DOUBAO_API_KEY: configStore.getAll().doubaoApiKey,
+                PYTHONIOENCODING: 'utf-8'  // ✅ 强制 Python 使用 UTF-8 编码 I/O（解决 Windows 乱码问题）
+            };
+
+            log.log('[AgentRuntime] 🔑 DOUBAO_API_KEY env var:', env.DOUBAO_API_KEY ? `***${env.DOUBAO_API_KEY.slice(-4)}` : 'NOT SET');
+            log.log('[AgentRuntime] 🔠 PYTHONIOENCODING:', env.PYTHONIOENCODING);
+
+            // ✅ 使用 exec 执行命令
+            const { stdout, stderr } = await execAsync(`python "${scriptPath}" "${action}" "${tempFilePath}" --language zh-CN`, {
+                env,
+                timeout: 90000,  // 90秒超时（与 Python 脚本超时匹配）
+                maxBuffer: 1024 * 1024 * 10,  // 10MB buffer
+                encoding: 'utf8'  // ✅ 显式指定 UTF-8 编码
+            });
+
+            // 清理临时文件
+            try {
+                if (fs.existsSync(tempFilePath)) {
+                    fs.unlinkSync(tempFilePath);
+                    log.log('[AgentRuntime] 🗑️ Temp file cleaned up');
+                }
+            } catch (e) {
+                log.warn('[AgentRuntime] Failed to cleanup temp file:', e);
+            }
+
+            // 解析输出
+            if (stdout) {
+                log.log('[AgentRuntime] ✅ Script succeeded, parsing output...');
+                try {
+                    const result = JSON.parse(stdout);
+                    if (result.success) {
+                        log.log('[AgentRuntime] ✅ Image analysis result:', result.result?.substring(0, 100) + '...');
+                        return { success: true, result: result.result };
+                    } else {
+                        log.error('[AgentRuntime] ❌ Script returned error:', result.error);
+                        return { success: false, error: result.error || '未知错误' };
+                    }
+                } catch (e) {
+                    log.error('[AgentRuntime] ❌ Failed to parse script output:', stdout);
+                    log.error('[AgentRuntime] ❌ Parse error:', e);
+                    return { success: false, error: `解析脚本输出失败: ${e}` };
+                }
+            } else {
+                log.error('[AgentRuntime] ❌ Script produced no output');
+                return { success: false, error: '脚本没有输出' };
+            }
+
+        } catch (error: any) {
+            // 清理临时文件
+            if (tempFilePath && fs.existsSync(tempFilePath)) {
+                try {
+                    fs.unlinkSync(tempFilePath);
+                    log.log('[AgentRuntime] 🗑️ Temp file cleaned up after error');
+                } catch (e) {
+                    log.warn('[AgentRuntime] Failed to cleanup temp file:', e);
+                }
+            }
+
+            // 处理超时错误
+            if (error.signal === 'SIGTERM') {
+                log.error('[AgentRuntime] ⏰ Script timeout after 90s');
+                return { success: false, error: '脚本执行超时（90秒）。图片太大或网络问题，建议使用更小的图片或检查网络连接。' };
+            }
+
+            // 处理其他错误
+            log.error('[AgentRuntime] 💥 Script execution failed:', error);
+            return { success: false, error: `脚本执行失败: ${error.message}` };
         }
     }
+
+    /**
+     * 添加原始图片块到消息中
+     * 用于降级处理：当豆包视觉识别失败或未配置时，直接发送图片
+     */
+    private addOriginalImageBlocks(blocks: Anthropic.ContentBlockParam[], images: string[]): void {
+        for (const img of images) {
+            const match = img.match(/^data:(image\/[a-zA-Z]+);base64,(.+)$/);
+            if (match) {
+                blocks.push({
+                    type: 'image',
+                    source: {
+                        type: 'base64',
+                        media_type: match[1] as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
+                        data: match[2]
+                    }
+                });
+            }
+        }
+    }
+
+    // ========== 删除确认机制 ==========
+
+    /**
+     * 待处理的删除确认请求
+     */
+    private pendingDeleteConfirmations = new Map<string, {
+        resolve: (approved: boolean) => void;
+        timeout: NodeJS.Timeout;
+    }>();
+
+    /**
+     * 请求删除操作确认
+     * @param operation 删除操作信息
+     * @returns 用户是否批准（30秒超时后默认拒绝）
+     */
+    public async requestDeleteConfirmation(operation: {
+        type: 'delete_file' | 'delete_directory';
+        path: string;
+        itemCount?: number;
+    }): Promise<boolean> {
+        const id = `delete-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+        log.log(`[AgentRuntime] Requesting delete confirmation for ${operation.type}: ${operation.path}`);
+
+        // 1. 创建超时 Promise（30 秒）
+        const timeoutPromise = new Promise<boolean>((resolve) => {
+            const timeout = setTimeout(() => {
+                this.pendingDeleteConfirmations.delete(id);
+                log.warn(`[AgentRuntime] Delete confirmation timeout for ${operation.path}`);
+                resolve(false); // 超时默认拒绝
+            }, 30000); // 30秒超时
+
+            this.pendingDeleteConfirmations.set(id, { resolve, timeout });
+        });
+
+        // 2. 发送删除确认请求到 UI
+        this.broadcast('agent:delete-confirm-request', {
+            id,
+            operation: {
+                type: operation.type,
+                path: operation.path,
+                itemCount: operation.itemCount || 1,
+                timestamp: Date.now()
+            }
+        });
+
+        // 3. 等待用户响应或超时
+        return Promise.race([
+            new Promise<boolean>(resolve => {
+                const existing = this.pendingDeleteConfirmations.get(id);
+                if (existing) {
+                    // 替换超时的 resolve
+                    clearTimeout(existing.timeout);
+                    this.pendingDeleteConfirmations.set(id, {
+                        resolve,
+                        timeout: existing.timeout
+                    });
+                }
+            }),
+            timeoutPromise
+        ]);
+    }
+
+    /**
+     * 处理删除确认响应
+     * @param id 确认请求 ID
+     * @param approved 用户是否批准
+     */
+    public handleDeleteConfirmation(id: string, approved: boolean): void {
+        const confirmation = this.pendingDeleteConfirmations.get(id);
+        if (confirmation) {
+            clearTimeout(confirmation.timeout);
+            confirmation.resolve(approved);
+            this.pendingDeleteConfirmations.delete(id);
+
+            log.log(`[AgentRuntime] Delete confirmation ${approved ? 'approved' : 'rejected'} for ${id}`);
+        } else {
+            log.warn(`[AgentRuntime] Delete confirmation not found for ${id}`);
+        }
+    }
+
+    /**
+     * 清理所有待确认的删除请求（窗口关闭时调用，防止内存泄漏）
+     */
+    public cleanupPendingConfirmations(): void {
+        log.log(`[AgentRuntime] Cleaning up ${this.pendingDeleteConfirmations.size} pending delete confirmations`);
+
+        this.pendingDeleteConfirmations.forEach(({ timeout, resolve }) => {
+            clearTimeout(timeout);
+            resolve(false); // 拒绝所有待确认的请求
+        });
+
+        this.pendingDeleteConfirmations.clear();
+    }
+
+    // ========== 结束删除确认机制 ==========
 
     public abort() {
         this.abortController?.abort();

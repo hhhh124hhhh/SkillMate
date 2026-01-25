@@ -251,7 +251,7 @@ export function FloatingBallPage() {
                         <img src="/icon.png" alt="Logo" className="w-full h-full object-cover" />
                     </div>
                     {isProcessing && (
-                        <div className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-orange-500 rounded-full animate-pulse border-2 border-white" />
+                        <div className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-primaryCustom-500 rounded-full animate-pulse border-2 border-white" />
                     )}
                 </div>
             </div>
@@ -325,7 +325,7 @@ export function FloatingBallPage() {
                             type="submit"
                             disabled={!input.trim() && images.length === 0}
                             className={`p-1.5 rounded-lg transition-all ${input.trim() || images.length > 0
-                                ? 'bg-orange-500 text-white'
+                                ? 'bg-primaryCustom-500 text-white'
                                 : 'bg-stone-200 text-stone-400'
                                 }`}
                         >
@@ -523,14 +523,14 @@ export function FloatingBallPage() {
                 {streamingText && (
                     <div className="text-sm text-stone-600 leading-relaxed max-w-none">
                         <MarkdownRenderer content={streamingText} className="prose-sm" />
-                        <span className="inline-block w-1.5 h-4 bg-orange-500 ml-0.5 animate-pulse" />
+                        <span className="inline-block w-1.5 h-4 bg-primaryCustom-500 ml-0.5 animate-pulse" />
                     </div>
                 )}
 
                 {/* Processing indicator */}
                 {isProcessing && !streamingText && (
                     <div className="flex items-center gap-2 text-xs text-stone-400">
-                        <div className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-bounce" />
+                        <div className="w-1.5 h-1.5 bg-primaryCustom-500 rounded-full animate-bounce" />
                         思考中...
                     </div>
                 )}
@@ -586,7 +586,7 @@ export function FloatingBallPage() {
                             type="submit"
                             disabled={!input.trim() && images.length === 0 || isProcessing}
                             className={`p-1.5 rounded-lg transition-all ${input.trim() || images.length > 0 && !isProcessing
-                                ? 'bg-orange-500 text-white'
+                                ? 'bg-primaryCustom-500 text-white'
                                 : 'bg-stone-200 text-stone-400'
                                 }`}
                         >

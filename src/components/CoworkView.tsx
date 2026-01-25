@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { produce } from 'immer';
-import { Square, ArrowUp, ChevronDown, ChevronUp, Download, FolderOpen, MessageCircle, Zap, AlertTriangle, Check, X, Settings, History, Plus, Trash2, FileUp, FileText, FileSpreadsheet, Braces, Eye, Image, Code, FileSearch, Wrench, Lightbulb, PenTool, BarChart, Server, HelpCircle, Search } from 'lucide-react';
+import { Square, ArrowUp, ChevronDown, ChevronUp, Download, FolderOpen, MessageCircle, Zap, AlertTriangle, Check, X, Settings, History, Plus, Trash2, FileUp, FileText, FileSpreadsheet, Braces, Eye, Image, Code, FileSearch, Wrench, Lightbulb, PenTool, BarChart, Server, HelpCircle, Search, Table } from 'lucide-react';
 import { MarkdownRenderer } from './MarkdownRenderer.js';
 
 /**
@@ -23,17 +22,11 @@ import { FilePreview } from './FilePreview.js';
 import { SkillSuggestionBubble } from './SkillSuggestionBubble.js';
 import { DependencyInstallDialog } from './DependencyInstallDialog.js';
 import { CommandPalette, type CommandDefinition } from './CommandPalette.js';
+import { ConfirmDialog } from './ConfirmDialog.js';
 import Anthropic from '@anthropic-ai/sdk';
 import { detectIntent, type SkillRecommendation } from '../utils/intentDetector.js';
 
 type Mode = 'chat' | 'work';
-
-interface PermissionRequest {
-    id: string;
-    tool: string;
-    description: string;
-    args: Record<string, unknown>;
-}
 
 interface SessionSummary {
     id: string;
@@ -67,7 +60,6 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
     const [streamingText, setStreamingText] = useState('');
     const [workingDir, setWorkingDir] = useState<string | null>(null);
     const [modelName, setModelName] = useState('glm-4.7');
-    const [permissionRequest, setPermissionRequest] = useState<PermissionRequest | null>(null);
     const [showHistory, setShowHistory] = useState(false);
     const [sessions, setSessions] = useState<SessionSummary[]>([]);
 
@@ -91,6 +83,21 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
 
     // 命令面板状态
     const [showCommandPalette, setShowCommandPalette] = useState(false);
+
+    // 删除确认对话框状态
+    const [deleteConfirm, setDeleteConfirm] = useState<{
+        isOpen: boolean;
+        id: string;
+        operation: {
+            type: 'delete_file' | 'delete_directory';
+            path: string;
+            itemCount?: number;
+        };
+    }>({
+        isOpen: false,
+        id: '',
+        operation: { type: 'delete_file', path: '' }
+    });
 
     const scrollRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -138,12 +145,6 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
             if (newHistory && newHistory.length > 0) {
                 window.ipcRenderer.invoke('session:save', newHistory);
             }
-        });
-
-        // Listen for permission requests
-        const removeConfirmListener = window.ipcRenderer.on('agent:confirm-request', (_event, ...args) => {
-            const req = args[0] as PermissionRequest;
-            setPermissionRequest(req);
         });
 
         // 监听配置更新事件
@@ -196,14 +197,33 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
             setStreamingText(`⚡ 正在使用技能：${execData.commandName}...`);
         });
 
+        // 删除确认请求监听
+        const removeDeleteConfirmListener = window.ipcRenderer.on('agent:delete-confirm-request', (_event, data) => {
+            console.log('[CoworkView] Delete confirm request:', data);
+            const confirmData = data as {
+                id: string;
+                operation: {
+                    type: 'delete_file' | 'delete_directory';
+                    path: string;
+                    itemCount?: number;
+                    timestamp: number;
+                }
+            };
+            setDeleteConfirm({
+                isOpen: true,
+                id: confirmData.id,
+                operation: confirmData.operation
+            });
+        });
+
         return () => {
             removeStreamListener?.();
             removeHistoryListener?.();
-            removeConfirmListener?.();
             removeConfigListener?.();
             removeSlashSuccessListener?.();
             removeSlashErrorListener?.();
             removeSlashExecutingListener?.();
+            removeDeleteConfirmListener?.();
         };
     }, []);
 
@@ -307,7 +327,7 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
         if (ext === 'json' || fileType.includes('json')) {
             return <Braces size={16} className="text-purple-500" />;
         }
-        return <FileText size={16} className="text-orange-500" />;
+        return <FileText size={16} className="text-primaryCustom-500" />;
     };
 
     // Robust file input trigger function with fallback mechanism
@@ -503,6 +523,35 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
         setShowDependencyDialog(false);
     };
 
+    // 处理删除确认
+    const handleDeleteConfirm = async () => {
+        const { id } = deleteConfirm;
+        console.log('[CoworkView] Sending delete confirmation:', { id, approved: true });
+
+        // 发送确认响应到主进程
+        await window.ipcRenderer.invoke('agent:delete-confirmation', {
+            id,
+            approved: true
+        });
+
+        // 关闭对话框
+        setDeleteConfirm(prev => ({ ...prev, isOpen: false }));
+    };
+
+    const handleDeleteCancel = async () => {
+        const { id } = deleteConfirm;
+        console.log('[CoworkView] Sending delete cancellation:', { id, approved: false });
+
+        // 发送取消响应到主进程
+        await window.ipcRenderer.invoke('agent:delete-confirmation', {
+            id,
+            approved: false
+        });
+
+        // 关闭对话框
+        setDeleteConfirm(prev => ({ ...prev, isOpen: false }));
+    };
+
     // 处理命令面板命令选择
     const handleCommandPaletteSelect = async (command: CommandDefinition) => {
         try {
@@ -569,16 +618,6 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
         const filePath = await window.ipcRenderer.invoke('dialog:select-file') as string | null;
         if (filePath) {
             setPreviewFilePath(filePath);
-        }
-    };
-
-    const handlePermissionResponse = (approved: boolean) => {
-        if (permissionRequest) {
-            window.ipcRenderer.invoke('agent:confirm-response', {
-                id: permissionRequest.id,
-                approved
-            });
-            setPermissionRequest(null);
         }
     };
 
@@ -670,7 +709,16 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
     const handleDragLeave = (e: React.DragEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        setIsDragging(false);
+
+        // Only clear drag state when actually leaving the container
+        // (not when hovering over child elements)
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = e.clientX;
+        const y = e.clientY;
+
+        if (x < rect.left || x >= rect.right || y < rect.top || y >= rect.bottom) {
+            setIsDragging(false);
+        }
     };
 
     /**
@@ -792,18 +840,20 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
     }, []);
 
     /**
-     * Optimized block toggle using immer
-     * Prevents unnecessary object recreation and improves performance
-     * Based on Vercel React Best Practices - render-non-primitive-deps
+     * Toggle block expansion/collapse
+     * Uses manual Set update for optimal performance
+     * Consistent with FloatingChat.tsx implementation
      */
     const toggleBlock = useCallback((id: string) => {
-        setExpandedBlocks(prev => produce(prev, draft => {
-            if (draft.has(id)) {
-                draft.delete(id);
+        setExpandedBlocks(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
             } else {
-                draft.add(id);
+                next.add(id);
             }
-        }));
+            return next;
+        });
     }, []);
 
     /**
@@ -818,45 +868,17 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
 
     return (
         <div className="flex flex-col h-full bg-slate-50 relative">
-            {/* Permission Dialog Overlay */}
-            {permissionRequest && (
-                <div className="absolute inset-0 bg-slate-900/20 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-200">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="w-12 h-12 rounded-full bg-orange-50 flex items-center justify-center">
-                                <AlertTriangle size={24} className="text-orange-600" />
-                            </div>
-                            <div>
-                                <h3 className="font-semibold text-slate-800 text-lg">操作确认</h3>
-                                <p className="text-sm text-slate-500">{permissionRequest.tool}</p>
-                            </div>
-                        </div>
-
-                        <p className="text-slate-600 mb-4">{permissionRequest.description}</p>
-
-                        {/* Show details if write_file */}
-                        {typeof permissionRequest.args?.path === 'string' && (
-                            <div className="bg-slate-50 rounded-lg p-3 mb-4 font-mono text-xs text-slate-600 border border-slate-200">
-                                <span className="text-slate-400">路径: </span>
-                                {permissionRequest.args.path as string}
-                            </div>
-                        )}
-
-                        <div className="flex gap-3">
-                            <button
-                                onClick={() => handlePermissionResponse(false)}
-                                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
-                            >
-                                <X size={16} />
-                                拒绝
-                            </button>
-                            <button
-                                onClick={() => handlePermissionResponse(true)}
-                                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 rounded-xl transition-colors shadow-sm shadow-orange-200"
-                            >
-                                <Check size={16} />
-                                允许
-                            </button>
+            {/* Full-screen drag overlay */}
+            {isDragging && (
+                <div className="fixed inset-0 flex items-center justify-center bg-primaryCustom-50/90 backdrop-blur-sm z-50 animate-in fade-in duration-200">
+                    <div className="text-center">
+                        <FileUp size={64} className="mx-auto mb-4 text-primaryCustom-500 animate-bounce" />
+                        <p className="text-2xl font-bold text-primaryCustom-700">松开添加文件</p>
+                        <p className="text-base text-primaryCustom-600 mt-2">支持图片、txt、md、json、csv、xlsx</p>
+                        <div className="mt-6 flex justify-center gap-4 text-sm text-primaryCustom-500">
+                            <span className="flex items-center gap-1"><Image size={16} /> 图片</span>
+                            <span className="flex items-center gap-1"><FileText size={16} /> 文档</span>
+                            <span className="flex items-center gap-1"><Table size={16} /> 表格</span>
                         </div>
                     </div>
                 </div>
@@ -878,6 +900,17 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                 isOpen={showCommandPalette}
                 onClose={() => setShowCommandPalette(false)}
                 onSelectCommand={handleCommandPaletteSelect}
+            />
+
+            {/* Delete Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={deleteConfirm.isOpen}
+                type="delete"
+                deleteOperation={deleteConfirm.operation}
+                onConfirm={handleDeleteConfirm}
+                onCancel={handleDeleteCancel}
+                confirmText="确认删除"
+                cancelText="取消删除"
             />
 
             {/* Image Lightbox */}
@@ -915,7 +948,7 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                     <div className="flex items-center gap-0.5 bg-slate-100/80 p-0.5 rounded-lg">
                         <button
                             onClick={() => setMode('chat')}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${mode === 'chat' ? 'bg-white text-orange-600 shadow-sm ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700'
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${mode === 'chat' ? 'bg-white text-primaryCustom-600 shadow-sm ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700'
                                 }`}
                         >
                             <MessageCircle size={14} />
@@ -923,7 +956,7 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                         </button>
                         <button
                             onClick={() => setMode('work')}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${mode === 'work' ? 'bg-white text-orange-600 shadow-sm ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700'
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${mode === 'work' ? 'bg-white text-accentCustom-600 shadow-sm ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700'
                                 }`}
                         >
                             <Zap size={14} />
@@ -942,14 +975,14 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                     <div className="flex items-center gap-1">
                         <button
                             onClick={() => window.ipcRenderer.invoke('agent:new-session')}
-                            className="p-1.5 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                            className="p-1.5 text-slate-400 hover:text-primaryCustom-600 hover:bg-primaryCustom-50 rounded-lg transition-colors"
                             title="新会话"
                         >
                             <Plus size={16} />
                         </button>
                         <button
                             onClick={() => setShowHistory(!showHistory)}
-                            className={`p-1.5 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors ${showHistory ? 'bg-orange-50 text-orange-600' : ''}`}
+                            className={`p-1.5 text-slate-400 hover:text-primaryCustom-600 hover:bg-primaryCustom-50 rounded-lg transition-colors ${showHistory ? 'bg-primaryCustom-50 text-primaryCustom-600' : ''}`}
                             title="历史记录"
                         >
                             <History size={16} />
@@ -977,7 +1010,7 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                 <div className="absolute top-12 right-6 z-20 w-80 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200 ring-1 ring-black/5">
                     <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/50">
                         <div className="flex items-center gap-2">
-                            <History size={14} className="text-orange-500" />
+                            <History size={14} className="text-primaryCustom-500" />
                             <span className="text-sm font-semibold text-slate-700">历史任务</span>
                         </div>
                         <button
@@ -1017,7 +1050,7 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                                                     window.ipcRenderer.invoke('session:load', session.id);
                                                     setShowHistory(false);
                                                 }}
-                                                className="text-[10px] flex items-center gap-1 text-orange-500 hover:text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full"
+                                                className="text-[10px] flex items-center gap-1 text-primaryCustom-500 hover:text-primaryCustom-600 bg-primaryCustom-50 px-2 py-0.5 rounded-full"
                                             >
                                                 加载
                                             </button>
@@ -1040,7 +1073,13 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
             )}
 
             {/* Messages Area - Narrower for better readability */}
-            <div className="flex-1 overflow-y-auto px-4 py-6" ref={scrollRef}>
+            <div
+                className="flex-1 overflow-y-auto px-4 py-6"
+                ref={scrollRef}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+            >
                 <div className="max-w-xl mx-auto space-y-5">
                     {relevantHistory.length === 0 && !streamingText ? (
                         <EmptyState 
@@ -1068,7 +1107,7 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                                 <div className="animate-in fade-in duration-200">
                                     <div className="text-slate-700 text-[15px] leading-7 max-w-none">
                                         <MarkdownRenderer content={streamingText} />
-                                        <span className="inline-block w-2 h-5 bg-orange-500 ml-0.5 animate-pulse" />
+                                        <span className="inline-block w-2 h-5 bg-primaryCustom-500 ml-0.5 animate-pulse" />
                                     </div>
                                 </div>
                             )}
@@ -1077,9 +1116,9 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
 
                     {isProcessing && !streamingText && (
                         <div className="flex items-center gap-2 text-slate-400 text-sm animate-pulse bg-white p-3 rounded-xl border border-slate-100">
-                            <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" />
-                            <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-                            <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
+                            <div className="w-2 h-2 bg-primaryCustom-500 rounded-full animate-bounce" />
+                            <div className="w-2 h-2 bg-primaryCustom-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                            <div className="w-2 h-2 bg-primaryCustom-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
                             <span>正在干活中，请稍候...</span>
                         </div>
                     )}
@@ -1087,7 +1126,7 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
             </div>
 
             {/* Bottom Input */}
-            <div className="border-t border-slate-200 bg-white p-4 shadow-lg shadow-slate-200/50">
+            <div className="bg-white p-4 shadow-lg shadow-slate-200/50">
                 <div className="max-w-xl mx-auto">
                     {/* Image Preview Area */}
                     {images.length > 0 && (
@@ -1130,26 +1169,16 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                         </div>
                     )}
 
-                    <form onSubmit={handleSubmit}>
-                        <div
-                            className={`relative border-2 rounded-xl transition-all duration-200 ${isDragging ? 'border-orange-400 bg-orange-50' : 'border-transparent'}`}
-                            onDragOver={handleDragOver}
-                            onDragLeave={handleDragLeave}
-                            onDrop={handleDrop}
-                        >
-                            {/* Drag overlay */}
-                            {isDragging && (
-                                <div className="absolute inset-0 flex items-center justify-center bg-orange-50/95 rounded-xl z-10">
-                                    <div className="text-center">
-                                        <FileUp size={48} className="mx-auto mb-2 text-orange-500" />
-                                        <p className="text-lg font-medium text-orange-700">松开添加文件</p>
-                                        <p className="text-sm text-orange-600">支持图片、txt、md、json、csv、xlsx</p>
-                                    </div>
-                                </div>
-                            )}
+                    {/* File type hint */}
+                    <div className="text-xs text-slate-400 text-center py-1">
+                        支持拖拽上传图片、txt、md、json、csv、xlsx 文件
+                    </div>
 
+                    {/* Input container with relative positioning for popups */}
+                    <div className="relative">
+                        <form onSubmit={handleSubmit}>
                             <div className="input-bar">
-                                <button type="button" onClick={handleSelectFolder} className="p-3 text-slate-400 hover:text-slate-600 transition-colors" title="选择工作目录">
+                                <button type="button" onClick={handleSelectFolder} className="p-2.5 text-slate-400 hover:text-slate-600 transition-colors" title="选择工作目录">
                                     <FolderOpen size={18} />
                                 </button>
 
@@ -1158,10 +1187,10 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                                     <button
                                         type="button"
                                         onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
-                                        className={`p-3 transition-colors ${
+                                        className={`p-2.5 transition-colors ${
                                             showAttachmentMenu
-                                                ? 'text-orange-600 bg-orange-50'
-                                                : 'text-slate-400 hover:text-orange-600 hover:bg-orange-50'
+                                                ? 'text-primaryCustom-600 bg-primaryCustom-50'
+                                                : 'text-slate-400 hover:text-primaryCustom-600 hover:bg-primaryCustom-50'
                                         }`}
                                         title="附件（图片、文件、预览）"
                                     >
@@ -1222,7 +1251,6 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                                             </div>
                                         </div>
                                     )}
-                                </div>
 
                                 {/* Hidden file inputs */}
                                 <input
@@ -1241,6 +1269,7 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                                     multiple
                                     onChange={handleDocumentSelect}
                                 />
+                                </div>
 
                                 <input
                                     ref={inputRef}
@@ -1249,15 +1278,15 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                                     onChange={handleInputChange}
                                     onKeyDown={handleInputKeyDown}
                                     onPaste={handlePaste}
-                                    placeholder={mode === 'chat' ? "输入消息或拖放文件... (Ctrl+L 聚焦)" : workingDir ? "输入任务或问题，例如：帮我分析这个文件、生成代码、优化性能等 (Ctrl+L 聚焦)" : "开始使用 AI Agent"}
-                                    className="flex-1 bg-transparent text-slate-800 placeholder:text-slate-400 py-3 text-sm focus:outline-none"
+                                    placeholder={mode === 'chat' ? "输入消息或输入 / 使用技能... (Ctrl+L 聚焦)" : workingDir ? "输入任务或问题，例如：帮我分析这个文件、生成代码、优化性能等 (Ctrl+L 聚焦)" : "开始使用 AI Agent"}
+                                    className="flex-1 bg-transparent text-slate-800 placeholder:text-slate-400 py-3 px-2 text-sm leading-none focus:outline-none"
                                     disabled={isProcessing}
                                 />
 
                                 {/* Model Selector */}
-                                <div className="flex items-center gap-1.5 px-3 text-xs text-slate-500 border-l border-slate-100">
+                                <div className="flex items-center gap-1.5 px-3 py-2.5 text-xs text-slate-500 border-l border-slate-100 leading-none">
                                     <span className="font-medium max-w-20 truncate">{modelName}</span>
-                                    <ChevronDown size={12} />
+                                    <ChevronDown size={14} />
                                 </div>
 
                                 <div className="pr-2">
@@ -1268,112 +1297,112 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                                             className="p-2.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-all"
                                             title="停止生成 (AI 正在回复时)"
                                         >
-                                            <Square size={16} fill="currentColor" />
+                                            <Square size={18} fill="currentColor" />
                                         </button>
                                     ) : (
                                         <button
                                             type="submit"
                                             disabled={!input.trim() && images.length === 0 && documents.length === 0}
                                             className={`p-2.5 rounded-lg transition-all ${input.trim() || images.length > 0 || documents.length > 0
-                                                ? 'bg-orange-600 text-white shadow-md hover:bg-orange-700 shadow-orange-200'
+                                                ? 'bg-primaryCustom-600 text-white shadow-md hover:bg-primaryCustom-700 shadow-primaryCustom-200'
                                                 : 'bg-slate-100 text-slate-300'
                                                 }`}
                                             title="发送消息"
                                         >
-                                            <ArrowUp size={16} />
+                                            <ArrowUp size={18} />
                                         </button>
                                     )}
                                 </div>
                             </div>
-
-                            {/* 智能技能推荐气泡 */}
-                            {skillRecommendation && !showCommandSuggestions && (
-                                <div className="absolute bottom-full left-0 right-0 mb-2 z-50">
-                                    <SkillSuggestionBubble
-                                        skillName={skillRecommendation.skillName}
-                                        reason={skillRecommendation.reason}
-                                        onApply={handleApplySkillRecommendation}
-                                        onDismiss={handleDismissSkillRecommendation}
-                                    />
-                                </div>
-                            )}
-
-                            {/* 命令建议列表 */}
-                            {showCommandSuggestions && commandSuggestions.length > 0 && (
-                                <div
-                                    ref={commandSuggestionsRef}
-                                    className="absolute bottom-full left-0 right-0 mb-2 bg-white rounded-xl shadow-2xl border border-slate-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200"
-                                >
-                                    <div className="max-h-[400px] overflow-y-auto">
-                                        {commandSuggestions.map((cmd, index) => (
-                                            <button
-                                                key={cmd.id}
-                                                type="button"
-                                                onClick={() => handleSelectCommand(cmd)}
-                                                className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
-                                                    index === selectedSuggestionIndex
-                                                        ? 'bg-orange-50 text-orange-700'
-                                                        : 'hover:bg-slate-50 text-slate-700'
-                                                }`}
-                                            >
-                                                {/* Emoji 或图标 */}
-                                                <div className={`text-2xl shrink-0 ${
-                                                    index === selectedSuggestionIndex ? 'transform scale-110' : ''
-                                                }`}>
-                                                    {cmd.emoji || getCommandIcon(cmd.icon || 'HelpCircle')}
-                                                </div>
-
-                                                {/* 主要信息 */}
-                                                <div className="flex-1 min-w-0">
-                                                    {/* 标题 */}
-                                                    <div className={`font-semibold text-base truncate ${
-                                                        index === selectedSuggestionIndex ? 'text-orange-700' : 'text-slate-800'
-                                                    }`}>
-                                                        {(cmd as any).title || cmd.name}
-                                                    </div>
-
-                                                    {/* 描述 */}
-                                                    <div className={`text-sm truncate mt-0.5 ${
-                                                        index === selectedSuggestionIndex ? 'text-orange-600' : 'text-slate-500'
-                                                    }`}>
-                                                        {cmd.description}
-                                                    </div>
-
-                                                    {/* 使用场景（如果有） */}
-                                                    {(cmd as any).scenarios && (cmd as any).scenarios.length > 0 && (
-                                                        <div className={`text-xs mt-1 italic ${
-                                                            index === selectedSuggestionIndex ? 'text-orange-500' : 'text-slate-400'
-                                                        }`}>
-                                                            💡 {(cmd as any).scenarios[0]}
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                {/* 难度评级 */}
-                                                {(cmd as any).difficulty && (
-                                                    <div className={`text-xs px-2 py-1 rounded-md shrink-0 font-medium ${
-                                                        index === selectedSuggestionIndex
-                                                            ? 'bg-orange-100 text-orange-700'
-                                                            : 'bg-slate-100 text-slate-500'
-                                                    }`}>
-                                                        {(cmd as any).difficulty}
-                                                    </div>
-                                                )}
-                                            </button>
-                                        ))}
-                                    </div>
-                                    <div className="px-4 py-2 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-                                        <p className="text-[11px] text-slate-500">
-                                            使用 ↑↓ 导航，Enter 选择，Esc 关闭
-                                        </p>
-                                        <p className="text-[11px] text-slate-400">
-                                            {commandSuggestions.length} 个技能
-                                        </p>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
                     </form>
+                    </div>
+
+                    {/* 智能技能推荐气泡 */}
+                    {skillRecommendation && !showCommandSuggestions && (
+                        <div className="absolute bottom-full left-0 right-0 mb-2 z-50">
+                            <SkillSuggestionBubble
+                                skillName={skillRecommendation.skillName}
+                                reason={skillRecommendation.reason}
+                                onApply={handleApplySkillRecommendation}
+                                onDismiss={handleDismissSkillRecommendation}
+                            />
+                        </div>
+                    )}
+
+                    {/* 命令建议列表 */}
+                    {showCommandSuggestions && commandSuggestions.length > 0 && (
+                        <div
+                            ref={commandSuggestionsRef}
+                            className="absolute bottom-full left-0 right-0 mb-2 bg-white rounded-xl shadow-2xl border border-slate-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200"
+                        >
+                            <div className="max-h-[400px] overflow-y-auto">
+                                {commandSuggestions.map((cmd, index) => (
+                                    <button
+                                        key={cmd.id}
+                                        type="button"
+                                        onClick={() => handleSelectCommand(cmd)}
+                                        className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
+                                            index === selectedSuggestionIndex
+                                                ? 'bg-primaryCustom-50 text-primaryCustom-700'
+                                                : 'hover:bg-slate-50 text-slate-700'
+                                        }`}
+                                    >
+                                        {/* Emoji 或图标 */}
+                                        <div className={`text-2xl shrink-0 ${
+                                            index === selectedSuggestionIndex ? 'transform scale-110' : ''
+                                        }`}>
+                                            {cmd.emoji || getCommandIcon(cmd.icon || 'HelpCircle')}
+                                        </div>
+
+                                        {/* 主要信息 */}
+                                        <div className="flex-1 min-w-0">
+                                            {/* 标题 */}
+                                            <div className={`font-semibold text-base truncate ${
+                                                index === selectedSuggestionIndex ? 'text-primaryCustom-700' : 'text-slate-800'
+                                            }`}>
+                                                {(cmd as any).title || cmd.name}
+                                            </div>
+
+                                            {/* 描述 */}
+                                            <div className={`text-sm truncate mt-0.5 ${
+                                                index === selectedSuggestionIndex ? 'text-primaryCustom-600' : 'text-slate-500'
+                                            }`}>
+                                                {cmd.description}
+                                            </div>
+
+                                            {/* 使用场景（如果有） */}
+                                            {(cmd as any).scenarios && (cmd as any).scenarios.length > 0 && (
+                                                <div className={`text-xs mt-1 italic ${
+                                                    index === selectedSuggestionIndex ? 'text-primaryCustom-500' : 'text-slate-400'
+                                                }`}>
+                                                    💡 {(cmd as any).scenarios[0]}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* 难度评级 */}
+                                        {(cmd as any).difficulty && (
+                                            <div className={`text-xs px-2 py-1 rounded-md shrink-0 font-medium ${
+                                                index === selectedSuggestionIndex
+                                                    ? 'bg-primaryCustom-100 text-primaryCustom-700'
+                                                    : 'bg-slate-100 text-slate-500'
+                                            }`}>
+                                                {(cmd as any).difficulty}
+                                            </div>
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="px-4 py-2 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+                                <p className="text-[11px] text-slate-500">
+                                    使用 ↑↓ 导航，Enter 选择，Esc 关闭
+                                </p>
+                                <p className="text-[11px] text-slate-400">
+                                    {commandSuggestions.length} 个技能
+                                </p>
+                            </div>
+                        </div>
+                    )}
 
                     <p className="text-[11px] text-slate-400 text-center mt-3">
                         AI 可能会出错，请仔细核查重要信息
@@ -1384,13 +1413,15 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
     );
 }
 
-function MessageItem({ message, expandedBlocks, toggleBlock, showTools, onImageClick }: {
-    message: Anthropic.MessageParam,
-    expandedBlocks: Set<string>,
-    toggleBlock: (id: string) => void,
-    showTools: boolean,
-    onImageClick: (src: string) => void
-}) {
+interface MessageItemProps {
+    message: Anthropic.MessageParam;
+    expandedBlocks: Set<string>;
+    toggleBlock: (id: string) => void;
+    showTools: boolean;
+    onImageClick: (src: string) => void;
+}
+
+function MessageItem({ message, expandedBlocks, toggleBlock, showTools, onImageClick }: MessageItemProps) {
     const isUser = message.role === 'user';
 
     if (isUser && Array.isArray(message.content) && message.content[0]?.type === 'tool_result') {
@@ -1410,8 +1441,9 @@ function MessageItem({ message, expandedBlocks, toggleBlock, showTools, onImageC
                 {images.length > 0 && (
                     <div className="flex gap-2 flex-wrap">
                         {images.map((img, i: number) => {
-                            const imgSource = img.source as { media_type: string; data: string };
-                            const src = `data:${imgSource.media_type};base64,${imgSource.data}`;
+                            // ✅ 正确处理 source 类型（兼容 Anthropic API 格式）
+                            const source = img.source as { type?: string; media_type: string; data: string };
+                            const src = `data:${source.media_type};base64,${source.data}`;
                             return (
                                 <img
                                     key={i}
@@ -1419,6 +1451,10 @@ function MessageItem({ message, expandedBlocks, toggleBlock, showTools, onImageC
                                     alt="User upload"
                                     className="w-32 h-32 object-cover rounded-xl border border-stone-200 cursor-zoom-in hover:opacity-90 transition-opacity"
                                     onClick={() => onImageClick(src)}
+                                    onError={(e) => {
+                                        console.error('图片加载失败:', e);
+                                        console.error('图片数据:', source);
+                                    }}
                                 />
                             );
                         })}
@@ -1531,39 +1567,95 @@ function MessageItem({ message, expandedBlocks, toggleBlock, showTools, onImageC
 
 function EmptyState({ mode: _mode, workingDir: _workingDir, onAction }: { mode: Mode, workingDir: string | null, onAction: (text: string) => void }) {
     return (
-        <div className="flex flex-col items-center justify-center h-full text-center space-y-8 py-10 animate-in fade-in duration-500">
-            <div className="relative group">
-                <div className="absolute -inset-4 bg-gradient-to-r from-orange-100 to-indigo-100 rounded-full blur-xl opacity-60 group-hover:opacity-80 transition-opacity duration-500"></div>
-                <div className="w-24 h-24 bg-white rounded-3xl shadow-xl flex items-center justify-center relative border border-white/50 ring-1 ring-black/5 transform group-hover:scale-105 transition-transform duration-300">
-                    <img src="/logo_new.svg" alt="Logo" className="w-14 h-14 object-contain" />
+        <div className="relative flex flex-col items-center justify-center h-full text-center space-y-8 py-10">
+            {/* 背景网格纹理 */}
+            <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
+                <div className="w-full h-full" style={{
+                    backgroundImage: `
+                        linear-gradient(90deg, #FF6B6B 1px, transparent 1px),
+                        linear-gradient(#FF6B6B 1px, transparent 1px)
+                    `,
+                    backgroundSize: '40px 40px'
+                }} />
+            </div>
+
+            {/* 渐变光晕 */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primaryCustom-100 rounded-full blur-3xl opacity-50" />
+                <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accentCustom-100 rounded-full blur-3xl opacity-50" />
+            </div>
+
+            {/* 内容 */}
+            <div className="relative z-10 space-y-8 max-w-md animate-in fade-in duration-500">
+                {/* Logo */}
+                <div className="relative group inline-block">
+                    <div className="absolute -inset-4 bg-gradient-to-r from-primaryCustom-200 to-accentCustom-200 rounded-full blur-2xl opacity-60 group-hover:opacity-80 transition-opacity duration-500" />
+                    <div className="relative w-24 h-24 bg-white rounded-3xl shadow-xl flex items-center justify-center border border-white/50 ring-1 ring-black/5 transform group-hover:scale-105 transition-transform duration-300">
+                        <img src="/logo_new.svg" alt="Logo" className="w-14 h-14 object-contain" />
+                    </div>
                 </div>
-            </div>
-            <div className="space-y-3 max-w-md">
-                <h2 className="text-2xl font-bold text-slate-800 tracking-tight">
-                    SkillMate
-                </h2>
-                <p className="text-slate-500 text-sm leading-relaxed">
-                    你的AI技能伙伴！通过技能生态轻松构建、分享、售卖和学习 AI 技能，让创意无限可能～
-                </p>
-            </div>
-            <div className="grid grid-cols-2 gap-3 w-full max-w-lg px-4">
-                {[
-                    { icon: Code, label: '代码生成', action: '帮我生成一个函数，功能是：[描述你的需求]', color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200' },
-                    { icon: FileSearch, label: '代码分析', action: '分析这个代码的功能和改进建议', color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-200' },
-                    { icon: Wrench, label: '问题诊断', action: '帮我调试这段代码，找出错误原因', color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200' },
-                    { icon: Lightbulb, label: '方案设计', action: '帮我设计一个解决方案，需求是：[描述需求]', color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200' }
-                ].map((item, i) => (
-                    <button
-                        key={i}
-                        onClick={() => onAction(item.action)}
-                        className="flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group text-left hover:border-slate-300"
-                    >
-                        <div className="p-2.5 rounded-lg bg-slate-50 text-slate-700 group-hover:bg-slate-100 transition-all">
-                            <item.icon size={18} />
-                        </div>
-                        <span className="text-sm font-medium text-slate-700 group-hover:text-slate-900 transition-colors">{item.label}</span>
-                    </button>
-                ))}
+
+                {/* 大标题 */}
+                <div className="space-y-3">
+                    <h2 className="text-4xl font-bold tracking-tight text-dark-900">
+                        你的 AI
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-primaryCustom-500 to-accentCustom-500">
+                            技能伙伴
+                        </span>
+                    </h2>
+                    <p className="text-slate-500 text-base">
+                        通过技能生态轻松构建、分享、售卖和学习 AI 技能
+                    </p>
+                </div>
+
+                {/* 快捷操作卡片 */}
+                <div className="grid grid-cols-2 gap-4 w-full max-w-lg px-4">
+                    {[
+                        {
+                            icon: PenTool,
+                            label: '快速创作',
+                            action: '帮我创作一篇关于[主题]的文章/代码/文档，要求：[具体需求]',
+                            color: 'from-primaryCustom-500 to-primaryCustom-600',
+                            bgColor: 'bg-primaryCustom-50 border-primaryCustom-200'
+                        },
+                        {
+                            icon: FileSearch,
+                            label: '智能分析',
+                            action: '分析这段[内容/代码/数据]的核心要点和关键信息',
+                            color: 'from-accentCustom-500 to-accentCustom-600',
+                            bgColor: 'bg-accentCustom-50 border-accentCustom-200'
+                        },
+                        {
+                            icon: Zap,
+                            label: '优化改进',
+                            action: '优化改进这段[内容/代码]，提升[质量/性能/可读性]',
+                            color: 'from-warm-400 to-warm-500',
+                            bgColor: 'bg-warm-50 border-warm-200'
+                        },
+                        {
+                            icon: Lightbulb,
+                            label: '创意启发',
+                            action: '给我一些关于[主题]的创意想法和灵感，越新颖越好',
+                            color: 'from-green-500 to-green-600',
+                            bgColor: 'bg-green-50 border-green-200'
+                        }
+                    ].map((item, i) => (
+                        <button
+                            key={i}
+                            onClick={() => onAction(item.action)}
+                            className="group relative p-5 bg-white border-2 border-transparent rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+                        >
+                            {/* 渐变边框效果 */}
+                            <div className={`absolute inset-0 rounded-2xl bg-gradient-to-r ${item.color} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+                            <div className="relative z-10 flex items-center gap-3 text-left">
+                                <div className={`p-3 rounded-xl ${item.bgColor} group-hover:scale-110 transition-transform duration-300`}>
+                                    <item.icon size={20} className="text-slate-700" />
+                                </div>
+                                <span className="text-sm font-semibold text-slate-700">{item.label}</span>
+                            </div>
+                        </button>
+                    ))}
+                </div>
             </div>
         </div>
     );

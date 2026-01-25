@@ -16,6 +16,12 @@
 
 import path from 'path';
 import fs from 'fs/promises';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+// ✨ ES Module 兼容：创建 __dirname 和 __filename
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // 技能目录路径
 const SKILLS_DIR = path.join(__dirname, '..', 'resources', 'skills');
@@ -61,7 +67,7 @@ async function encryptSkills() {
   try {
     // 动态导入编译后的 SkillEncryption 模块
     // 注意：需要先运行 npm run build:main 或 npm run dev 启动过
-    const { SkillEncryption } = require('../dist-electron/security/SkillEncryption');
+    const { SkillEncryption } = await import('../dist-electron/security/SkillEncryption.js');
 
     // 创建加密实例
     const encryption = new SkillEncryption();
@@ -167,9 +173,8 @@ async function main() {
   }
 }
 
-// 运行脚本
-if (require.main === module) {
-  main();
-}
+// 运行脚本（ES Module 方式）
+main();
 
-module.exports = { encryptSkills, backupSkills };
+// 导出函数供其他模块使用
+export { encryptSkills, backupSkills };

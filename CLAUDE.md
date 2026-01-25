@@ -168,6 +168,35 @@ App.tsx
 
 ## 开发注意事项
 
+### 🎯 自动应用最佳实践
+
+**重要**: 本项目使用 Electron + React + Vite 技术栈。在编写代码时，Claude Code 应**自动应用** `electron-react-best-practices` 技能的规则。
+
+该技能涵盖以下最佳实践：
+
+#### 安全架构 (CRITICAL) - 自动应用
+- ✅ **Context Isolation**: 所有 BrowserWindow 必须启用 `contextIsolation: true`
+- ✅ **禁用 Node.js Integration**: 渲染进程必须设置 `nodeIntegration: false`
+- ✅ **Content Security Policy**: 实施 CSP 头部防止 XSS
+- ✅ **输入验证**: 所有 IPC 数据必须验证和清理
+- ✅ **依赖更新**: 定期运行 `npm audit` 检查漏洞
+
+#### IPC 通信 (HIGH) - 自动应用
+- ✅ **Request-Response 模式**: 使用 `ipcMain.handle` / `ipcRenderer.invoke`
+- ✅ **类型安全**: 实现 TypeScript 类型安全的 IPC 装饰器
+- ✅ **错误处理**: 所有 IPC 调用必须有完善的错误处理
+- ✅ **超时机制**: IPC 调用应该有超时保护
+- ✅ **清理监听器**: IPC 监听器必须在组件卸载时清理
+
+#### 性能优化 (HIGH) - 自动应用
+- ✅ **模块懒加载**: 使用 dynamic import 延迟加载重模块
+- ✅ **代码分割**: 使用 React.lazy 和 Suspense 分割代码
+- ✅ **虚拟化**: 长列表使用 `@tanstack/react-virtual` 虚拟化
+- ✅ **批处理 IPC**: 合并多个 IPC 调用减少进程通信
+- ✅ **内存监控**: 监控内存使用防止泄漏
+
+**触发关键词**: 当请求包含 "Electron"、"IPC"、"安全"、"性能"、"优化"、"主进程"、"渲染进程" 等关键词时，自动应用这些规则。
+
 ### 环境变量
 - 开发模式通过 `.env` 文件配置（不提交到 git）
 - 生产环境通过设置面板配置（持久化到 electron-store）

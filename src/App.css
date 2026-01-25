@@ -40,3 +40,15 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Custom Font Variables */
+@layer base {
+  :root {
+    --font-display: 'Outfit', 'DM Sans', system-ui, sans-serif;
+    --font-mono: 'Space Grotesk', 'Fira Code', monospace;
+  }
+
+  body {
+    font-family: var(--font-display);
+  }
+}

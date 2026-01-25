@@ -3,6 +3,7 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import path from 'path';
 import fs from 'fs/promises';
+import fsSync from 'fs';  // 🔧 添加同步 fs 模块用于 existsSync
 import os from 'os';
 import log from 'electron-log';
 // app import removed
@@ -16,10 +17,14 @@ export interface MCPServerConfig {
     description?: string;
     baseUrl?: string;
     headers?: Record<string, string>;
+    disabled?: boolean;  // 是否禁用此服务器
+    isCustom?: boolean;  // 标识是否为自定义服务器
+    _preinstalled?: boolean;  // 标识是否为预装服务器
 }
 
 export interface MCPConfig {
     mcpServers: Record<string, MCPServerConfig>;
+    customServers?: Record<string, MCPServerConfig>;  // 用户自定义服务器
 }
 
 export interface MCPServerStatus {
@@ -52,7 +57,7 @@ export class MCPClientService {
         const placeholders: string[] = [];
 
         for (const [name, serverConfig] of Object.entries(config.mcpServers)) {
-            // 检查 args 中的占位符
+            // 1. 检查 args 中的占位符
             if (serverConfig.args) {
                 for (const arg of serverConfig.args) {
                     if (arg.includes('ALLOWED_') || arg.includes('YOUR_')) {
@@ -61,17 +66,39 @@ export class MCPClientService {
                 }
             }
 
-            // 检查 env 中的占位符
+            // 2. 检查 env 中的占位符
             if (serverConfig.env) {
                 for (const [key, value] of Object.entries(serverConfig.env)) {
-                    if (value.includes('YOUR_') || value.includes('API_KEY_HERE') || value.includes('API密钥')) {
+                    if (this.isPlaceholder(value)) {
                         placeholders.push(`${name}:env:${key}`);
+                    }
+                }
+            }
+
+            // 3. ✨ 检查 headers 中的占位符（新增）
+            if (serverConfig.headers) {
+                for (const [key, value] of Object.entries(serverConfig.headers)) {
+                    if (this.isPlaceholder(value)) {
+                        placeholders.push(`${name}:headers:${key}`);
                     }
                 }
             }
         }
 
         return placeholders;
+    }
+
+    /**
+     * 判断是否为占位符
+     * @param value 待检查的值
+     * @returns 是否为占位符
+     */
+    private isPlaceholder(value: string): boolean {
+        if (!value || typeof value !== 'string') return false;
+        return value.includes('YOUR_') ||
+               value.includes('API_KEY_HERE') ||
+               value.includes('API密钥') ||
+               value.includes('TOKEN_HERE');
     }
 
     /**
@@ -130,37 +157,48 @@ export class MCPClientService {
 
     /**
      * 处理 API Key 占位符
-     * 禁用未配置的服务器，避免连接失败
+     * 标记未配置的服务器为禁用状态，而不是删除它们
+     * 这样用户可以看到需要配置的服务器并手动启用
      */
-    private async replaceApiKeys(config: MCPConfig): Promise<void> {
-        const serversToRemove: string[] = [];
+    private async markServersWithPlaceholders(config: MCPConfig): Promise<void> {
+        let hasChanges = false;
 
         for (const [name, serverConfig] of Object.entries(config.mcpServers)) {
-            if (!serverConfig.env) continue;
-
             let hasInvalidKey = false;
 
-            for (const [key, value] of Object.entries(serverConfig.env)) {
-                if (value.includes('YOUR_BRAVE_API_KEY_HERE') ||
-                    value.includes('YOUR_API_KEY_HERE') ||
-                    value.includes('API密钥')) {
-                    log.warn(`[MCPClientService] ⚠️ ${name} requires ${key} to be configured`);
-                    hasInvalidKey = true;
+            // 1. 检查 env 中的占位符
+            if (serverConfig.env) {
+                for (const [key, value] of Object.entries(serverConfig.env)) {
+                    if (this.isPlaceholder(value)) {
+                        log.warn(`[MCPClientService] ⚠️ ${name} requires env.${key} to be configured`);
+                        hasInvalidKey = true;
+                    }
                 }
             }
 
+            // 2. ✨ 检查 headers 中的占位符（新增）
+            if (serverConfig.headers) {
+                for (const [key, value] of Object.entries(serverConfig.headers)) {
+                    if (this.isPlaceholder(value)) {
+                        log.warn(`[MCPClientService] ⚠️ ${name} requires header.${key} to be configured`);
+                        hasInvalidKey = true;
+                    }
+                }
+            }
+
+            // 标记为禁用（而不是删除）
             if (hasInvalidKey) {
-                // 禁用此服务器
-                delete config.mcpServers[name];
-                log.log(`[MCPClientService] 🚫 Disabled ${name} due to missing API key`);
+                serverConfig.disabled = true;
+                log.log(`[MCPClientService] 🚫 Disabled ${name} due to missing credentials`);
+                hasChanges = true;
             }
         }
 
         // 保存更新后的配置
-        if (serversToRemove.length > 0) {
+        if (hasChanges) {
             try {
                 await fs.writeFile(this.configPath, JSON.stringify(config, null, 2), 'utf-8');
-                log.log('[MCPClientService] ✅ Updated config after removing invalid servers');
+                log.log('[MCPClientService] ✅ Updated config after marking servers with placeholders');
             } catch (error) {
                 log.error('[MCPClientService] Failed to save config:', error);
             }
@@ -169,12 +207,19 @@ export class MCPClientService {
 
     async loadClients() {
         let config: MCPConfig = { mcpServers: {} };
+        let needsRepair = false;
 
         try {
             const content = await fs.readFile(this.configPath, 'utf-8');
             config = JSON.parse(content);
+
+            // ✅ 检查配置完整性
+            needsRepair = this.detectIncompleteConfig(config);
+            if (needsRepair) {
+                log.warn('[MCPClientService] ⚠️ Detected incomplete or empty user config, will repair');
+            }
         } catch (e) {
-            // Create default config from template
+            // 文件不存在，从模板创建
             log.log('[MCPClientService] Creating default MCP config from template');
             const templatePath = path.join(process.env.APP_ROOT || process.cwd(), 'resources', 'mcp-templates.json');
 
@@ -193,6 +238,11 @@ export class MCPClientService {
             config.mcpServers = {};
         }
 
+        // ✅ 智能合并配置（从模板添加缺失的服务器）
+        if (needsRepair || Object.keys(config.mcpServers).length === 0) {
+            config = await this.repairAndMergeConfig(config);
+        }
+
         // 🔧 检测并修复占位符
         const placeholders = this.detectPlaceholders(config);
         if (placeholders.length > 0) {
@@ -204,14 +254,19 @@ export class MCPClientService {
                 log.log('[MCPClientService] ✅ Filesystem path fixed');
             }
 
-            // 处理 API Key 占位符
-            await this.replaceApiKeys(config);
+            // 处理 API Key 占位符，标记为禁用
+            await this.markServersWithPlaceholders(config);
         } else {
             log.log('[MCPClientService] ✅ No placeholders found, config is valid');
         }
 
         // 连接所有服务器
         for (const [key, serverConfig] of Object.entries(config.mcpServers || {})) {
+            // 跳过被禁用的服务器
+            if (serverConfig.disabled) {
+                log.log(`[MCPClientService] ⏭️  Skipping disabled server: ${key}`);
+                continue;
+            }
             await this.connectToServer(key, serverConfig);
         }
     }
@@ -260,6 +315,53 @@ export class MCPClientService {
                 log.log(`Using stdio transport for MCP server: ${name}`);
                 const finalEnv = { ...(process.env as Record<string, string>), ...config.env };
 
+                // 🔧 解析相对路径为绝对路径
+                let resolvedCommand = config.command;
+                const resolvedArgs = config.args || [];
+
+                // 如果是预装的 MCP 服务器，需要解析路径
+                if (config._preinstalled && config.args?.[0]?.includes('node_modules')) {
+                    log.log(`[MCP] Resolving preinstalled MCP server path for ${name}`);
+
+                    // 获取应用根目录
+                    const appRoot = process.env.APP_ROOT || process.cwd();
+                    log.log(`[MCP] App root: ${appRoot}`);
+
+                    // 解析 node_modules 路径
+                    const modulePath = path.resolve(appRoot, config.args[0]);
+                    log.log(`[MCP] Resolved module path: ${modulePath}`);
+
+                    // 检查文件是否存在
+                    if (fsSync.existsSync(modulePath)) {
+                        resolvedArgs[0] = modulePath;
+                        log.log(`[MCP] ✅ Module path resolved successfully`);
+                    } else {
+                        throw new Error(`MCP server module not found: ${modulePath}`);
+                    }
+                }
+
+                // 🔧 如果是预装的 Python MCP 服务器，自动设置 PYTHONPATH
+                if (config._preinstalled && config.command === 'python') {
+                    log.log(`[MCP] Resolving preinstalled Python MCP server path for ${name}`);
+
+                    // 获取应用根目录
+                    const appRoot = process.env.APP_ROOT || process.cwd();
+                    const pythonRuntimePath = path.join(appRoot, 'python-runtime');
+                    const pythonLibPath = path.join(pythonRuntimePath, 'lib');
+                    const pythonExePath = path.join(pythonRuntimePath, 'python.exe');
+
+                    // 检查 python-runtime 是否存在
+                    if (fsSync.existsSync(pythonExePath) && fsSync.existsSync(pythonLibPath)) {
+                        // 使用嵌入式 Python
+                        resolvedCommand = pythonExePath;  // 替换 command
+                        finalEnv['PYTHONPATH'] = pythonLibPath;
+                        log.log(`[MCP] Using embedded Python: ${pythonExePath}`);
+                        log.log(`[MCP] PYTHONPATH: ${pythonLibPath}`);
+                    } else {
+                        log.warn(`[MCP] python-runtime not found at ${pythonRuntimePath}, falling back to system Python`);
+                    }
+                }
+
                 // [Restored] Sync API Key from ConfigStore if Base URL matches MiniMax
                 // This allows users to use the app's configured key without duplicating it in mcp.json
                 const { configStore } = await import('../../config/ConfigStore.js'); // Dynamic import to avoid cycles if any
@@ -277,8 +379,8 @@ export class MCPClientService {
                 }
 
                 transport = new StdioClientTransport({
-                    command: config.command,
-                    args: config.args || [],
+                    command: resolvedCommand,
+                    args: resolvedArgs,
                     env: finalEnv
                 });
             } else {
@@ -350,16 +452,34 @@ export class MCPClientService {
             log.error(`[MCP] ❌ Failed to connect to ${name} after ${retryCount + 1} attempts:`);
             log.error(`  Error: ${error.message}`);
 
-            // 提供诊断建议
-            if (error.message.includes('EACCES') || error.message.includes('权限')) {
+            // ✨ 增强的诊断建议：精细化错误分类
+            if (error.message.includes('401') || error.message.includes('403')) {
+                // 认证错误
+                log.error(`[MCP] 🔐 Authentication failed for ${name}`);
+                log.error(`  💡 建议: 检查 API Key 是否正确`);
+                log.error(`  💡 路径: 设置 > MCP > ${name} > Headers/Environment`);
+            } else if (error.message.includes('ENOTFOUND') || error.message.includes('ECONNREFUSED')) {
+                // 网络错误
+                log.error(`[MCP] 🌐 Network error for ${name}`);
+                log.error(`  💡 建议: 检查网络连接或服务器 URL`);
+            } else if (error.message.includes('Connection closed') || error.message.includes('ECONNRESET')) {
+                // 连接关闭 - 检查是否为占位符导致
+                if (this.hasUnresolvedPlaceholders(config)) {
+                    log.error(`[MCP] ⚠️ Configuration error for ${name}`);
+                    log.error(`  💡 原因: 检测到未配置的占位符 (如 YOUR_JINA_API_KEY, YOUR_BRAVE_API_KEY)`);
+                    log.error(`  💡 建议: 在设置面板中配置有效的 API Key`);
+                } else {
+                    log.error(`  💡 建议: MCP 服务器进程启动失败或意外退出`);
+                    if (config.command) {
+                        log.error(`  💡 尝试手动运行: ${config.command} ${config.args?.join(' ')}`);
+                    }
+                }
+            } else if (error.message.includes('EACCES') || error.message.includes('权限')) {
                 log.error(`  💡 建议: 检查应用是否有足够权限启动子进程`);
             } else if (error.message.includes('ENOENT')) {
                 log.error(`  💡 建议: 确保 ${config.command} 已正确安装`);
             } else if (error.message.includes('timeout') || error.message.includes('ETIMEDOUT')) {
                 log.error(`  💡 建议: 网络连接可能较慢，请检查网络或稍后重试`);
-            } else if (error.message.includes('Connection closed') || error.message.includes('ECONNRESET')) {
-                log.error(`  💡 建议: MCP 服务器进程启动失败或意外退出`);
-                log.error(`  💡 尝试手动运行: ${config.command} ${config.args?.join(' ')}`);
             } else {
                 log.error(`  💡 建议: 尝试手动运行 ${config.command} ${config.args?.join(' ')} 查看详细错误`);
             }
@@ -469,6 +589,33 @@ export class MCPClientService {
     }
 
     /**
+     * 检查服务器配置是否包含未解析的占位符
+     * @param serverConfig 服务器配置
+     * @returns 是否包含占位符
+     */
+    private hasUnresolvedPlaceholders(serverConfig: MCPServerConfig): boolean {
+        // 检查 env
+        if (serverConfig.env) {
+            for (const value of Object.values(serverConfig.env)) {
+                if (this.isPlaceholder(value)) {
+                    return true;
+                }
+            }
+        }
+
+        // 检查 headers
+        if (serverConfig.headers) {
+            for (const value of Object.values(serverConfig.headers)) {
+                if (this.isPlaceholder(value)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * 重新连接到指定的 MCP 服务器
      * @param name 服务器名称
      * @returns 是否连接成功
@@ -512,5 +659,473 @@ export class MCPClientService {
             log.error(`[MCP] Failed to reconnect ${name}:`, e);
             return false;
         }
+    }
+
+    /**
+     * 重新加载所有 MCP 服务器配置
+     * 用于配置保存后的热重载，无需重启应用
+     */
+    async reloadAllServers(): Promise<void> {
+        log.log('[MCPClientService] 🔄 Reloading all MCP servers...');
+
+        try {
+            // 1. 关闭所有现有连接
+            for (const [name, client] of this.clients.entries()) {
+                await client.close();
+                log.log(`[MCPClientService] ✓ Closed connection to ${name}`);
+            }
+            this.clients.clear();
+
+            // 2. 清除状态
+            this.connectionStatus.clear();
+            this.retryAttempts.clear();
+
+            // 3. 重新加载配置并连接
+            await this.loadClients();
+
+            log.log('[MCPClientService] ✅ Successfully reloaded all servers');
+        } catch (error) {
+            log.error('[MCPClientService] ❌ Failed to reload servers:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 添加自定义 MCP 服务器
+     * @param name 服务器名称
+     * @param config 服务器配置
+     * @returns 是否添加成功
+     */
+    async addCustomServer(name: string, config: MCPServerConfig): Promise<boolean> {
+        try {
+            log.log(`[MCPClientService] ➕ Adding custom server: ${name}`);
+
+            // 读取当前配置
+            let currentConfig: MCPConfig = { mcpServers: {} };
+            try {
+                const content = await fs.readFile(this.configPath, 'utf-8');
+                currentConfig = JSON.parse(content);
+            } catch (e) {
+                log.warn('[MCPClientService] No existing config, creating new one');
+            }
+
+            // 确保 customServers 字段存在
+            if (!currentConfig.customServers) {
+                currentConfig.customServers = {};
+            }
+
+            // 标记为自定义服务器
+            config.isCustom = true;
+            config.name = name;
+
+            // 添加到自定义服务器列表
+            currentConfig.customServers[name] = config;
+
+            // 同时添加到 mcpServers 以便加载
+            currentConfig.mcpServers[name] = config;
+
+            // 保存配置
+            await fs.writeFile(this.configPath, JSON.stringify(currentConfig, null, 2), 'utf-8');
+
+            log.log(`[MCPClientService] ✅ Successfully added custom server: ${name}`);
+
+            // 如果服务器未禁用，立即连接
+            if (!config.disabled) {
+                await this.connectToServer(name, config);
+            }
+
+            return true;
+        } catch (e) {
+            log.error(`[MCPClientService] ❌ Failed to add custom server ${name}:`, e);
+            return false;
+        }
+    }
+
+    /**
+     * 更新自定义 MCP 服务器配置
+     * @param name 服务器名称
+     * @param config 新的服务器配置
+     * @returns 是否更新成功
+     */
+    async updateCustomServer(name: string, config: MCPServerConfig): Promise<boolean> {
+        try {
+            log.log(`[MCPClientService] ✏️ Updating custom server: ${name}`);
+
+            // 读取当前配置
+            const content = await fs.readFile(this.configPath, 'utf-8');
+            const currentConfig: MCPConfig = JSON.parse(content);
+
+            // 检查服务器是否存在且为自定义服务器
+            if (!currentConfig.customServers || !currentConfig.customServers[name]) {
+                log.error(`[MCPClientService] ❌ Custom server ${name} not found`);
+                return false;
+            }
+
+            // 保持 isCustom 标记
+            config.isCustom = true;
+            config.name = name;
+
+            // 更新配置
+            currentConfig.customServers[name] = config;
+            currentConfig.mcpServers[name] = config;
+
+            // 保存配置
+            await fs.writeFile(this.configPath, JSON.stringify(currentConfig, null, 2), 'utf-8');
+
+            log.log(`[MCPClientService] ✅ Successfully updated custom server: ${name}`);
+
+            // 如果服务器正在运行，重新连接以应用新配置
+            if (this.clients.has(name)) {
+                await this.clients.get(name)?.close();
+                this.clients.delete(name);
+            }
+
+            // 如果服务器未禁用，重新连接
+            if (!config.disabled) {
+                await this.connectToServer(name, config);
+            }
+
+            return true;
+        } catch (e) {
+            log.error(`[MCPClientService] ❌ Failed to update custom server ${name}:`, e);
+            return false;
+        }
+    }
+
+    /**
+     * 删除自定义 MCP 服务器
+     * @param name 服务器名称
+     * @returns 是否删除成功
+     */
+    async removeCustomServer(name: string): Promise<boolean> {
+        try {
+            log.log(`[MCPClientService] 🗑️ Removing custom server: ${name}`);
+
+            // 读取当前配置
+            const content = await fs.readFile(this.configPath, 'utf-8');
+            const currentConfig: MCPConfig = JSON.parse(content);
+
+            // 检查服务器是否存在且为自定义服务器
+            if (!currentConfig.customServers || !currentConfig.customServers[name]) {
+                log.error(`[MCPClientService] ❌ Custom server ${name} not found`);
+                return false;
+            }
+
+            // 关闭连接（如果正在运行）
+            if (this.clients.has(name)) {
+                await this.clients.get(name)?.close();
+                this.clients.delete(name);
+                this.connectionStatus.delete(name);
+            }
+
+            // 从配置中删除
+            delete currentConfig.customServers[name];
+            delete currentConfig.mcpServers[name];
+
+            // 保存配置
+            await fs.writeFile(this.configPath, JSON.stringify(currentConfig, null, 2), 'utf-8');
+
+            log.log(`[MCPClientService] ✅ Successfully removed custom server: ${name}`);
+
+            return true;
+        } catch (e) {
+            log.error(`[MCPClientService] ❌ Failed to remove custom server ${name}:`, e);
+            return false;
+        }
+    }
+
+    /**
+     * 获取所有自定义服务器列表
+     * @returns 自定义服务器配置列表
+     */
+    getCustomServers(): Record<string, MCPServerConfig> {
+        try {
+            // 同步读取（因为这是getter方法）
+            const content = fsSync.readFileSync(this.configPath, 'utf-8');
+            const config: MCPConfig = JSON.parse(content);
+            return config.customServers || {};
+        } catch (e) {
+            log.warn('[MCPClientService] Failed to read custom servers:', e);
+            return {};
+        }
+    }
+
+    /**
+     * 测试服务器连接
+     * @param name 服务器名称
+     * @param config 服务器配置
+     * @returns 连接测试结果
+     */
+    async testConnection(name: string, config: MCPServerConfig): Promise<{
+        success: boolean;
+        error?: string;
+        duration?: number;
+    }> {
+        const startTime = Date.now();
+        let testClient: Client | undefined;
+
+        try {
+            log.log(`[MCPClientService] 🧪 Testing connection for: ${name}`);
+
+            let transport;
+
+            if (config.type === 'streamableHttp' && config.baseUrl) {
+                // HTTP transport
+                transport = new StreamableHTTPClientTransport(new URL(config.baseUrl), {
+                    requestInit: {
+                        headers: config.headers || {}
+                    }
+                });
+            } else if (config.command) {
+                // Stdio transport
+                const finalEnv = { ...(process.env as Record<string, string>), ...config.env };
+                transport = new StdioClientTransport({
+                    command: config.command,
+                    args: config.args || [],
+                    env: finalEnv
+                });
+            } else {
+                throw new Error('Invalid server configuration: missing required fields');
+            }
+
+            testClient = new Client({
+                name: "test-client",
+                version: "1.0.0",
+            }, {
+                capabilities: {},
+            });
+
+            // 尝试连接（较短的超时时间）
+            await testClient.connect(transport, {
+                timeout: 30000,  // 30秒超时
+                maxTotalTimeout: 45000  // 最大总超时45秒
+            });
+
+            // 列出工具以验证连接正常工作
+            await testClient.listTools();
+
+            const duration = Date.now() - startTime;
+
+            log.log(`[MCPClientService] ✅ Connection test successful for ${name} (${duration}ms)`);
+
+            // 关闭测试连接
+            await testClient.close();
+
+            return { success: true, duration };
+        } catch (e) {
+            const error = e as Error;
+            const duration = Date.now() - startTime;
+
+            // 关闭测试连接（如果已建立）
+            if (testClient) {
+                try {
+                    await testClient.close();
+                } catch (closeError) {
+                    // 忽略关闭错误
+                }
+            }
+
+            log.error(`[MCPClientService] ❌ Connection test failed for ${name} (${duration}ms):`, error.message);
+
+            return {
+                success: false,
+                error: error.message,
+                duration
+            };
+        }
+    }
+
+    /**
+     * 验证 MCP 配置的有效性
+     * @param config 待验证的配置
+     * @returns 验证结果
+     */
+    validateConfig(config: MCPConfig): {
+        valid: boolean;
+        errors: string[];
+        warnings: string[];
+    } {
+        const errors: string[] = [];
+        const warnings: string[] = [];
+
+        // 检查所有服务器配置
+        const allServers = {
+            ...config.mcpServers,
+            ...config.customServers
+        };
+
+        for (const [name, serverConfig] of Object.entries(allServers)) {
+            // 检查必需字段
+            if (serverConfig.type === 'streamableHttp') {
+                if (!serverConfig.baseUrl) {
+                    errors.push(`${name}: Missing required field 'baseUrl' for HTTP server`);
+                }
+                // 验证 URL 格式
+                try {
+                    new URL(serverConfig.baseUrl);
+                } catch (e) {
+                    errors.push(`${name}: Invalid URL format for 'baseUrl'`);
+                }
+            } else if (serverConfig.type === 'stdio' || !serverConfig.type) {
+                if (!serverConfig.command) {
+                    errors.push(`${name}: Missing required field 'command' for stdio server`);
+                }
+            }
+
+            // 检查占位符（警告）
+            if (serverConfig.env) {
+                for (const [key, value] of Object.entries(serverConfig.env)) {
+                    if (this.isPlaceholder(value)) {
+                        warnings.push(`${name}: Environment variable '${key}' contains placeholder`);
+                    }
+                }
+            }
+
+            if (serverConfig.headers) {
+                for (const [key, value] of Object.entries(serverConfig.headers)) {
+                    if (this.isPlaceholder(value)) {
+                        warnings.push(`${name}: Header '${key}' contains placeholder`);
+                    }
+                }
+            }
+        }
+
+        return {
+            valid: errors.length === 0,
+            errors,
+            warnings
+        };
+    }
+
+    /**
+     * 检测配置是否不完整或缺少有效服务器
+     * @returns 是否需要修复
+     */
+    private detectIncompleteConfig(config: MCPConfig): boolean {
+        let hasValidServer = false;
+
+        for (const [name, serverConfig] of Object.entries(config.mcpServers || {})) {
+            if (!serverConfig.disabled) {
+                const isStdio = !serverConfig.type || serverConfig.type === 'stdio';
+                const isHttp = serverConfig.type === 'streamableHttp';
+
+                // 检查 stdio 类型服务器的必需字段
+                if (isStdio && (!serverConfig.command || !serverConfig.args)) {
+                    log.warn(`[MCP] Server ${name} is enabled but missing command/args`);
+                    continue;
+                }
+
+                // 检查 HTTP 类型服务器的必需字段
+                if (isHttp && !serverConfig.baseUrl) {
+                    log.warn(`[MCP] Server ${name} is enabled but missing baseUrl`);
+                    continue;
+                }
+
+                hasValidServer = true;
+            }
+        }
+
+        return !hasValidServer;
+    }
+
+    /**
+     * 智能合并配置：从模板中添加缺失的服务器，修复不完整的配置
+     * 保留用户自定义设置（disabled、env、headers）
+     */
+    private async repairAndMergeConfig(userConfig: MCPConfig): Promise<MCPConfig> {
+        const templatePath = path.join(process.env.APP_ROOT || process.cwd(), 'resources', 'mcp-templates.json');
+
+        try {
+            // 读取模板配置
+            const templateContent = await fs.readFile(templatePath, 'utf-8');
+            const templateConfig: MCPConfig = JSON.parse(templateContent);
+
+            // 合并策略：模板提供默认值，用户配置覆盖
+            for (const [name, templateServer] of Object.entries(templateConfig.mcpServers || {})) {
+                if (!userConfig.mcpServers[name]) {
+                    // 模板中有但用户配置中没有，直接添加
+                    userConfig.mcpServers[name] = templateServer;
+                    log.log(`[MCPClientService] ➕ Added server ${name} from template`);
+                } else {
+                    // 用户配置中有，但可能不完整，智能合并
+                    const userServer = userConfig.mcpServers[name];
+
+                    // 保留用户的自定义设置
+                    userConfig.mcpServers[name] = {
+                        ...templateServer,  // 模板提供完整的默认配置
+                        disabled: userServer.disabled !== undefined ? userServer.disabled : templateServer.disabled,
+                        env: { ...templateServer.env, ...userServer.env },
+                        headers: { ...templateServer.headers, ...userServer.headers }
+                    };
+
+                    log.log(`[MCPClientService] 🔄 Merged config for ${name}`);
+                }
+            }
+
+            // 保存修复后的配置
+            await fs.writeFile(this.configPath, JSON.stringify(userConfig, null, 2), 'utf-8');
+            log.log('[MCPClientService] ✅ Config repaired and merged with template');
+
+            return userConfig;
+        } catch (e) {
+            log.error('[MCPClientService] Failed to repair and merge config:', e);
+            return userConfig;
+        }
+    }
+
+    /**
+     * 修复不完整的 MCP 配置 (已弃用，使用 repairAndMergeConfig 代替)
+     * 从模板中补充缺失的 command 和 args 字段
+     * @deprecated
+     */
+    private async repairIncompleteConfig(config: MCPConfig): Promise<{
+        repaired: boolean;
+        config: MCPConfig;
+        repairedServers: string[];
+    }> {
+        const templatePath = path.join(process.env.APP_ROOT || process.cwd(), 'resources', 'mcp-templates.json');
+        let repaired = false;
+        const repairedServers: string[] = [];
+
+        try {
+            // 读取模板配置
+            const templateContent = await fs.readFile(templatePath, 'utf-8');
+            const templateConfig = JSON.parse(templateContent) as MCPConfig;
+
+            // 检查并修复每个服务器配置
+            for (const [name, serverConfig] of Object.entries(config.mcpServers || {})) {
+                // 检查是否缺少必需字段
+                if (!serverConfig.command || !serverConfig.args) {
+                    // 从模板中查找完整配置
+                    if (templateConfig.mcpServers && templateConfig.mcpServers[name]) {
+                        const template = templateConfig.mcpServers[name];
+
+                        // 保留用户的 disabled 状态和自定义 env
+                        config.mcpServers[name] = {
+                            ...template,
+                            disabled: serverConfig.disabled !== undefined ? serverConfig.disabled : template.disabled,
+                            env: { ...template.env, ...serverConfig.env }
+                        };
+
+                        repaired = true;
+                        repairedServers.push(name);
+                        log.log(`[MCPClientService] ✅ Repaired config for ${name}`);
+                    } else {
+                        log.log(`[MCPClientService] 🧹 No template found for ${name}, removing incomplete config`);
+                        delete config.mcpServers[name];
+                    }
+                }
+            }
+
+            // 如果有修复，保存配置
+            if (repaired) {
+                await fs.writeFile(this.configPath, JSON.stringify(config, null, 2), 'utf-8');
+                log.log(`[MCPClientService] ✅ Repaired ${repairedServers.length} server(s): ${repairedServers.join(', ')}`);
+            }
+        } catch (e) {
+            log.error('[MCPClientService] Failed to repair config:', e);
+        }
+
+        return { repaired, config, repairedServers };
     }
 }

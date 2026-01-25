@@ -13,7 +13,10 @@ export { SettingsView } from './SettingsView.js';
 export { UserGuideView } from './UserGuideView.js';
 
 // Dialogs and modals
-export { ConfirmDialog, useConfirmations } from './ConfirmDialog.js';
+export { ConfirmDialog } from './ConfirmDialog.js';
+
+// Permission management
+export { TrustedProjectsList } from './TrustedProjectsList.js';
 
 // Special pages
 export { FloatingBallPage } from './FloatingBallPage.js';
