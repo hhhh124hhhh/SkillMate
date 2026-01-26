@@ -29,7 +29,7 @@
     "backup-skills": "node scripts/migrate-skills.js backup",
     "list-backups": "node scripts/migrate-skills.js list",
     "test:encryption": "node tests/run-encryption-tests.js",
-    "prebuild": "npm run setup-python && npm run generate-icons && npm run encrypt-skills",
+    "prebuild": "npm run setup-python && npm run generate-icons",
     "build": "tsc && vite build && electron-builder",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives",
     "preview": "vite preview"
@@ -42,7 +42,9 @@
     "@types/react-syntax-highlighter": "^15.5.13",
     "clsx": "^2.1.1",
     "dotenv": "^17.2.3",
+    "electron-log": "^5.1.2",
     "electron-store": "^11.0.2",
+    "electron-updater": "^6.7.3",
     "fetcher-mcp": "^0.3.9",
     "file-saver": "^2.0.5",
     "immer": "^11.1.3",
@@ -62,6 +64,7 @@
   },
   "devDependencies": {
     "@types/dotenv": "^6.1.1",
+    "@types/file-saver": "^2.0.7",
     "@types/js-yaml": "^4.0.9",
     "@types/react": "^18.2.64",
     "@types/react-dom": "^18.2.21",
@@ -73,8 +76,7 @@
     "cross-env": "^7.0.3",
     "electron": "^30.0.1",
     "electron-builder": "^24.13.3",
-    "electron-log": "^5.1.2",
-    "electron-updater": "^6.7.3",
+    "electron-rebuild": "^3.2.9",
     "eslint": "^8.57.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
@@ -124,7 +126,7 @@
     "win": {
       "target": [
         {
-          "target": "nsis",
+          "target": "portable",
           "arch": [
             "x64"
           ]

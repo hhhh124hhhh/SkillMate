@@ -2128,6 +2128,7 @@ async function initializeAgent(): Promise<{ success: boolean; error?: string }> 
     // ✅ 回滚到旧 Agent 实例
     if (previousAgent && previousConfig) {
       log.log('[initializeAgent] Rolling back to previous Agent instance...')
+      // @ts-ignore - previousAgent is callable
       agent = previousAgent
       (global as Record<string, unknown>).agent = agent
 

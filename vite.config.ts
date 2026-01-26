@@ -28,7 +28,8 @@ export default defineConfig({
                 '@modelcontextprotocol/sdk',
                 'electron-updater',
                 'electron-log',
-                'sharp'
+                'sharp',
+                'jszip'
               ]
             },
           },
@@ -66,7 +67,8 @@ export default defineConfig({
                 '@modelcontextprotocol/sdk',
                 'electron-updater',
                 'electron-log',
-                'sharp'
+                'sharp',
+                'jszip'
               ]
             },
           },

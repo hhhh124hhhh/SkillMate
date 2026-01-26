@@ -47,7 +47,7 @@ interface MCPConfigEditorProps {
 }
 
 export function MCPConfigEditor({ onClose }: MCPConfigEditorProps) {
-  const { toast } = useToast();
+  const { toast, success, error, warning } = useToast();
   const [config, setConfig] = useState<MCPConfig>({ mcpServers: {} });
   const [saved, setSaved] = useState(false);
   const [editingServer, setEditingServer] = useState<string | null>(null);
@@ -71,7 +71,7 @@ export function MCPConfigEditor({ onClose }: MCPConfigEditorProps) {
       try {
         const status = await window.ipcRenderer.invoke('mcp:get-status') as MCPServerStatus[];
         setMcpStatus(status);
-      } catch (error) {
+      } catch (err) {
         console.error('Failed to load MCP status:', error);
       }
     };
@@ -86,7 +86,7 @@ export function MCPConfigEditor({ onClose }: MCPConfigEditorProps) {
     try {
       const servers = await window.ipcRenderer.invoke('mcp:get-custom-servers') as Record<string, MCPServer>;
       setCustomServers(servers);
-    } catch (error) {
+    } catch (err) {
       console.error('Failed to load custom servers:', error);
     }
   };
@@ -126,7 +126,7 @@ export function MCPConfigEditor({ onClose }: MCPConfigEditorProps) {
           // 显示修复提示
           if (repairResult.repairedCount && repairResult.repairedCount > 0) {
             setTimeout(() => {
-              toast.success(`已自动修复 ${repairResult.repairedCount} 个 MCP 配置：${repairResult.repairedServers?.join(', ')}`);
+              success(`已自动修复 ${repairResult.repairedCount} 个 MCP 配置：${repairResult.repairedServers?.join(', ')}`);
             }, 100);
           }
         } else {
@@ -138,7 +138,7 @@ export function MCPConfigEditor({ onClose }: MCPConfigEditorProps) {
         // 配置完整，直接加载
         setConfig(parsed);
       }
-    } catch (error) {
+    } catch (err) {
       console.error('Failed to load MCP config:', error);
     }
   };
@@ -180,7 +180,7 @@ export function MCPConfigEditor({ onClose }: MCPConfigEditorProps) {
       }
 
       setTemplates(templateList);
-    } catch (error) {
+    } catch (err) {
       console.error('Failed to load MCP templates:', error);
     }
   };
@@ -193,11 +193,11 @@ export function MCPConfigEditor({ onClose }: MCPConfigEditorProps) {
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
       } else {
-        toast.error('保存失败：' + (result as { error?: string }).error);
+        error('保存失败：' + (result as { error?: string }).error);
       }
-    } catch (error) {
+    } catch (err) {
       console.error('Failed to save MCP config:', error);
-      toast.error('保存失败：' + (error as Error).message);
+      error('保存失败：' + ((err as Error)).message);
     }
   };
 
@@ -251,7 +251,7 @@ export function MCPConfigEditor({ onClose }: MCPConfigEditorProps) {
     // 1. 验证配置
     const validation = validateServerConfig(editForm);
     if (!validation.valid) {
-      toast.error('❌ 配置验证失败：\n' + validation.errors.join('\n'));
+      error('❌ 配置验证失败：\n' + validation.errors.join('\n'));
       return;
     }
 
@@ -272,7 +272,7 @@ export function MCPConfigEditor({ onClose }: MCPConfigEditorProps) {
       if ((result as { success: boolean }).success) {
         setConfig(newConfig);
         setEditingServer(null);
-        toast.success(`✅ "${serverName}" 配置已保存并自动启用`);
+        success(`✅ "${serverName}" 配置已保存并自动启用`);
 
         // 重新加载 MCP 服务器以应用配置
         try {
@@ -282,11 +282,11 @@ export function MCPConfigEditor({ onClose }: MCPConfigEditorProps) {
           console.error('[MCP] 重载服务器失败:', reloadError);
         }
       } else {
-        toast.error('❌ 保存失败：' + (result as { error?: string }).error);
+        error('❌ 保存失败：' + (result as { error?: string }).error);
       }
-    } catch (error) {
+    } catch (err) {
       console.error('Failed to save server config:', error);
-      toast.error('❌ 保存失败：' + (error as Error).message);
+      error('❌ 保存失败：' + ((err as Error)).message);
     }
   };
 
@@ -365,7 +365,7 @@ export function MCPConfigEditor({ onClose }: MCPConfigEditorProps) {
                 console.error('[Auto-save] 重载服务器失败:', reloadError);
               }
             }
-          } catch (error) {
+          } catch (err) {
             console.error('[Auto-save] 自动保存失败:', error);
           }
         } else {
@@ -407,9 +407,9 @@ export function MCPConfigEditor({ onClose }: MCPConfigEditorProps) {
         const status = await window.ipcRenderer.invoke('mcp:get-status') as MCPServerStatus[];
         setMcpStatus(status);
       } else {
-        toast.error(`重试连接 ${serverName} 失败`);
+        error(`重试连接 ${serverName} 失败`);
       }
-    } catch (error) {
+    } catch (err) {
       console.error('Failed to reconnect MCP server:', error);
     }
   };
@@ -428,13 +428,13 @@ export function MCPConfigEditor({ onClose }: MCPConfigEditorProps) {
         await loadConfig();
         setShowCustomServerForm(false);
         setEditForm({});
-        toast.success('自定义服务器添加成功！');
+        success('自定义服务器添加成功！');
       } else {
-        toast.error(`添加失败：${result.error}`);
+        error(`添加失败：${result.error}`);
       }
-    } catch (error) {
+    } catch (err) {
       console.error('Failed to add custom server:', error);
-      toast.error('添加自定义服务器时发生错误');
+      error('添加自定义服务器时发生错误');
     }
   };
 
@@ -450,13 +450,13 @@ export function MCPConfigEditor({ onClose }: MCPConfigEditorProps) {
         await loadConfig();
         setEditingServer(null);
         setEditForm({});
-        toast.success('自定义服务器更新成功！');
+        success('自定义服务器更新成功！');
       } else {
-        toast.error(`更新失败：${result.error}`);
+        error(`更新失败：${result.error}`);
       }
-    } catch (error) {
+    } catch (err) {
       console.error('Failed to update custom server:', error);
-      toast.error('更新自定义服务器时发生错误');
+      error('更新自定义服务器时发生错误');
     }
   };
 
@@ -479,13 +479,13 @@ export function MCPConfigEditor({ onClose }: MCPConfigEditorProps) {
         if (editingServer === serverName) {
           setEditingServer(null);
         }
-        toast.success('自定义服务器已删除');
+        success('自定义服务器已删除');
       } else {
-        toast.error(`删除失败：${result.error}`);
+        error(`删除失败：${result.error}`);
       }
-    } catch (error) {
+    } catch (err) {
       console.error('Failed to remove custom server:', error);
-      toast.error('删除自定义服务器时发生错误');
+      error('删除自定义服务器时发生错误');
     }
   };
 
@@ -515,20 +515,20 @@ export function MCPConfigEditor({ onClose }: MCPConfigEditorProps) {
       });
 
       if (result.success) {
-        toast.success(`连接测试成功！耗时：${result.duration}ms`);
+        success(`连接测试成功！耗时：${result.duration}ms`);
       } else {
-        toast.error(`连接测试失败：${result.error}`);
+        error(`连接测试失败：${result.error}`);
       }
-    } catch (error) {
+    } catch (err) {
       console.error('Failed to test connection:', error);
       setTestResult({
         ...testResult,
         [serverName]: {
           success: false,
-          message: (error as Error).message
+          message: ((err as Error)).message
         }
       });
-      toast.error('测试连接时发生错误');
+      error('测试连接时发生错误');
     } finally {
       setTestingConnection(null);
     }
@@ -1130,7 +1130,7 @@ function CustomServerForm({
   testResult,
   onTestConnection
 }: CustomServerFormProps) {
-  const { toast } = useToast();
+  const { toast, warning } = useToast();
   const [serverType, setServerType] = useState<'stdio' | 'streamableHttp'>('stdio');
 
   const updateField = (field: keyof MCPServer, value: any) => {
@@ -1152,17 +1152,17 @@ function CustomServerForm({
   const handleSave = () => {
     // 验证必填字段
     if (!editForm.name) {
-      toast.warning('请输入服务器名称');
+      warning('请输入服务器名称');
       return;
     }
 
     if (serverType === 'stdio' && !editForm.command) {
-      toast.warning('请输入启动命令');
+      warning('请输入启动命令');
       return;
     }
 
     if (serverType === 'streamableHttp' && !editForm.baseUrl) {
-      toast.warning('请输入服务器URL');
+      warning('请输入服务器URL');
       return;
     }
 

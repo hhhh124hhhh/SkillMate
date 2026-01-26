@@ -92,7 +92,7 @@ class ConfigStore {
     constructor() {
         this.store = new Store<AppConfig>({
             name: 'wechatflowwork-config',
-            projectName: 'skill-mate',
+            // projectName removed
             defaults
         });
 

@@ -86,7 +86,7 @@ export class UpdateManager {
     })
 
     // 下载进度
-    this.getAutoUpdater().on('download-progress', (progress) => {
+    this.getAutoUpdater().on('download-progress', (progress: any) => {
       log.log(`[Update] Download progress: ${progress.percent}%`)
 
       this.mainWindow?.webContents.send('update:progress', {

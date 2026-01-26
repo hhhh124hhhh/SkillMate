@@ -54,7 +54,7 @@ export function PreviewSkillDialog({ skill, open, onClose, onInstall }: PreviewS
     setInstalling(true);
     try {
       // 保存技能到用户目录
-      const result = await window.ipcRenderer.invoke('skills:save', skill.id, skill.content);
+      const result = await window.ipcRenderer.invoke('skills:save', skill.id, skill.content) as { success: boolean };
 
       if (result.success) {
         if (onInstall) {

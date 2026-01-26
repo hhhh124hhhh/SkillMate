@@ -15,6 +15,7 @@ interface SettingsViewProps {
 interface Config {
     apiKey: string;
     doubaoApiKey?: string;
+    zhipuApiKey?: string;
     apiUrl: string;
     model: string;
     authorizedFolders: string[];

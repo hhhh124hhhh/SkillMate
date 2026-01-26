@@ -68,8 +68,8 @@ function checkConfigHealth(config: Record<string, any>): {
     }
 
     // 检查 API Key 占位符
-    const hasPlaceholder = (value: string) =>
-      value && (value.includes('YOUR_') || value.includes('API_KEY_HERE') || value.includes('TOKEN_HERE'));
+    const hasPlaceholder = (value: unknown) =>
+      typeof value === 'string' && (value.includes('YOUR_') || value.includes('API_KEY_HERE') || value.includes('TOKEN_HERE'));
 
     if (serverConfig?.env && Object.values(serverConfig.env).some(hasPlaceholder)) {
       issues.push(`"${name}" 服务器需要配置 API Key`);

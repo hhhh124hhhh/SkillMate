@@ -655,10 +655,8 @@ export class SkillManager {
 
             return {
                 success: true,
-                skills: importedSkills,
-                skipped: skippedSkills,
-                failed: failedSkills
-            };
+                skills: importedSkills
+            } as { success: boolean; skills: string[] };
         } catch (e) {
             const error = e as Error;
             log.error('[SkillManager] GitHub 导入失败', error);

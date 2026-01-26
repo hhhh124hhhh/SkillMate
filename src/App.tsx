@@ -86,7 +86,8 @@ function App() {
 
   // 监听 Agent 重启失败和应用崩溃事件
   useEffect(() => {
-    const handleAgentRestartFailed = (_event: unknown, data: { error: string; rolledBack: boolean }) => {
+    const handleAgentRestartFailed = (_event: unknown, ...args: unknown[]) => {
+      const data = args[0] as { error: string; rolledBack: boolean };
       const message = data.rolledBack
         ? `Agent 初始化失败，已自动恢复到之前的配置\n\n错误: ${data.error}`
         : `Agent 初始化失败，请检查配置后重试\n\n错误: ${data.error}`;
@@ -94,7 +95,8 @@ function App() {
       alert(`⚠️ ${message}`);
     };
 
-    const handleAppCrash = (_event: unknown, data: { message: string; error: string }) => {
+    const handleAppCrash = (_event: unknown, ...args: unknown[]) => {
+      const data = args[0] as { message: string; error: string };
       alert(`💥 应用遇到严重错误\n\n${data.message}\n\n错误: ${data.error}\n\n请查看日志: ~/.aiagent/crash-logs.json`);
     };
 

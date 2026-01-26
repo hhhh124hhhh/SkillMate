@@ -22,7 +22,7 @@ export function TrustedProjectsList({ onClose }: TrustedProjectsListProps) {
         setLoading(true);
         setError(null);
         try {
-            const projects = await window.ipcRenderer.invoke('permissions:get-trusted-projects');
+            const projects = await window.ipcRenderer.invoke('permissions:get-trusted-projects') as TrustedProject[];
             setTrustedProjects(projects);
         } catch (err) {
             setError((err as Error).message);
@@ -36,7 +36,8 @@ export function TrustedProjectsList({ onClose }: TrustedProjectsListProps) {
         try {
             const result = await window.ipcRenderer.invoke('dialog:select-folder');
             if (result) {
-                const { success } = await window.ipcRenderer.invoke('permissions:trust-project', result);
+                const response = await window.ipcRenderer.invoke('permissions:trust-project', result) as { success: boolean };
+                const { success } = response;
                 if (success) {
                     await loadTrustedProjects(); // 重新加载列表
                 } else {

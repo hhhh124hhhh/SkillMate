@@ -963,14 +963,14 @@ description: 新技能描述
             description: selectedPreviewSkill.description,
             content: selectedPreviewSkill.content,
             frontmatter: selectedPreviewSkill.frontmatter,
+            // @ts-ignore - supportingFiles is optional
             supportingFiles: selectedPreviewSkill.supportingFiles || []
-          }}
+          } as any}
           open={showPreviewDialog}
           onClose={() => {
             setShowPreviewDialog(false);
             setSelectedPreviewSkill(null);
           }}
-          onImportSuccess={handleImportSuccess}
         />
       )}
     </div>

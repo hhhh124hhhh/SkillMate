@@ -73,7 +73,7 @@ export function ImportSkillDialog({ open, onClose, onImportSuccess }: ImportSkil
         const arrayBuffer = await selectedFile.arrayBuffer();
 
         // 验证格式
-        const validation = await window.ipcRenderer.invoke('skills:validate', content);
+        const validation = await window.ipcRenderer.invoke('skills:validate', content) as { valid: boolean; errors: string[] };
         if (!validation.valid && validation.errors.length > 0) {
           setError(`格式验证失败: ${validation.errors.join(', ')}`);
           setImporting(false);
@@ -359,14 +359,14 @@ export function ImportSkillDialog({ open, onClose, onImportSuccess }: ImportSkil
                 {/* 详细结果 */}
                 {importDetails && (importDetails.skipped > 0 || importDetails.failed > 0) && (
                   <div className="mt-3 space-y-2">
-                    {importDetails.skipped > 0 && importDetails.skipedList && (
+                    {importDetails.skipped > 0 && importDetails.skippedList && (
                       <details className="group">
                         <summary className="cursor-pointer text-xs text-yellow-300 hover:text-yellow-200 transition-colors">
                           跳过的技能 ({importDetails.skipped})
                         </summary>
                         <div className="mt-2 pl-4 border-l-2 border-yellow-500/30">
                           <ul className="space-y-1">
-                            {importDetails.skipedList.map((skillId) => (
+                            {importDetails.skippedList.map((skillId) => (
                               <li key={skillId} className="text-xs text-yellow-200/80">
                                 • {skillId} (已存在)
                               </li>

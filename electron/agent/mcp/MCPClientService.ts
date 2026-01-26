@@ -962,7 +962,9 @@ export class MCPClientService {
                 }
                 // 验证 URL 格式
                 try {
-                    new URL(serverConfig.baseUrl);
+                    if (serverConfig.baseUrl) {
+                        new URL(serverConfig.baseUrl);
+                    }
                 } catch (e) {
                     errors.push(`${name}: Invalid URL format for 'baseUrl'`);
                 }
