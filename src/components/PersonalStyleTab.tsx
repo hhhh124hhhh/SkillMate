@@ -14,6 +14,7 @@ import {
     Download,
     Eye
 } from 'lucide-react';
+import { showConfirm } from '../utils/dialog.js';
 
 // 类型断言辅助函数
 function assertNumber(value: unknown): number {
@@ -249,7 +250,14 @@ export function PersonalStyleTab({ onConfigChange }: PersonalStyleTabProps) {
 
     // 清除配置
     const handleClear = async () => {
-        if (!confirm('确定要清除个人风格配置吗？这将删除所有已上传的文章和分析结果。')) {
+        const confirmed = await showConfirm({
+            title: '确认清除',
+            message: '确定要清除个人风格配置吗？这将删除所有已上传的文章和分析结果。',
+            confirmText: '确认清除',
+            cancelText: '取消'
+        });
+
+        if (!confirmed) {
             return;
         }
 

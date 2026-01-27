@@ -6,6 +6,7 @@ import { QuickActionsEditor } from './QuickActionsEditor.js';
 import { SkillsManager } from './SkillsManager.js';
 import { MCPManager } from './MCPManager.js';
 import { TrustedProjectsList } from './TrustedProjectsList.js';
+import { toast } from '../utils/toast.js';
 
 interface SettingsViewProps {
     onClose: () => void;
@@ -175,10 +176,8 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
                 setSaveMessage('配置已保存，但 Agent 重启失败');
                 setSaved(false);
 
-                // 显示错误对话框
-                setTimeout(() => {
-                    alert(`⚠️ Agent 重启失败\n\n${result.agentError}\n\n请检查配置后重试`);
-                }, 100);
+                // 显示错误 Toast
+                toast.error(`Agent 重启失败: ${result.agentError}`);
 
                 setIsSaving(false);
                 return;
@@ -189,10 +188,8 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
                 setSaveMessage('部分配置保存失败');
                 setSaved(false);
 
-                const errorMessages = result.errors.map(e => `${e.field}: ${e.error}`).join('\n');
-                setTimeout(() => {
-                    alert(`⚠️ 部分配置保存失败:\n\n${errorMessages}`);
-                }, 100);
+                const errorMessages = result.errors.map(e => `${e.field}: ${e.error}`).join(', ');
+                toast.error(`部分配置保存失败: ${errorMessages}`);
 
                 setIsSaving(false);
                 return;
@@ -219,9 +216,7 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
             setSaveMessage('保存失败，请重试');
             setSaved(false);
 
-            setTimeout(() => {
-                alert(`❌ 保存配置时出错:\n\n${(error as Error).message}`);
-            }, 100);
+            toast.error(`保存配置时出错: ${(error as Error).message}`);
         } finally {
             // 确保在所有情况下都重置保存状态（除非已经重置）
             // 注意：这里不要立即重置，让各个分支控制
@@ -236,7 +231,7 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
                 setConfig({ ...config, authorizedFolders: [...currentFolders, result] });
             }
         } catch (error) {
-            alert('打开文件夹选择对话框失败：' + (error as Error).message);
+            toast.error('打开文件夹选择对话框失败：' + (error as Error).message);
         }
     };
 

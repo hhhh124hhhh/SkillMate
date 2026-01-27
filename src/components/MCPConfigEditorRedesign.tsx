@@ -3,6 +3,7 @@ import {
   X, Plus, Search, FileText, Terminal, Globe, Trash2, Check,
   Settings, Server, Zap
 } from 'lucide-react';
+import { showConfirm } from '../utils/dialog.js';
 
 interface MCPServer {
   name?: string;
@@ -125,8 +126,15 @@ export function MCPConfigEditorRedesign({ onClose }: MCPConfigEditorRedesignProp
     setEditForm(newServer);
   };
 
-  const removeServer = (serverName: string) => {
-    if (!confirm(`确定要删除 MCP 服务器"${serverName}"吗？`)) {
+  const removeServer = async (serverName: string) => {
+    const confirmed = await showConfirm({
+      title: '确认删除',
+      message: `确定要删除 MCP 服务器"${serverName}"吗？`,
+      confirmText: '确认删除',
+      cancelText: '取消'
+    });
+
+    if (!confirmed) {
       return;
     }
 

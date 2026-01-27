@@ -1,7 +1,8 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Toast } from './Toast.js';
 import type { ToastProps } from './Toast.js';
+import { setGlobalToast } from '../../utils/toast.js';
 
 interface ToastContextValue {
   toast: (props: Omit<ToastProps, 'id' | 'onClose'>) => void;
@@ -49,6 +50,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }, [toast]);
 
   const value: ToastContextValue = { toast, success, error, warning, info };
+
+  // 设置全局 toast 引用，以便在非 Hook 环境中使用
+  useEffect(() => {
+    setGlobalToast(value);
+  }, [value]);
 
   return (
     <ToastContext.Provider value={value}>

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit2, Check, Palette, Loader2 } from 'lucide-react';
+import { toast } from '../utils/toast.js';
+import { showConfirm } from '../utils/dialog.js';
 
 interface QuickAction {
   id: string;
@@ -91,7 +93,7 @@ export function QuickActionsEditor({ onClose }: QuickActionsEditorProps) {
       setTimeout(() => setSaved(false), 2000);
     } catch (error) {
       console.error('Failed to save quick actions:', error);
-      alert('保存失败：' + (error as Error).message);
+      toast.error('保存失败：' + (error as Error).message);
     }
   };
 
@@ -132,18 +134,33 @@ export function QuickActionsEditor({ onClose }: QuickActionsEditorProps) {
     setEditingId(null);
   };
 
-  const handleDelete = (id: string) => {
-    if (!confirm('确定要删除这个快捷按钮吗？')) {
+  const handleDelete = async (id: string) => {
+    const confirmed = await showConfirm({
+      title: '确认删除',
+      message: '确定要删除这个快捷按钮吗？',
+      confirmText: '确认删除',
+      cancelText: '取消'
+    });
+
+    if (!confirmed) {
       return;
     }
+
     setQuickActions(quickActions.filter(action => action.id !== id));
     if (editingId === id) {
       setEditingId(null);
     }
   };
 
-  const handleResetDefaults = () => {
-    if (!confirm('确定要恢复默认设置吗？这将清除所有自定义按钮。')) {
+  const handleResetDefaults = async () => {
+    const confirmed = await showConfirm({
+      title: '确认恢复默认',
+      message: '确定要恢复默认设置吗？这将清除所有自定义按钮。',
+      confirmText: '确认恢复',
+      cancelText: '取消'
+    });
+
+    if (!confirmed) {
       return;
     }
     setQuickActions(defaultQuickActions);

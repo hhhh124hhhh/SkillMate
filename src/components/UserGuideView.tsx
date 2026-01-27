@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Settings, Code, Server, Shield, Zap, AlertCircle, CheckCircle, X } from 'lucide-react';
 import { ConfirmDialog } from './ConfirmDialog.js';
+import { toast } from '../utils/toast.js';
 
 interface UserGuideViewProps {
     onClose: () => void;
@@ -143,7 +144,7 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
 
     const handleSaveApiKey = async () => {
         if (!apiKeyInput.trim()) {
-            alert('请输入 API Key');
+            toast.warning('请输入 API Key');
             return;
         }
 
@@ -158,7 +159,7 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
             setCurrentStep('folders');
         } catch (error) {
             console.error('[UserGuideView] Failed to save API Key:', error);
-            alert('保存 API Key 失败，请重试');
+            toast.error('保存 API Key 失败，请重试');
         }
     };
 
@@ -191,10 +192,10 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
             setCurrentStep('workflow');
 
             // 显示成功提示
-            alert('文件夹授权成功！');
+            toast.success('文件夹授权成功！');
         } catch (error) {
             console.error('[UserGuideView] Failed to authorize folder:', error);
-            alert('文件夹授权失败，请重试');
+            toast.error('文件夹授权失败，请重试');
         }
     };
 
@@ -208,7 +209,7 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
             }, 100);
         } catch (error) {
             console.error('[UserGuideView] Failed to open settings:', error);
-            alert('打开设置失败，请重试');
+            toast.error('打开设置失败，请重试');
         }
     };
 

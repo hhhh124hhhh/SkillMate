@@ -1,5 +1,6 @@
 import { Notification, app } from 'electron';
 import log from 'electron-log';
+import path from 'path';
 import { configStore } from '../config/ConfigStore.js';
 
 export type NotificationType = 'success' | 'error' | 'info' | 'warning';
@@ -124,7 +125,12 @@ export class NotificationService {
    * 获取默认图标
    */
   private getDefaultIcon(): string {
-    return `${app.getAppPath()}/public/icon.png`;
+    // 使用与主进程一致的图标路径逻辑
+    const { VITE_DEV_SERVER_URL, APP_ROOT } = process.env;
+    const publicDir = VITE_DEV_SERVER_URL
+      ? path.join(APP_ROOT || '', 'public')
+      : path.join(APP_ROOT || '', 'dist');
+    return path.join(publicDir, 'icon.png');
   }
 
   /**

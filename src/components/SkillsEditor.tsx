@@ -7,6 +7,8 @@ import ImportSkillDialog from './ImportSkillDialog';
 import PreviewSkillDialog from './PreviewSkillDialog';
 import { saveAs } from 'file-saver';
 import { Button } from './ui/Button';
+import { toast } from '../utils/toast.js';
+import { showConfirm } from '../utils/dialog.js';
 
 interface Skill {
   id: string;
@@ -244,7 +246,7 @@ export function SkillsEditor({ onClose }: SkillsEditorProps) {
 
   const handleEdit = async (skill: Skill) => {
     if (skill.isBuiltin) {
-      alert('这是内置技能（只读）。如需修改，请先复制到用户目录。');
+      toast.info('这是内置技能（只读）。如需修改，请先复制到用户目录。');
       return;
     }
 
@@ -256,7 +258,7 @@ export function SkillsEditor({ onClose }: SkillsEditorProps) {
       setActiveTab('form');
     } catch (error) {
       console.error('Failed to load skill content:', error);
-      alert('加载技能失败：' + (error as Error).message);
+      toast.error('加载技能失败：' + (error as Error).message);
     }
   };
 
@@ -285,21 +287,28 @@ export function SkillsEditor({ onClose }: SkillsEditorProps) {
           setActiveTab('list');
         }
       } else {
-        alert('保存失败：' + (result as { error?: string }).error);
+        toast.error('保存失败：' + (result as { error?: string }).error);
       }
     } catch (error) {
       console.error('Failed to save skill:', error);
-      alert('保存失败：' + (error as Error).message);
+      toast.error('保存失败：' + (error as Error).message);
     }
   };
 
   const handleDelete = async (skill: Skill) => {
     if (skill.isBuiltin) {
-      alert('无法删除内置技能。');
+      toast.warning('无法删除内置技能。');
       return;
     }
 
-    if (!confirm(`确定要删除技能"${skill.name}"吗？此操作不可恢复。`)) {
+    const confirmed = await showConfirm({
+      title: '确认删除',
+      message: `确定要删除技能"${skill.name}"吗？此操作不可恢复。`,
+      confirmText: '确认删除',
+      cancelText: '取消'
+    });
+
+    if (!confirmed) {
       return;
     }
 
@@ -308,11 +317,11 @@ export function SkillsEditor({ onClose }: SkillsEditorProps) {
       if ((result as { success: boolean }).success) {
         await loadSkills();
       } else {
-        alert('删除失败：' + (result as { error?: string }).error);
+        toast.error('删除失败：' + (result as { error?: string }).error);
       }
     } catch (error) {
       console.error('Failed to delete skill:', error);
-      alert('删除失败：' + (error as Error).message);
+      toast.error('删除失败：' + (error as Error).message);
     }
   };
 
@@ -330,13 +339,13 @@ export function SkillsEditor({ onClose }: SkillsEditorProps) {
       const result = await window.ipcRenderer.invoke('skills:save', newSkillId, updatedContent);
       if ((result as { success: boolean }).success) {
         await loadSkills();
-        alert('技能已复制到用户目录。现在可以编辑副本了。');
+        toast.success('技能已复制到用户目录。现在可以编辑副本了。');
       } else {
-        alert('复制失败：' + (result as { error?: string }).error);
+        toast.error('复制失败：' + (result as { error?: string }).error);
       }
     } catch (error) {
       console.error('Failed to copy skill:', error);
-      alert('复制失败：' + (error as Error).message);
+      toast.error('复制失败：' + (error as Error).message);
     }
   };
 
@@ -353,7 +362,7 @@ export function SkillsEditor({ onClose }: SkillsEditorProps) {
       console.log(`导出技能: ${skill.name}`);
     } catch (error) {
       console.error('Failed to export skill:', error);
-      alert('导出失败：' + (error as Error).message);
+      toast.error('导出失败：' + (error as Error).message);
     }
   };
 

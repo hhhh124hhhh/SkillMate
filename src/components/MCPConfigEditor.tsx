@@ -8,6 +8,7 @@ import {
 import { useToast } from './ui/ToastProvider';
 import { ConfirmDialog } from './ConfirmDialog';
 import { Button } from './ui/Button';
+import { showConfirm } from '../utils/dialog.js';
 
 interface MCPServer {
   name?: string;
@@ -220,8 +221,15 @@ export function MCPConfigEditor({ onClose }: MCPConfigEditorProps) {
     }
   };
 
-  const removeServer = (serverName: string) => {
-    if (!confirm(`确定要移除 "${serverName}" 吗？`)) {
+  const removeServer = async (serverName: string) => {
+    const confirmed = await showConfirm({
+      title: '确认移除',
+      message: `确定要移除 "${serverName}" 吗？`,
+      confirmText: '确认移除',
+      cancelText: '取消'
+    });
+
+    if (!confirmed) {
       return;
     }
 

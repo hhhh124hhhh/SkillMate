@@ -28,6 +28,35 @@ function App() {
   // Check if this is the floating ball window
   const isFloatingBall = window.location.hash === '#/floating-ball' || window.location.hash === '#floating-ball';
 
+  // 深色模式初始化 - 自动跟随系统主题
+  useEffect(() => {
+    // 检测系统主题偏好
+    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+    // 应用主题
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+
+    // 监听系统主题变化
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = (e: MediaQueryListEvent) => {
+      if (e.matches) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    };
+
+    mediaQuery.addEventListener('change', handleChange);
+
+    return () => {
+      mediaQuery.removeEventListener('change', handleChange);
+    };
+  }, []);
+
   // 首次启动检测
   useEffect(() => {
     window.ipcRenderer.invoke('config:get-first-launch').then((result) => {

@@ -255,9 +255,16 @@ app.whenReady().then(async () => {
     }
   })
 
-  // Show main window in dev mode
+  // Show main window in dev mode OR if no API key configured
   if (VITE_DEV_SERVER_URL) {
     mainWin?.show()
+  } else {
+    // 生产环境：检查是否有 API Key
+    const apiKey = configStore.get('apiKey')
+    if (!apiKey || apiKey.trim() === '') {
+      log.log('[Main] No API Key configured, showing main window for setup')
+      mainWin?.show()
+    }
   }
 
   log.log('SkillMate started. Press Alt+Space to toggle floating ball.')

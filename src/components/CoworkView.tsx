@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Square, ArrowUp, ChevronDown, ChevronUp, Download, FolderOpen, MessageCircle, Zap, AlertTriangle, Check, X, Settings, History, Plus, Trash2, FileUp, FileText, FileSpreadsheet, Braces, Eye, Image, Code, FileSearch, Wrench, Lightbulb, PenTool, BarChart, Server, HelpCircle, Search, Table } from 'lucide-react';
 import { MarkdownRenderer } from './MarkdownRenderer.js';
+import { toast } from '../utils/toast.js';
 
 /**
  * Icon mapping for command suggestions
@@ -353,7 +354,7 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                     input.click();
                 } else {
                     console.error('[File Select] Cannot find input element');
-                    alert('无法打开文件选择器，请刷新页面后重试');
+                    toast.error('无法打开文件选择器，请刷新页面后重试');
                 }
             }
         } else {
@@ -368,7 +369,7 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                 input.click();
             } else {
                 console.error('[File Select] Cannot find input element via querySelector');
-                alert('文件选择器未就绪，请稍后重试');
+                toast.error('文件选择器未就绪，请稍后重试');
             }
         }
     };

@@ -94,6 +94,7 @@
   "build": {
     "appId": "ai.skillmate.desktop",
     "productName": "SkillMate",
+    "icon": "build/icon.ico",
     "directories": {
       "output": "release"
     },
@@ -126,12 +127,31 @@
     "win": {
       "target": [
         {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
           "target": "portable",
           "arch": [
             "x64"
           ]
         }
-      ]
+      ],
+      "sign": null,
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeader": null,
+      "installerSidebar": null
     }
   }
 }
