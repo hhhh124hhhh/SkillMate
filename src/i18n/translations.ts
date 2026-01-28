@@ -16,18 +16,18 @@ export const translations = {
         // Settings
         apiConfiguration: 'API Configuration',
         apiKey: 'API Key',
-        apiKeyPlaceholder: 'sk-ant-api03-...',
-        apiKeyHint: 'Your Anthropic API key. Get one at console.anthropic.com',
+        apiKeyPlaceholder: '输入智谱 API Key',
+        apiKeyHint: 'Your Zhipu AI API key. Get one at open.bigmodel.cn',
         apiUrl: 'API URL',
         apiUrlHint: 'Base URL for API requests. Use default unless using a proxy.',
         modelSelection: 'Model Selection',
         authorizedFolders: 'Authorized Folders',
-        authorizedFoldersHint: 'Claude can only access files within these folders.',
+        authorizedFoldersHint: 'AI can only access files within these folders.',
         noFoldersYet: 'No folders authorized yet',
         addFolder: 'Add Folder',
         networkAccess: 'Network Access',
         allowNetworkAccess: 'Allow Network Access',
-        networkAccessHint: 'Enable Claude to make web requests (for MCP, research, etc.)',
+        networkAccessHint: 'Enable AI to make web requests (for MCP, research, etc.)',
         save: 'Save',
         saved: 'Saved!',
 
@@ -55,10 +55,9 @@ export const translations = {
         language: 'Language',
 
         // Models
-        modelSonnet: 'Claude 3.5 Sonnet (Latest)',
-        modelHaiku: 'Claude 3.5 Haiku (Fast)',
-        modelOpus: 'Claude 3 Opus (Most Capable)',
-        modelGLM4: 'GLM 4.7 (Custom)',
+        modelGLM4Plus: 'GLM-4-Plus (Latest)',
+        modelGLM4Air: 'GLM-4-Air (Fast)',
+        modelGLM4Flash: 'GLM-4-Flash (Economical)',
 
         // Additional UI
         runningCommand: 'Running command',
@@ -87,18 +86,18 @@ export const translations = {
         // Settings
         apiConfiguration: 'API 配置',
         apiKey: 'API 密钥',
-        apiKeyPlaceholder: 'sk-ant-api03-...',
-        apiKeyHint: '你的 Anthropic API 密钥，可在 console.anthropic.com 获取',
+        apiKeyPlaceholder: '输入智谱 API Key',
+        apiKeyHint: '你的智谱 AI 密钥，可在 open.bigmodel.cn 获取',
         apiUrl: 'API 地址',
         apiUrlHint: 'API 请求的基础 URL，使用代理时可修改',
         modelSelection: '模型选择',
         authorizedFolders: '授权文件夹',
-        authorizedFoldersHint: 'Claude 只能访问这些文件夹内的文件',
+        authorizedFoldersHint: 'AI 只能访问这些文件夹内的文件',
         noFoldersYet: '尚未授权任何文件夹',
         addFolder: '添加文件夹',
         networkAccess: '网络访问',
         allowNetworkAccess: '允许网络访问',
-        networkAccessHint: '允许 Claude 进行网络请求（用于 MCP、研究等）',
+        networkAccessHint: '允许 AI 进行网络请求（用于 MCP、研究等）',
         save: '保存',
         saved: '已保存！',
 
@@ -126,10 +125,9 @@ export const translations = {
         language: '语言',
 
         // Models
-        modelSonnet: 'Claude 3.5 Sonnet (最新)',
-        modelHaiku: 'Claude 3.5 Haiku (快速)',
-        modelOpus: 'Claude 3 Opus (最强)',
-        modelGLM4: 'GLM 4.7 (自定义)',
+        modelGLM4Plus: 'GLM-4-Plus（最新）',
+        modelGLM4Air: 'GLM-4-Air（快速）',
+        modelGLM4Flash: 'GLM-4-Flash（经济）',
 
         // Additional UI
         runningCommand: '正在执行命令',

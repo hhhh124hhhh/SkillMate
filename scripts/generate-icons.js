@@ -48,10 +48,53 @@ async function generatePng(size, outputPath) {
 }
 
 /**
- * 生成 Windows ICO 文件
+ * 生成 Windows ICO 文件（使用 ImageMagick）
  */
 async function generateIco() {
-  console.log('\n📦 Generating Windows ICO...');
+  console.log('\n📦 Generating Windows ICO with ImageMagick...');
+
+  try {
+    const icoPath = path.join(BUILD_DIR, 'icon.ico');
+    const sourcePng = path.join(PUBLIC_DIR, 'icon.png');
+
+    // 使用 ImageMagick 生成包含所有尺寸的 ICO
+    // 注意：需要安装 ImageMagick 并添加到系统 PATH
+    // 下载地址：https://imagemagick.org/script/download.php#windows
+    const command = `magick "${sourcePng}" -define icon:auto-resize=256,48,32,16 "${icoPath}"`;
+
+    console.log('Executing:', command);
+    execSync(command, {
+      stdio: 'inherit',
+      shell: true
+    });
+
+    console.log(`✓ Generated: ${icoPath}`);
+
+    // 验证生成的图标
+    console.log('\n📊 Verifying icon contents...');
+    try {
+      const verifyCommand = `magick identify "${icoPath}"`;
+      const output = execSync(verifyCommand, { encoding: 'utf-8' });
+      console.log(output);
+    } catch (verifyError) {
+      console.warn('⚠️  Could not verify icon contents. This may be okay if ImageMagick is not in PATH.');
+    }
+
+  } catch (error) {
+    // 如果 ImageMagick 不可用，回退到 png-to-ico
+    console.warn('\n⚠️  ImageMagick not available. Falling back to png-to-ico...');
+    console.warn('⚠️  Note: png-to-ico may not generate 256x256 icons properly.');
+    console.warn('💡 To fix this, install ImageMagick from: https://imagemagick.org/script/download.php#windows');
+
+    await generateIcoFallback();
+  }
+}
+
+/**
+ * 生成 Windows ICO 文件（回退方案：使用 png-to-ico）
+ */
+async function generateIcoFallback() {
+  console.log('\n📦 Generating Windows ICO (fallback with png-to-ico)...');
 
   const tempPngs = [];
 
@@ -68,6 +111,7 @@ async function generateIco() {
     const icoBuffer = await pngToIco(tempPngs);
     fs.writeFileSync(icoPath, icoBuffer);
     console.log(`✓ Generated: ${icoPath}`);
+    console.warn('⚠️  Warning: This method may not include 256x256 icon. Install ImageMagick for best results.');
 
     // 清理临时文件
     tempPngs.forEach(p => {

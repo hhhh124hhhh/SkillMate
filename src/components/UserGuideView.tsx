@@ -282,16 +282,16 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
                                     🔑 第一步：配置 API Key
                                 </h2>
                                 <p className="text-orange-800 text-base mb-6 leading-relaxed">
-                                    本应用使用 Anthropic Claude AI，需要配置 API Key 才能使用。
+                                    本应用使用智谱 AI（ChatGLM），需要配置 API Key 才能使用。
                                 </p>
 
                                 <div className="bg-white p-4 rounded-lg mb-6 text-left">
                                     <p className="text-sm font-medium text-slate-700 mb-3">
-                                        如何获取 Anthropic API Key：
+                                        如何获取智谱 API Key：
                                     </p>
                                     <ol className="text-xs text-slate-600 space-y-2 list-decimal list-inside">
-                                        <li>访问 <a href="https://console.anthropic.com" target="_blank" rel="noopener noreferrer" className="text-orange-600 hover:underline">Anthropic Console</a></li>
-                                        <li>注册/登录 Anthropic 账号</li>
+                                        <li>访问 <a href="https://open.bigmodel.cn/" target="_blank" rel="noopener noreferrer" className="text-orange-600 hover:underline">智谱AI开放平台</a></li>
+                                        <li>注册/登录智谱AI账号</li>
                                         <li>进入「API Keys」页面，创建并复制 API Key</li>
                                         <li>将密钥粘贴到下方输入框中</li>
                                     </ol>
@@ -479,7 +479,7 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
                                         ✅ API Key 已配置
                                     </h3>
                                     <p className="text-green-700 text-sm">
-                                        您已成功配置 Anthropic API Key
+                                        您已成功配置智谱 AI API Key
                                     </p>
                                 </div>
                             </div>

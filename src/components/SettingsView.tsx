@@ -44,8 +44,8 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
     const [config, setConfig] = useState<Config>({
         apiKey: '',
         doubaoApiKey: '',
-        apiUrl: 'https://open.bigmodel.cn/api/anthropic',
-        model: 'GLM-4.7',
+        apiUrl: 'https://open.bigmodel.cn/api/paas/v4/',
+        model: 'glm-4-plus',
         authorizedFolders: [],
         networkAccess: false,
         shortcut: 'Alt+Space',
@@ -431,7 +431,7 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
                                                 type="text"
                                                 value={config.apiUrl}
                                                 onChange={(e) => setConfig({ ...config, apiUrl: e.target.value })}
-                                                placeholder="https://api.anthropic.com"
+                                                placeholder="https://open.bigmodel.cn/api/paas/v4/"
                                                 className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white font-mono text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
                                             />
                                         </div>
