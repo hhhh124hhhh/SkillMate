@@ -2233,7 +2233,7 @@ function createMainWindow() {
     height: 750,
     minWidth: 800,
     minHeight: 650,
-    icon: path.join(process.env.VITE_PUBLIC || '', 'icon.png'),
+    icon: path.join(__dirname, '../build/icon.ico'),
     frame: false,
     titleBarStyle: 'hiddenInset',
     webPreferences: {

@@ -59,11 +59,17 @@ function App() {
 
   // 首次启动检测
   useEffect(() => {
-    window.ipcRenderer.invoke('config:get-first-launch').then((result) => {
-      if (result) {
+    const checkFirstLaunch = async () => {
+      const firstLaunch = await window.ipcRenderer.invoke('config:get-first-launch') as boolean;
+      const config = await window.ipcRenderer.invoke('config:get-all') as { apiKey?: string };
+
+      // 如果是首次启动标记 或者没有配置 API Key，显示用户向导
+      if (firstLaunch || !config.apiKey) {
         setIsFirstLaunch(true);
       }
-    });
+    };
+
+    checkFirstLaunch();
   }, []);
 
   // 监听打开设置事件（从 UserGuideView 触发）
