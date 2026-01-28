@@ -55,9 +55,7 @@ export const translations = {
         language: 'Language',
 
         // Models
-        modelGLM4Plus: 'GLM-4-Plus (Latest)',
-        modelGLM4Air: 'GLM-4-Air (Fast)',
-        modelGLM4Flash: 'GLM-4-Flash (Economical)',
+        modelDefault: 'GLM-4-Plus (智谱最新旗舰模型)',
 
         // Additional UI
         runningCommand: 'Running command',
@@ -125,9 +123,7 @@ export const translations = {
         language: '语言',
 
         // Models
-        modelGLM4Plus: 'GLM-4-Plus（最新）',
-        modelGLM4Air: 'GLM-4-Air（快速）',
-        modelGLM4Flash: 'GLM-4-Flash（经济）',
+        modelDefault: 'GLM-4-Plus（智谱最新旗舰模型）',
 
         // Additional UI
         runningCommand: '正在执行命令',
