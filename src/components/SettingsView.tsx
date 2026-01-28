@@ -44,7 +44,7 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
     const [config, setConfig] = useState<Config>({
         apiKey: '',
         doubaoApiKey: '',
-        apiUrl: 'https://open.bigmodel.cn/api/paas/v4/',
+        apiUrl: 'https://open.bigmodel.cn/api/coding/paas/v4/',
         model: 'glm-4.7',
         authorizedFolders: [],
         networkAccess: false,
@@ -78,7 +78,7 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
                     apiKey: loadedConfig.apiKey || '',
                     doubaoApiKey: loadedConfig.doubaoApiKey || '',
                     zhipuApiKey: loadedConfig.zhipuApiKey || '',
-                    apiUrl: loadedConfig.apiUrl || 'https://open.bigmodel.cn/api/paas/v4/',
+                    apiUrl: loadedConfig.apiUrl || 'https://open.bigmodel.cn/api/coding/paas/v4/',
                     model: loadedConfig.model || 'GLM-4.7',
                     authorizedFolders: loadedConfig.authorizedFolders || [],
                     networkAccess: loadedConfig.networkAccess ?? false,
@@ -106,7 +106,7 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
                         apiKey: loadedConfig.apiKey || '',
                         doubaoApiKey: loadedConfig.doubaoApiKey || '',
                         zhipuApiKey: loadedConfig.zhipuApiKey || '',
-                        apiUrl: loadedConfig.apiUrl || 'https://open.bigmodel.cn/api/paas/v4/',
+                        apiUrl: loadedConfig.apiUrl || 'https://open.bigmodel.cn/api/coding/paas/v4/',
                         model: loadedConfig.model || 'GLM-4.7',
                         authorizedFolders: loadedConfig.authorizedFolders || [],
                         networkAccess: loadedConfig.networkAccess ?? false,
@@ -431,7 +431,7 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
                                                 type="text"
                                                 value={config.apiUrl}
                                                 onChange={(e) => setConfig({ ...config, apiUrl: e.target.value })}
-                                                placeholder="https://open.bigmodel.cn/api/paas/v4/"
+                                                placeholder="https://open.bigmodel.cn/api/coding/paas/v4/"
                                                 className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white font-mono text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
                                             />
                                         </div>
