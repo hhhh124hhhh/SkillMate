@@ -55,7 +55,7 @@ export const translations = {
         language: 'Language',
 
         // Models
-        modelDefault: 'GLM-4-Plus (智谱最新旗舰模型)',
+        modelDefault: 'GLM-4.7（智谱最新旗舰模型 - 编程能力国际顶尖）',
 
         // Additional UI
         runningCommand: 'Running command',
