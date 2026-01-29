@@ -262,6 +262,7 @@ app.whenReady().then(async () => {
 
   // Show main window in dev mode OR if no API key configured
   if (VITE_DEV_SERVER_URL) {
+    log.log('[Main] Dev mode detected, showing main window')
     mainWin?.show()
   } else {
     // 生产环境：检查是否有 API Key
@@ -269,6 +270,8 @@ app.whenReady().then(async () => {
     if (!apiKey || apiKey.trim() === '') {
       log.log('[Main] No API Key configured, showing main window for setup')
       mainWin?.show()
+    } else {
+      log.log('[Main] API Key configured, main window hidden (use Alt+Space for floating ball)')
     }
   }
 

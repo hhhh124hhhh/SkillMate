@@ -15,22 +15,24 @@ const config = {
     generateAssets: async (forgeConfig: any) => {
       console.log('🔧 [Forge Hook] Running pre-package tasks...')
 
-      // 运行 Python runtime 设置
-      const { execSync } = await import('node:child_process')
-      try {
-        console.log('  → Setting up Python runtime...')
-        execSync('npm run setup-python', { stdio: 'inherit' })
-      } catch (error) {
-        console.warn('  ⚠️  Python runtime setup failed, continuing...')
-      }
+      // ⚠️ 临时跳过 Python runtime 设置（加快启动速度）
+      // const { execSync } = await import('node:child_process')
+      // try {
+      //   console.log('  → Setting up Python runtime...')
+      //   execSync('npm run setup-python', { stdio: 'inherit' })
+      // } catch (error) {
+      //   console.warn('  ⚠️  Python runtime setup failed, continuing...')
+      // }
 
       // 生成应用图标
-      try {
-        console.log('  → Generating application icons...')
-        execSync('npm run generate-icons', { stdio: 'inherit' })
-      } catch (error) {
-        console.warn('  ⚠️  Icon generation failed, continuing...')
-      }
+      // const { execSync } = await import('node:child_process')
+      // try {
+      //   console.log('  → Generating application icons...')
+      //   execSync('npm run generate-icons', { stdio: 'inherit' })
+      // } catch (error) {
+      //   console.warn('  ⚠️  Icon generation failed, continuing...')
+      // }
+      console.log('  → Skipped Python setup and icon generation (dev mode)')
     },
 
     postPackage: async (forgeConfig: any) => {
