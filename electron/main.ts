@@ -62,7 +62,10 @@ function updateEnvFile(key: string, value: string) {
   }
 }
 
-export const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
+// 检测开发服务器 URL（兼容 vite-plugin-electron 和 electron-forge）
+// 使用 NODE_ENV 判断而不是 app.isPackaged，因为 app 在顶层代码中可能未完全初始化
+const isDev = process.env.NODE_ENV !== 'production'
+export const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'] || (isDev ? 'http://localhost:5173/' : undefined)
 export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron')
 export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 
