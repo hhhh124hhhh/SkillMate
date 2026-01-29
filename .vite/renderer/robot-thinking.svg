@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="SkillMate Robot - Thinking">
+  <defs>
+    <linearGradient id="robotOrangeThink" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF8A65;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FF7043;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="robotGreenThink" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#66BB6A;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#43A047;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <circle cx="256" cy="256" r="240" fill="#F5F5F5"/>
+
+  <!-- 头部：略微上扬（思考姿态） -->
+  <rect x="146" y="106" width="220" height="180" rx="45"
+        fill="url(#robotOrangeThink)"
+        transform="rotate(-3, 256, 196)"/>
+
+  <!-- 眼睛：思考状（向上看） -->
+  <circle cx="206" cy="186" r="28" fill="url(#robotGreenThink)"/>
+  <circle cx="306" cy="186" r="28" fill="url(#robotGreenThink)"/>
+
+  <!-- 眼睛高光 -->
+  <circle cx="210" cy="180" r="12" fill="#FFFFFF" fill-opacity="0.9"/>
+  <circle cx="310" cy="180" r="12" fill="#FFFFFF" fill-opacity="0.9"/>
+
+  <!-- 嘴巴：思考曲线（直线） -->
+  <line x1="216" y1="250" x2="296" y2="250"
+        stroke="#FFFFFF"
+        stroke-width="10"
+        stroke-linecap="round"/>
+
+  <!-- 思考气泡：3个点 -->
+  <circle cx="380" cy="100" r="12" fill="#FF7043" fill-opacity="0.6"/>
+  <circle cx="400" cy="70" r="16" fill="#FF7043" fill-opacity="0.8"/>
+  <circle cx="430" cy="40" r="20" fill="#FF7043"/>
+
+  <!-- 天线 -->
+  <line x1="256" y1="106" x2="256" y2="56" stroke="url(#robotGreenThink)" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="256" cy="46" r="20" fill="url(#robotGreenThink)"/>
+
+  <!-- 身体 -->
+  <path d="M146 286 Q256 330 366 286 L366 366 Q256 410 146 366 Z"
+        fill="url(#robotGreenThink)"
+        fill-opacity="0.8"/>
+
+  <!-- 手臂：托下巴姿态 -->
+  <ellipse cx="356" cy="276" rx="35" ry="60" fill="url(#robotOrangeThink)"/>
+  <circle cx="356" cy="226" r="28" fill="url(#robotOrangeThink)"/>
+</svg>
