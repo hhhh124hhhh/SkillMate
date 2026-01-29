@@ -1,3 +1,4 @@
+// ✅ 使用标准 electron 导入
 import { app, BrowserWindow, shell, ipcMain, screen, dialog, globalShortcut, Tray, Menu, nativeImage } from 'electron'
 
 import { fileURLToPath } from 'node:url'
@@ -138,7 +139,8 @@ process.on('unhandledRejection', (reason: unknown) => {
   log.warn('[Fatal] Process survived unhandled rejection')
 })
 
-// Register app event listeners
+// ✅ 正确：在 app.whenReady() 之前注册全局事件监听器
+// 这些监听器会立即生效，不依赖 app 对象的完整初始化
 app.on('before-quit', () => {
   app.isQuitting = true
 })

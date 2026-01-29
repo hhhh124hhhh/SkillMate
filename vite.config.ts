@@ -5,6 +5,8 @@ import react from '@vitejs/plugin-react'
 // CommonJS 兼容导入
 import obfuscatorPackage from 'rollup-plugin-javascript-obfuscator'
 const obfuscator = obfuscatorPackage.default || obfuscatorPackage
+// 修复 vite-plugin-electron 的 electron 导入 bug
+import { fixElectronImportPlugin } from './vite-plugin-fix-electron-import.js'
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -34,19 +36,8 @@ export default defineConfig({
             },
           },
           plugins: [
-            // Temporarily disable obfuscator to debug electron import issue
-            // obfuscator({
-            //   compact: true,
-            //   controlFlowFlattening: false,
-            //   deadCodeInjection: false,
-            //   stringArray: true,
-            //   stringArrayThreshold: 0.5,
-            //   transformObjectKeys: true,
-            //   identifierNamesGenerator: 'hex',
-            //   ignoreImports: true,
-            //   debugProtection: false,
-            //   disableConsoleOutput: false
-            // })
+            // 修复 vite-plugin-electron 的 electron 导入 bug
+            fixElectronImportPlugin()
           ]
         }
       },

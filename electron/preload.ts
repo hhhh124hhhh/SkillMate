@@ -1,3 +1,4 @@
+// ✅ preload 使用标准 electron 导入
 import { ipcRenderer, contextBridge, IpcRendererEvent } from 'electron'
 import log from 'electron-log'
 

@@ -122,7 +122,11 @@
       "Bash(then find \"$HOME/.aiagent/skills\" -name \"SKILL.md\")",
       "Bash(bash:*)",
       "Bash(cmd.exe:*)",
-      "mcp__zai-mcp-server__diagnose_error_screenshot"
+      "mcp__zai-mcp-server__diagnose_error_screenshot",
+      "Bash(magick:*)",
+      "Bash(\"/c/Program Files/ImageMagick-7.1.2-Q16-HDRI/magick.exe\" \"public/icon.png\" -define icon:auto-resize=256,48,32,16 \"build/icon.ico\")",
+      "Bash(\"/c/Program Files/ImageMagick-7.1.2-Q16-HDRI/magick.exe\" identify \"d:/wechat-flowwork/build/icon.ico\")",
+      "Bash(npm uninstall:*)"
     ],
     "additionalDirectories": [
       "d:\\wechat-flowwork\\dist-electron"
