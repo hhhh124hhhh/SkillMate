@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import os from 'node:os'
 import fs from 'node:fs'
-import dotenv from 'dotenv'
+// import dotenv from 'dotenv' // ⚠️ 禁用 dotenv，防止 .env 内容被打包进应用
 import log from 'electron-log'
 import { AgentRuntime } from './agent/AgentRuntime.js'
 import { pythonRuntime } from './agent/PythonRuntime.js'
@@ -25,7 +25,8 @@ declare global {
   }
 }
 
-dotenv.config()
+// ⚠️ 禁用 dotenv，防止 .env 内容被打包进应用
+// dotenv.config()
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
