@@ -1,4 +1,3 @@
-import sharp from 'sharp';
 import log from 'electron-log';
 
 /**
@@ -63,7 +62,10 @@ export class ImageCompressionService {
             log.log('[ImageCompression] 🖼️ Processing image');
             log.log('[ImageCompression] 📏 Input size:', (buffer.length / 1024).toFixed(2), 'KB');
 
-            // 3. 获取元数据
+            // 3. 动态导入 sharp 模块
+            const sharp = (await import('sharp')).default;
+
+            // 4. 获取元数据
             const metadata = await sharp(buffer).metadata();
             const originalSize = buffer.length;
 

@@ -29,7 +29,15 @@ dotenv.config()
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-process.env.APP_ROOT = path.join(__dirname, '..')
+// 设置 APP_ROOT 为项目根目录
+// 在开发模式下，__dirname 是 .vite/build，需要向上两级
+// 在生产模式下，__dirname 是 dist-electron，需要向上一级
+if (app.isPackaged) {
+  process.env.APP_ROOT = path.join(__dirname, '..')
+} else {
+  // 开发模式：.vite/build -> .. -> .. -> 项目根目录
+  process.env.APP_ROOT = path.join(__dirname, '..', '..')
+}
 
 // Function to update .env file
 function updateEnvFile(key: string, value: string) {
@@ -2185,8 +2193,24 @@ async function initializeAgent(): Promise<{ success: boolean; error?: string }> 
 
 function createTray() {
   try {
-    tray = new Tray(path.join(process.env.VITE_PUBLIC || '', 'icon.png'))
+    // 设置托盘图标路径
+    let trayIconPath: string
+    if (app.isPackaged) {
+      // 生产模式
+      trayIconPath = path.join(process.resourcesPath, 'app.asar.unpacked', 'build', 'icon.ico')
+    } else {
+      // 开发模式：使用项目根目录下的 build/icon.ico
+      trayIconPath = path.resolve(process.env.APP_ROOT || process.cwd(), 'build', 'icon.ico')
+    }
+
+    log.log('[Tray] icon path:', trayIconPath)
+    log.log('[Tray] icon exists:', fs.existsSync(trayIconPath))
+
+    // Windows 系统托盘使用 .ico 文件
+    const trayIcon = nativeImage.createFromPath(trayIconPath)
+    tray = new Tray(trayIcon)
   } catch (e) {
+    log.error('[Tray] Failed to create tray:', e)
     const blankIcon = nativeImage.createEmpty()
     tray = new Tray(blankIcon)
   }
@@ -2236,6 +2260,21 @@ function createMainWindow() {
   log.log('[Main Window] __dirname:', __dirname)
   log.log('[Main Window] preload path:', preloadPath)
 
+  // 设置窗口图标（使用绝对路径）
+  let iconPath: string
+  if (app.isPackaged) {
+    iconPath = path.join(process.resourcesPath, 'app.asar.unpacked', 'build', 'icon.ico')
+  } else {
+    // 开发模式：使用项目根目录下的 build/icon.ico
+    iconPath = path.resolve(process.env.APP_ROOT || process.cwd(), 'build', 'icon.ico')
+  }
+  log.log('[Main Window] icon path:', iconPath)
+  log.log('[Main Window] icon exists:', fs.existsSync(iconPath))
+
+  // 使用 nativeImage 加载图标，确保在 Windows 上正确显示
+  const iconImage = nativeImage.createFromPath(iconPath)
+  log.log('[Main Window] icon image size:', iconImage.getSize())
+
   mainWin = new BrowserWindow({
     width: 900,
     height: 750,
@@ -2243,6 +2282,7 @@ function createMainWindow() {
     minHeight: 650,
     frame: false,
     titleBarStyle: 'hiddenInset',
+    icon: iconImage,
     webPreferences: {
       preload: preloadPath,
       // 🔒 安全配置
@@ -2298,6 +2338,21 @@ function createMainWindow() {
 function createFloatingBallWindow() {
   const { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workAreaSize
 
+  // 设置窗口图标（使用绝对路径）
+  let iconPath: string
+  if (app.isPackaged) {
+    iconPath = path.join(process.resourcesPath, 'app.asar.unpacked', 'build', 'icon.ico')
+  } else {
+    // 开发模式：使用项目根目录下的 build/icon.ico
+    iconPath = path.resolve(process.env.APP_ROOT || process.cwd(), 'build', 'icon.ico')
+  }
+  log.log('[Floating Ball] icon path:', iconPath)
+  log.log('[Floating Ball] icon exists:', fs.existsSync(iconPath))
+
+  // 使用 nativeImage 加载图标
+  const iconImage = nativeImage.createFromPath(iconPath)
+  log.log('[Floating Ball] icon image size:', iconImage.getSize())
+
   floatingBallWin = new BrowserWindow({
     width: BALL_SIZE,
     height: BALL_SIZE,
@@ -2309,6 +2364,7 @@ function createFloatingBallWindow() {
     resizable: false,
     hasShadow: false,
     skipTaskbar: true,
+    icon: iconImage,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       // 🔒 安全配置
@@ -2318,7 +2374,6 @@ function createFloatingBallWindow() {
       webSecurity: true,                // 启用 Web 安全策略
       allowRunningInsecureContent: false, // 禁止混合内容
     },
-    icon: path.join(process.env.VITE_PUBLIC, 'icon.png'),
   })
 
   if (VITE_DEV_SERVER_URL) {

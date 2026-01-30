@@ -24,10 +24,9 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       external: [
-        // Electron 内置模块
+        // Electron 模块
         'electron',
-        'electron/main',
-        'electron/common',
+        /^electron\/.*/,
 
         // 原生模块
         'sqlite3',
@@ -43,7 +42,9 @@ export default defineConfig({
         'jszip'
       ],
       output: {
-        entryFileNames: '[name].cjs'
+        entryFileNames: '[name].cjs',
+        // 禁用代码分割，将所有代码打包到一个文件
+        inlineDynamicImports: true
       }
     },
     // 优化生产构建

@@ -27,51 +27,51 @@ interface SetupStatus {
 const workflowSteps: WorkflowStep[] = [
     {
         id: '1',
-        name: '环境配置',
-        skill: 'env-setup',
-        description: '配置开发环境和依赖',
-        icon: <Settings size={20} />,
-        command: '检查开发环境'
+        name: '浏览技能',
+        skill: 'skills-browse',
+        description: '查看内置的16个创作技能',
+        icon: <Code size={20} />,
+        command: '查看技能库'
     },
     {
         id: '2',
-        name: 'API Key 设置',
-        skill: 'api-config',
-        description: '配置 AI 模型访问',
-        icon: <Settings size={20} />,
-        command: '配置 API Key'
+        name: '使用技能',
+        skill: 'skills-use',
+        description: '在对话中调用技能完成任务',
+        icon: <Zap size={20} />,
+        command: '开始使用'
     },
     {
         id: '3',
-        name: '技能系统',
-        skill: 'skills-system',
-        description: '理解技能扩展机制',
-        icon: <Code size={20} />,
-        command: '查看可用技能'
+        name: 'MCP 工具',
+        skill: 'mcp-tools',
+        description: '使用外部工具扩展能力',
+        icon: <Server size={20} />,
+        command: '配置MCP'
     },
     {
         id: '4',
-        name: 'MCP 集成',
-        skill: 'mcp-integration',
-        description: '集成外部工具服务',
-        icon: <Server size={20} />,
-        command: '配置 MCP 服务'
+        name: '权限管理',
+        skill: 'permissions',
+        description: '管理文件和系统访问权限',
+        icon: <Shield size={20} />,
+        command: '管理权限'
     },
     {
         id: '5',
-        name: '权限管理',
-        skill: 'permissions',
-        description: '管理文件和系统权限',
-        icon: <Shield size={20} />,
-        command: '查看权限设置'
+        name: '会话管理',
+        skill: 'sessions',
+        description: '创建和管理多个对话会话',
+        icon: <Settings size={20} />,
+        command: '管理会话'
     },
     {
         id: '6',
-        name: '开始使用',
+        name: '开始探索',
         skill: 'getting-started',
-        description: '运行你的第一个 Agent',
+        description: '开始使用 SkillMate',
         icon: <Zap size={20} />,
-        command: '启动 Agent'
+        command: '开始使用'
     }
 ];
 
@@ -266,7 +266,7 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
                             欢迎使用 SkillMate
                         </h1>
                         <p className="text-lg text-slate-600">
-                            开始使用前，需要先完成 API Key 配置
+                            开始使用技能系统前，需要先完成 API Key 配置
                         </p>
                     </div>
 
@@ -354,7 +354,7 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
                             欢迎使用 SkillMate
                         </h1>
                         <p className="text-lg text-slate-600">
-                            继续完成最后一步配置
+                            完成最后一步配置，开始使用技能系统
                         </p>
                     </div>
 
@@ -388,11 +388,11 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
                                 </h2>
                                 <p className="text-orange-800 text-base mb-6 leading-relaxed">
                                     出于安全考虑，AI 需要您的授权才能访问文件系统。<br />
-                                    授权后，AI 才能为您创建文件、读取数据、管理项目。
+                                    授权后，技能才能为您创建文件、读取数据、管理项目。
                                 </p>
 
                                 <div className="bg-white p-4 rounded-lg mb-6">
-                                    <p className="text-sm text-slate-700 font-medium mb-2">授权后，AI 可以：</p>
+                                    <p className="text-sm text-slate-700 font-medium mb-2">授权后，技能可以：</p>
                                     <ul className="text-left text-sm text-slate-600 space-y-1">
                                         <li className="flex items-center gap-2">
                                             <span className="text-green-500">✓</span>
@@ -405,6 +405,10 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
                                         <li className="flex items-center gap-2">
                                             <span className="text-green-500">✓</span>
                                             管理项目目录
+                                        </li>
+                                        <li className="flex items-center gap-2">
+                                            <span className="text-green-500">✓</span>
+                                            使用文件系统相关技能
                                         </li>
                                     </ul>
                                 </div>
@@ -426,7 +430,7 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
                             </div>
 
                             <p className="text-xs text-orange-700">
-                                授权完成后，返回即可查看完整创作流程
+                                授权完成后，即可开始使用技能系统
                             </p>
                         </div>
                     </div>
@@ -464,7 +468,7 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
                         欢迎使用 SkillMate
                     </h1>
                     <p className="text-lg text-slate-600">
-                        学习如何构建现代化的 AI 助手应用
+                        你的 AI 技能伴侣 - 技能构建、分享、售卖和学习平台
                     </p>
                 </div>
 
@@ -505,10 +509,10 @@ export function UserGuideView({ onClose }: UserGuideViewProps) {
                 {/* 工作流可视化 */}
                 <div className="mb-10">
                     <h2 className="text-2xl font-bold text-slate-800 mb-6 text-center">
-                        AI Agent 开发流程
+                        技能系统介绍
                     </h2>
                     <p className="text-center text-slate-600 mb-6">
-                        从环境配置到运行 Agent，完整学习路径
+                        探索内置技能，扩展 AI 能力，提升工作效率
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {workflowSteps.map((step) => (

@@ -80,7 +80,11 @@ const config = {
       /^\/\.vscode/,
       /^\/\.git/,
       /^\/node_modules\/\.cache/,
-      /^\/dist-electron/
+      /^\/dist-electron/,
+      /^\/\.vscode\/electron-userdata/,  // 开发模式配置
+      /^\/\.env/,                          // 环境变量（可能包含敏感信息）
+      /^\/out\//,                         // 之前的打包输出
+      /^\/release\///                        // 发布文件
     ]
   },
 
@@ -151,18 +155,18 @@ const config = {
     {
       name: '@electron-forge/plugin-vite',
       config: {
-        // Vite 主进程配置
+        // Vite 主进程和预加载脚本配置
         build: [
           {
             entry: 'electron/main.ts',
             config: 'forge/vite.main.config.ts',
             target: 'main'
+          },
+          {
+            entry: 'electron/preload.ts',
+            config: 'forge/vite.preload.config.ts'
           }
         ],
-        // Vite 预加载脚本配置
-        preload: {
-          config: 'forge/vite.preload.config.ts'
-        },
         // Vite 渲染进程配置
         renderer: [
           {
