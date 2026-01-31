@@ -57,3 +57,11 @@ image.png
 .trae/documents/plan_20260118_120634.md
 .trae/documents/plan_20260118_121534.md
 .trae/documents/plan_20260118_122104.md
+electron/preload.cjs
+
+# 开源准备 - Claude Code 配置
+.claude-permissions.json
+.claude/settings.local.json
+
+# 开源准备 - 临时开发文档
+.trae/documents/plan_*.md
