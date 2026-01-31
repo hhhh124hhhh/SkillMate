@@ -624,7 +624,7 @@ npm run build
 # 打包后发现 app.asar 包含真实 API Key
 $ grep -a "sk-ant-" out/SkillMate-win32-x64/resources/app.asar
 ANTHROPIC_API_KEY=sk-ant-api03-xxxx
-ZHIPU_API_KEY=3a5e3d62f64f43f69685e11c0666eb2b.osvhYdeXMqohA9dx
+ZHIPU_API_KEY=placeholder.zhipuapikey.example
 ```
 
 **影响**：

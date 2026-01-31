@@ -72,7 +72,8 @@ const config = {
     ],
     extraResource: [
       'python-runtime',
-      'resources/skills'
+      'resources/skills',
+      'resources/mcp-templates.json'  // 修复：确保 MCP 模板文件被打包到正确位置
     ],
     ignore: [
       /^\/src/,
