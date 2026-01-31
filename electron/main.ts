@@ -2301,6 +2301,7 @@ function createMainWindow() {
 
   mainWin.once('ready-to-show', () => {
     log.log('Main window ready.')
+    mainWin.show()  // 确保窗口显示
   })
 
   mainWin.on('close', (event) => {

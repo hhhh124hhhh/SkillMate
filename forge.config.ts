@@ -166,7 +166,8 @@ const config = {
           },
           {
             entry: 'electron/preload.ts',
-            config: 'forge/vite.preload.config.ts'
+            config: 'forge/vite.preload.config.ts',
+            target: 'preload'  // 🔧 添加 target 属性
           }
         ],
         // Vite 渲染进程配置
