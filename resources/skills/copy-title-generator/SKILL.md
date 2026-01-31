@@ -1,18 +1,18 @@
 ---
-name: title-generator
-title: 标题生成器
+name: copy-title-generator
+title: 文案标题生成器
 description: 帮我想10个吸引人的标题
 emoji: 📰
 场景:
-  - "写好了文章但标题不吸引人"
+  - "写好了内容但标题不吸引人"
   - "想不出好标题"
   - "想测试哪个标题点击率高"
 使用难度: ⭐（最简单）
 ---
 
-# 微信公众号标题生成器
+# 文案标题生成器
 
-基于真实数据验证的AI标题生成工具，帮助你快速生成高点击率的公众号标题。
+基于真实数据验证的AI标题生成工具，帮助你快速生成高点击率的标题。
 
 ## 核心功能
 
@@ -232,7 +232,7 @@ Prompt：搜索AI写作助手相关的热点事件、最新产品、用户案例
 - **适中**（15-25字）：信息完整且易读
 
 **移动端考虑**：
-- 微信标题显示：前18字完整显示
+- 移动端标题显示：通常显示前18-20字
 - 前10字决定是否点击（3秒法则）
 - 核心信息必须前置
 
@@ -324,7 +324,7 @@ from title_generator import handler
 # 生成标题
 args = {
     "action": "generate",
-    "topic": "公众号运营",
+    "topic": "内容运营",
     "template_type": "数字_痛点_解决方案"
 }
 result = handler(args)
@@ -332,14 +332,14 @@ result = handler(args)
 # 优化标题
 args = {
     "action": "optimize",
-    "title": "如何提升公众号运营效果"
+    "title": "如何提升内容运营效果"
 }
 result = handler(args)
 
 # A/B测试
 args = {
     "action": "ab_test",
-    "title": "公众号运营技巧",
+    "title": "内容运营技巧",
     "count": 3
 }
 result = handler(args)
@@ -375,7 +375,7 @@ result = handler(args)
 ### 标题优化
 1. **避免标题党**：标题与内容要相符
 2. **保持真实**：不要夸大其词
-3. **遵守规范**：遵守微信公众号内容规范
+3. **遵守规范**：遵守各平台内容规范
 4. **测试验证**：发布前进行A/B测试
 
 ### 使用建议

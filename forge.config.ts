@@ -83,6 +83,7 @@ const config = {
       /^\/dist-electron/,
       /^\/\.vscode\/electron-userdata/,  // 开发模式配置
       /^\/\.env/,                          // 环境变量（可能包含敏感信息）
+      /^\/\.trae/,                         // 文档目录（可能包含敏感信息）
       /^\/out\//,                         // 之前的打包输出
       /^\/release\//                       // 发布文件
     ]
