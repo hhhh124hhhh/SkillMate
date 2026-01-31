@@ -8,10 +8,13 @@ const __dirname = path.dirname(__filename)
 export default defineConfig({
   build: {
     target: 'node20',
+    lib: {
+      entry: path.resolve(__dirname, '..', 'electron', 'preload.ts'),
+      formats: ['cjs']
+    },
     outDir: path.resolve(__dirname, '..', '.vite', 'build'),
     emptyOutDir: true,
     rollupOptions: {
-      input: path.resolve(__dirname, '..', 'electron', 'preload.ts'),
       output: {
         entryFileNames: '[name].cjs',
         format: 'cjs'

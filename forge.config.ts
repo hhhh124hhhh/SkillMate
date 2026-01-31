@@ -38,8 +38,9 @@ const config = {
     postPackage: async (forgeConfig: any) => {
       console.log('🔧 [Forge Hook] Running post-package tasks...')
 
-      // 混淆 preload 脚本
-      const { execSync } = await import('node:child_process')
+      const fs = await import('node:fs')
+      const path = await import('node:path')
+
       try {
         const packagePath = path.resolve(
           forgeConfig.outputPath || 'out',
@@ -47,15 +48,26 @@ const config = {
           process.platform === 'win32' ? 'resources' : 'SkillMate.app/Contents/Resources'
         )
 
-        const preloadPath = path.join(packagePath, 'app.asar.unpacked', 'preload.cjs')
+        // 🔧 手动复制 preload.cjs 到 app.asar.unpacked
+        const viteBuildDir = path.resolve(process.cwd(), '.vite', 'build')
+        const preloadSource = path.join(viteBuildDir, 'preload.cjs')
 
-        if (require('node:fs').existsSync(preloadPath)) {
-          console.log('  → Obfuscating preload script...')
-          // 这里可以添加混淆逻辑，如果需要的话
-          // 目前保持原样，因为 Vite 插件已经处理了混淆
+        if (fs.existsSync(preloadSource)) {
+          const preloadDest = path.join(packagePath, 'app.asar.unpacked', 'preload.cjs')
+          fs.mkdirSync(path.dirname(preloadDest), { recursive: true })
+          fs.copyFileSync(preloadSource, preloadDest)
+          console.log('  ✅ Copied preload.cjs to app.asar.unpacked')
+        } else {
+          console.warn('  ⚠️  preload.cjs not found in .vite/build')
         }
+
+        // 混淆 preload 脚本（可选）
+        // const preloadPath = path.join(packagePath, 'app.asar.unpacked', 'preload.cjs')
+        // if (fs.existsSync(preloadPath)) {
+        //   console.log('  → Obfuscating preload script...')
+        // }
       } catch (error) {
-        console.warn('  ⚠️  Post-package obfuscation failed:', error)
+        console.warn('  ⚠️  Post-package tasks failed:', error)
       }
     }
   },
