@@ -1,7 +1,7 @@
 ---
-name: data-analyzer
-title: 数据分析
-description: 帮我分析公众号数据
+name: content-performance-analyzer
+title: 内容效果分析
+description: 帮我分析内容数据
 emoji: 📊
 场景:
   - "想知道文章阅读数据"
@@ -16,7 +16,7 @@ emoji: 📊
 
 # 数据分析工具
 
-基于2025年最新最佳实践的数据分析工具，为微信公众号运营提供全方位的数据分析支持。
+基于2025年最新最佳实践的数据分析工具，为内容运营提供全方位的数据分析支持。
 
 ## ⚡ 快速执行指南（重要）
 

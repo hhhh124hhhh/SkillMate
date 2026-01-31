@@ -1,6 +1,6 @@
 ---
-name: ai-writer
-title: AI写作助手
+name: copy-assistant
+title: 文案助手
 description: 帮我润色文章、换个风格、扩充内容
 emoji: ✍️
 场景:

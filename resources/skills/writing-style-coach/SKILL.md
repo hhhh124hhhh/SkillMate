@@ -1,6 +1,6 @@
 ---
-name: style-learner
-title: 风格学习
+name: writing-style-coach
+title: 写作风格教练
 description: 学习我的写作风格
 emoji: 👨‍🏫
 场景:

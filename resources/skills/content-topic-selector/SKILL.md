@@ -1,7 +1,7 @@
 ---
-name: topic-selector
-title: 选题搜索
-description: 帮我找热门写作话题
+name: content-topic-selector
+title: 内容选题搜索
+description: 帮我找热门创作话题
 emoji: 🔥
 场景:
   - "不知道今天写什么"
@@ -12,7 +12,7 @@ emoji: 🔥
 
 # 选题搜索工具
 
-基于MCP服务的选题搜索工具，为微信公众号运营提供全方位的选题支持。
+基于MCP服务的选题搜索工具，为内容创作提供全方位的选题支持。
 
 ## 🚀 快速开始
 

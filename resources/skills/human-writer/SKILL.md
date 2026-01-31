@@ -1,6 +1,6 @@
 ---
-name: natural-writer
-title: 去AI味助手
+name: human-writer
+title: 人性化写作
 description: 让文字更像人写的
 emoji: ✨
 场景:
