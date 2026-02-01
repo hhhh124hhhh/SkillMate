@@ -74,3 +74,11 @@ electron/preload.cjs
 # 临时测试文件（保留测试脚本）
 tests/configstore-test.*
 test-configstore-real.js
+
+# 构建缓存
+.vite/
+dist/
+out/
+
+# 临时测试报告
+*test-final-report.md
