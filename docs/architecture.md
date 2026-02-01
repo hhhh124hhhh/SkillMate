@@ -1,5 +1,7 @@
 # 架构设计文档
 
+> **项目定位**: SkillMate 是一个开源的 AI Agent 桌面应用框架，专为学习和研究如何构建现代化的 AI Skill 助手而设计。
+
 本文档详细说明 SkillMate 的整体架构设计，帮助你深入理解项目的技术实现。
 
 ---
@@ -171,16 +173,16 @@ interface AgentState {
 - **作用**: 提供 AI 领域知识和指令
 - **格式**: 纯文本 + YAML frontmatter
 - **加载**: 将 `content` 注入到系统提示
-- **示例**: `ai-writer`, `style-learner`
+- **示例**: `code-reviewer`, `system-debugger`
 
 **SKILL.md 格式**:
 ```yaml
 ---
-name: ai-writer
-description: AI 写作助手
+name: code-reviewer
+description: 代码审查专家
 ---
 
-你是专业的写作助手，擅长...
+你是资深的代码审查专家，擅长...
 ```
 
 #### 2. 工具技能 (Tool Skill)
