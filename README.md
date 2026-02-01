@@ -5,7 +5,7 @@
 <h1 align="center">SkillMate</h1>
 
 <p align="center">
-  🚀 一个开源的 AI Agent 桌面应用框架，用于学习如何构建现代化的 AI 助手
+  🚀 一个开源的 AI Agent 桌面应用框架，用于学习如何构建现代化的 AI Skill助手
 </p>
 
 <p align="center">
