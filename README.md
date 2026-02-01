@@ -154,28 +154,48 @@ SkillMate 允许 AI 操作本地文件系统和终端。请注意：
 SkillMate/
 ├── electron/                    # Electron 主进程代码
 │   ├── main.ts                 # 主进程入口（窗口管理、IPC 注册）
+│   ├── preload.ts              # 预加载脚本（IPC 桥接）
 │   ├── agent/                  # AI Agent 系统
 │   │   ├── AgentRuntime.ts     # 核心运行时
+│   │   ├── commands/           # Agent 命令系统
 │   │   ├── skills/             # 技能管理器
 │   │   ├── mcp/                # MCP 客户端服务
 │   │   ├── tools/              # 内置文件系统工具
-│   │   └── security/           # 权限管理器
+│   │   ├── security/           # 权限管理器
+│   │   ├── PythonRuntime.ts    # Python 运行时
+│   │   └── SkillRecommender.ts # 技能推荐引擎
 │   └── config/                 # 配置存储
 ├── src/                        # React 渲染进程代码
 │   ├── App.tsx                 # 根组件
 │   └── components/             # React 组件
-│       ├── CoworkView.tsx      # 主界面
+│       ├── CoworkView.tsx      # 主界面（聊天/工作双模式）
 │       ├── SettingsView.tsx    # 设置面板
 │       ├── SkillsEditor.tsx    # 技能编辑器
 │       ├── MCPConfigEditor.tsx # MCP 配置编辑器
-│       └── QuickActionsEditor.tsx # 快捷按钮配置
-├── resources/skills/           # 内置技能库（示例）
+│       ├── QuickActionsEditor.tsx # 快捷按钮配置
+│       ├── FloatingBallPage.tsx # 悬浮球窗口
+│       ├── CommandPalette.tsx  # 命令面板
+│       ├── ConfirmDialog.tsx   # 权限确认对话框
+│       └── ...                 # 其他 UI 组件
+├── forge/                      # Electron Forge 构建配置
+│   └── vite.*.config.ts        # Vite 构建配置
+├── resources/skills/           # 内置技能库
 ├── docs/                       # 项目文档
 │   ├── architecture.md         # 架构设计
 │   ├── getting-started.md      # 快速开始
+│   ├── configuration.md        # 配置指南
 │   ├── skill-development.md    # 技能开发
-│   └── mcp-integration.md      # MCP 集成
-└── public/                     # 静态资源
+│   ├── mcp-integration.md      # MCP 集成
+│   └── development.md         # 开发指南
+├── public/                     # 静态资源
+│   ├── icon.png                # 应用图标
+│   └── index.html              # HTML 入口
+├── .gitignore                  # Git 忽略规则
+├── package.json                # 项目配置
+├── tsconfig.json               # TypeScript 配置
+├── forge.config.ts             # Electron Forge 配置
+├── CREDITS.md                  # 致谢与致敬
+└── README.md                   # 项目说明
 ```
 
 ---
