@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { X, Settings, FolderOpen, Server, Check, Plus, Code, Palette, Search, ChevronRight, House, Sliders } from 'lucide-react';
+import { X, Settings, FolderOpen, Server, Check, Plus, Code, Palette, Search, ChevronRight, House, Sliders, AlertTriangle } from 'lucide-react';
 import { SkillsEditor } from './SkillsEditor.js';
 import { MCPConfigEditor } from './MCPConfigEditor.js';
 import { QuickActionsEditor } from './QuickActionsEditor.js';
 import { SkillsManager } from './SkillsManager.js';
 import { MCPManager } from './MCPManager.js';
 import { TrustedProjectsList } from './TrustedProjectsList.js';
+import { ConfirmDialog } from './ConfirmDialog.js';
 import { toast } from '../utils/toast.js';
 
 interface SettingsViewProps {
@@ -69,6 +70,9 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
 
     // API Key 状态
     const [hasApiKey, setHasApiKey] = useState(false);
+
+    // 清除数据对话框状态
+    const [showClearDataDialog, setShowClearDataDialog] = useState(false);
 
     useEffect(() => {
         window.ipcRenderer.invoke('config:get-all').then((cfg) => {
@@ -238,6 +242,26 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
     const removeFolder = (folder: string) => {
         const currentFolders = config.authorizedFolders || [];
         setConfig({ ...config, authorizedFolders: currentFolders.filter(f => f !== folder) });
+    };
+
+    // 清除所有数据处理
+    const handleClearAllData = async () => {
+        try {
+            const result = await window.ipcRenderer.invoke('app:clear-all-data') as { success: boolean; error?: string };
+            if (result.success) {
+                toast.success('✓ 所有数据已清除');
+                // 刷新页面以应用更改
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                toast.error('✗ 清除失败: ' + (result.error || '未知错误'));
+            }
+        } catch (error) {
+            console.error('清除数据失败:', error);
+            toast.error('清除数据时出错: ' + (error as Error).message);
+        }
+        setShowClearDataDialog(false);
     };
 
     // 过滤导航项
@@ -700,18 +724,7 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
                                                 <p className="text-sm text-red-300/70 mt-1">删除所有对话历史和配置</p>
                                             </div>
                                             <button
-                                                onClick={async () => {
-                                                    if (confirm('确定要清除所有对话历史和配置吗？\n\n⚠️ 此操作不可恢复！\n\n• 所有对话历史将被删除\n• 授权文件夹将被清空\n• 技能设置将被重置\n• API Key 将被保留')) {
-                                                        const result = await window.ipcRenderer.invoke('app:clear-all-data') as { success: boolean; error?: string };
-                                                        if (result.success) {
-                                                            alert('✓ 所有数据已清除');
-                                                            // 刷新页面以应用更改
-                                                            window.location.reload();
-                                                        } else {
-                                                            alert('✗ 清除失败: ' + (result.error || '未知错误'));
-                                                        }
-                                                    }
-                                                }}
+                                                onClick={() => setShowClearDataDialog(true)}
                                                 className="px-4 py-2 text-sm bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-medium"
                                             >
                                                 清除数据
@@ -827,6 +840,33 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
                     </div>
                 </div>
             </div>
+
+            {/* 清除数据确认对话框 */}
+            <ConfirmDialog
+                isOpen={showClearDataDialog}
+                title="清除所有数据"
+                message={
+                    <div className="space-y-3">
+                        <p className="text-red-400 font-semibold">⚠️ 此操作不可恢复！</p>
+                        <div className="text-sm text-slate-300 space-y-1.5">
+                            <p>清除以下所有数据：</p>
+                            <ul className="ml-4 list-disc space-y-1 text-slate-400">
+                                <li>所有对话历史</li>
+                                <li>授权文件夹列表</li>
+                                <li>技能设置</li>
+                                <li>用户偏好设置</li>
+                            </ul>
+                            <p className="pt-2 text-green-400 font-medium">✓ API Key 和关键配置将被保留</p>
+                        </div>
+                    </div>
+                }
+                type="delete"
+                icon={<AlertTriangle className="w-6 h-6 text-red-500" />}
+                confirmText="确认清除"
+                cancelText="取消"
+                onConfirm={handleClearAllData}
+                onCancel={() => setShowClearDataDialog(false)}
+            />
         </div>
     );
 }
