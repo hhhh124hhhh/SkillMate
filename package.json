@@ -20,9 +20,9 @@
     "node": ">=20.0.0 <21.0.0"
   },
   "scripts": {
-    "start": "chcp 65001 && electron-forge start",
-    "package": "electron-forge package",
-    "make": "electron-forge make",
+    "start": "chcp 65001 && npx electron-forge start",
+    "package": "npx electron-forge package",
+    "make": "npx electron-forge make",
     "setup-python": "node scripts/setup-python.js",
     "generate-icons": "node scripts/generate-icons.js",
     "encrypt-skills": "cross-env NODE_ENV=production node scripts/encrypt-skills.js",
