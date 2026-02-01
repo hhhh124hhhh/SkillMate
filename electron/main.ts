@@ -111,7 +111,7 @@ process.on('uncaughtException', (error: Error) => {
     timestamp: new Date().toISOString(),
     error: error.message,
     stack: error.stack,
-    config: configStore.getAll()
+    config: configStore.isInitialized() ? configStore.getAll() : { error: 'ConfigStore not initialized yet' }
   }
 
   // 保存崩溃日志到文件
@@ -178,6 +178,19 @@ app.whenReady().then(async () => {
     }
     app.setPath('userData', devUserData);
   }
+
+  // ✅ 关键修复：在设置 userData 路径后初始化 ConfigStore
+  // 这样确保配置文件保存到正确的位置（开发模式：.vscode/electron-userdata/）
+  console.log('[Main] About to initialize ConfigStore...');
+  console.log('[Main] Current userData:', app.getPath('userData'));
+  configStore.init();
+  console.log('[Main] ✓ ConfigStore initialized after userData path setup');
+  log.log('[Main] ✓ ConfigStore initialized after userData path setup');
+
+  // ✅ 重新加载 PermissionManager 配置（ConfigStore 初始化后）
+  const { permissionManager } = await import('./agent/security/PermissionManager.js');
+  permissionManager.reloadFromConfig();
+  log.log('[Main] ✓ PermissionManager reloaded from config');
 
   // Set App User Model ID for Windows notifications
   app.setAppUserModelId('com.wechatflowwork.app')
@@ -387,6 +400,13 @@ ipcMain.on('agent:delete-confirmation', async (_event, { id, approved }: { id: s
   log.log('[agent:delete-confirmation] Received confirmation for', id, 'approved:', approved)
   if (agent) {
     agent.handleDeleteConfirmation(id, approved)
+  }
+})
+
+ipcMain.on('agent:permission-confirmation', async (_event, { id, approved }: { id: string, approved: boolean }) => {
+  log.log('[agent:permission-confirmation] Received confirmation for', id, 'approved:', approved)
+  if (agent) {
+    agent.handlePermissionConfirmation(id, approved)
   }
 })
 
@@ -650,6 +670,9 @@ ipcMain.handle('config:set-all', async (_, cfg) => {
     cfgApiKey: cfg.apiKey ? '***' + cfg.apiKey.slice(-4) : 'undefined',
     oldApiKey: oldConfig.apiKey ? '***' + oldConfig.apiKey.slice(-4) : 'value',
     apiKeyChanged: cfg.apiKey !== oldConfig.apiKey,
+    cfgZhipuApiKey: cfg.zhipuApiKey ? '***' + cfg.zhipuApiKey.slice(-4) : 'undefined',
+    oldZhipuApiKey: oldConfig.zhipuApiKey ? '***' + oldConfig.zhipuApiKey.slice(-4) : 'value',
+    zhipuApiKeyChanged: cfg.zhipuApiKey !== oldConfig.zhipuApiKey,
     cfgApiUrl: cfg.apiUrl,
     oldApiUrl: oldConfig.apiUrl,
     apiUrlChanged: cfg.apiUrl !== oldConfig.apiUrl,
@@ -661,6 +684,7 @@ ipcMain.handle('config:set-all', async (_, cfg) => {
   // ✅ 仅在实际有值变更时才重启 Agent（忽略 undefined 和空字符串）
   const shouldRestartAgent =
     (cfg.apiKey !== undefined && cfg.apiKey !== oldConfig.apiKey && cfg.apiKey !== '') ||
+    (cfg.zhipuApiKey !== undefined && cfg.zhipuApiKey !== oldConfig.zhipuApiKey && cfg.zhipuApiKey !== '') ||
     (cfg.apiUrl !== undefined && cfg.apiUrl !== oldConfig.apiUrl && cfg.apiUrl !== '') ||
     (cfg.model !== undefined && cfg.model !== oldConfig.model && cfg.model !== '')
 
@@ -1521,13 +1545,19 @@ ipcMain.handle('skills:list', async () => {
       log.warn(`[skills:list] Builtin skills directory does not exist: ${builtinSkillsDir}`);
     }
 
-    // 2. 扫描用户技能目录
+    // 2. 扫描用户技能目录（跳过已存在的内置技能）
     const userSkillsDir = path.join(os.homedir(), '.aiagent', 'skills');
     log.log(`[skills:list] User skills dir: ${userSkillsDir}`);
 
     if (fs.existsSync(userSkillsDir)) {
       const files = fs.readdirSync(userSkillsDir);
       for (const f of files) {
+        // 跳过已存在的内置技能（避免重复 key）
+        if (builtinSkills.has(f)) {
+          log.log(`[skills:list] Skipping user skill that overrides builtin: ${f}`);
+          continue;
+        }
+
         const filePath = path.join(userSkillsDir, f);
         try {
           if (fs.statSync(filePath).isDirectory()) {
@@ -2257,9 +2287,26 @@ function createTray() {
 }
 
 function createMainWindow() {
-  const preloadPath = path.join(__dirname, 'preload.cjs')
+  // 开发模式：preload 在 .vite/build/preload.cjs
+  // 打包模式：preload 在 app.asar.unpacked/preload.cjs（通过 postPackage 钩子复制）
+  let preloadPath: string
+  if (app.isPackaged) {
+    // 打包后：优先尝试 app.asar.unpacked/preload.cjs
+    const unpackedPath = path.join(process.resourcesPath, 'app.asar.unpacked', 'preload.cjs')
+    if (fs.existsSync(unpackedPath)) {
+      preloadPath = unpackedPath
+    } else {
+      // Fallback: 尝试 __dirname/preload.cjs（如果 Vite 配置改变）
+      preloadPath = path.join(__dirname, 'preload.cjs')
+    }
+  } else {
+    // 开发模式：使用 .vite/build（Vite 输出目录）
+    preloadPath = path.join(process.cwd(), '.vite', 'build', 'preload.cjs')
+  }
+
   log.log('[Main Window] __dirname:', __dirname)
   log.log('[Main Window] preload path:', preloadPath)
+  log.log('[Main Window] preload exists:', fs.existsSync(preloadPath))
 
   // 设置窗口图标（使用绝对路径）
   let iconPath: string
@@ -2301,7 +2348,7 @@ function createMainWindow() {
 
   mainWin.once('ready-to-show', () => {
     log.log('Main window ready.')
-    mainWin.show()  // 确保窗口显示
+    mainWin!.show()  // 确保窗口显示
   })
 
   mainWin.on('close', (event) => {

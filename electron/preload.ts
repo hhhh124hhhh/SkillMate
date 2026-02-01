@@ -150,6 +150,10 @@ const ALLOWED_CHANNELS = [
   'slash-command:result',          // 命令执行结果
   'slash-command:executing',       // 命令正在执行
 
+  // 权限确认
+  'agent:permission-confirm-request',  // 权限确认请求
+  'agent:permission-confirmation',     // 权限确认响应
+
   // 调试通道
   'main-process-message',         // 主进程调试消息
 ] as const

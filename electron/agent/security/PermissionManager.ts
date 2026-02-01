@@ -15,11 +15,40 @@ export class PermissionManager {
     private trustedProjects: Map<string, TrustedProject> = new Map();
 
     constructor() {
-        // Load from persisted config
+        // Load from persisted config (only if ConfigStore is initialized)
+        if (configStore.isInitialized()) {
+            const savedFolders = configStore.getAuthorizedFolders();
+            savedFolders.forEach((f: string) => this.authorizedFolders.add(path.resolve(f)));
+
+            // Load trusted projects
+            const savedProjects = configStore.getTrustedProjects();
+            savedProjects.forEach((p: TrustedProject) => {
+                this.trustedProjects.set(path.resolve(p.path), {
+                    ...p,
+                    path: path.resolve(p.path)
+                });
+            });
+        } else {
+            log.log('[PermissionManager] ConfigStore not initialized yet, using empty state');
+        }
+    }
+
+    /**
+     * 在 ConfigStore 初始化后重新加载权限配置
+     */
+    reloadFromConfig(): void {
+        log.log('[PermissionManager] Reloading configuration from ConfigStore...');
+
+        // 清空当前状态
+        this.authorizedFolders.clear();
+        this.trustedProjects.clear();
+
+        // 重新加载授权文件夹
         const savedFolders = configStore.getAuthorizedFolders();
         savedFolders.forEach((f: string) => this.authorizedFolders.add(path.resolve(f)));
+        log.log(`[PermissionManager] Loaded ${this.authorizedFolders.size} authorized folders`);
 
-        // Load trusted projects
+        // 重新加载信任项目
         const savedProjects = configStore.getTrustedProjects();
         savedProjects.forEach((p: TrustedProject) => {
             this.trustedProjects.set(path.resolve(p.path), {
@@ -27,6 +56,7 @@ export class PermissionManager {
                 path: path.resolve(p.path)
             });
         });
+        log.log(`[PermissionManager] Loaded ${this.trustedProjects.size} trusted projects`);
     }
 
     authorizeFolder(folderPath: string): boolean {
@@ -37,6 +67,10 @@ export class PermissionManager {
             return false;
         }
         this.authorizedFolders.add(normalized);
+
+        // ✅ 持久化到配置文件
+        configStore.addAuthorizedFolder(normalized);
+
         log.log(`Authorized folder: ${normalized}`);
         return true;
     }
@@ -44,6 +78,11 @@ export class PermissionManager {
     revokeFolder(folderPath: string): void {
         const normalized = path.resolve(folderPath);
         this.authorizedFolders.delete(normalized);
+
+        // ✅ 从配置文件中删除
+        configStore.removeAuthorizedFolder(normalized);
+
+        log.log(`Revoked folder authorization: ${normalized}`);
     }
 
     isPathAuthorized(filePath: string): boolean {

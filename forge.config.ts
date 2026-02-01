@@ -42,11 +42,19 @@ const config = {
       const path = await import('node:path')
 
       try {
-        const packagePath = path.resolve(
-          forgeConfig.outputPath || 'out',
-          forgeConfig.packageJSON.name || 'SkillMate',
-          process.platform === 'win32' ? 'resources' : 'SkillMate.app/Contents/Resources'
-        )
+        // 简化路径构建，直接使用已知输出目录
+        const platform = process.platform
+        const arch = process.arch
+        const appName = 'SkillMate'
+
+        let packagePath: string
+        if (platform === 'win32') {
+          packagePath = path.resolve('out', `${appName}-${platform}-${arch}`, 'resources')
+        } else if (platform === 'darwin') {
+          packagePath = path.resolve('out', `${appName}-mac-${arch}`, `${appName}.app`, 'Contents', 'Resources')
+        } else {
+          packagePath = path.resolve('out', `${appName}-${platform}-${arch}`, 'resources')
+        }
 
         // 🔧 手动复制 preload.cjs 到 app.asar.unpacked
         const viteBuildDir = path.resolve(process.cwd(), '.vite', 'build')
@@ -60,12 +68,6 @@ const config = {
         } else {
           console.warn('  ⚠️  preload.cjs not found in .vite/build')
         }
-
-        // 混淆 preload 脚本（可选）
-        // const preloadPath = path.join(packagePath, 'app.asar.unpacked', 'preload.cjs')
-        // if (fs.existsSync(preloadPath)) {
-        //   console.log('  → Obfuscating preload script...')
-        // }
       } catch (error) {
         console.warn('  ⚠️  Post-package tasks failed:', error)
       }
@@ -78,12 +80,12 @@ const config = {
     asar: true,
     asarUnpack: [
       'resources/skills/**/*',
-      'python-runtime/**/*',
+      // 'python-runtime/**/*',  // ⚠️ 暂时禁用：文件结构损坏，缺少 INSTALLER 文件
       'node_modules/sharp/**/*',
       'node_modules/@modelcontextprotocol/sdk/**/*'
     ],
     extraResource: [
-      'python-runtime',
+      // 'python-runtime',  // ⚠️ 暂时禁用：同上
       'resources/skills',
       'resources/mcp-templates.json'  // 修复：确保 MCP 模板文件被打包到正确位置
     ],
@@ -102,10 +104,11 @@ const config = {
     ]
   },
 
-  rebuildConfig: {
-    onlyModules: ['sharp', '@modelcontextprotocol/sdk'],
-    force: false
-  },
+  // ⚠️ 暂时禁用 rebuild（避免网络超时）
+  // rebuildConfig: {
+  //   onlyModules: ['sharp', '@modelcontextprotocol/sdk'],
+  //   force: false
+  // },
 
   makers: [
     new MakerSquirrel({
@@ -148,10 +151,11 @@ const config = {
   ],
 
   plugins: [
-    {
-      name: '@electron-forge/plugin-auto-unpack-natives',
-      config: {}
-    },
+    // ⚠️ 暂时禁用 auto-unpack-natives（可能导致网络超时）
+    // {
+    //   name: '@electron-forge/plugin-auto-unpack-natives',
+    //   config: {}
+    // },
     // Fuses插件暂时禁用，配置较复杂，可后续启用
     // {
     //   name: '@electron-forge/plugin-fuses',

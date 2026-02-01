@@ -10,10 +10,11 @@ export default defineConfig({
     target: 'node20',
     lib: {
       entry: path.resolve(__dirname, '..', 'electron', 'preload.ts'),
-      formats: ['cjs']
+      formats: ['cjs'],
+      fileName: 'preload.cjs'
     },
     outDir: path.resolve(__dirname, '..', '.vite', 'build'),
-    emptyOutDir: true,
+    emptyOutDir: false,
     rollupOptions: {
       output: {
         entryFileNames: '[name].cjs',

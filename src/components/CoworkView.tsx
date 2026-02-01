@@ -100,6 +100,21 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
         operation: { type: 'delete_file', path: '' }
     });
 
+    // 权限确认对话框状态
+    const [permissionConfirm, setPermissionConfirm] = useState<{
+        isOpen: boolean;
+        id: string;
+        permission: {
+            type: 'delete_command' | 'dangerous_operation';
+            command: string;
+            workingDir?: string;
+        };
+    }>({
+        isOpen: false,
+        id: '',
+        permission: { type: 'delete_command', command: '' }
+    });
+
     const scrollRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -217,6 +232,29 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
             });
         });
 
+        // 权限确认请求监听
+        const removePermissionConfirmListener = window.ipcRenderer.on('agent:permission-confirm-request', (_event, data) => {
+            console.log('[CoworkView] Permission confirm request:', data);
+            const confirmData = data as {
+                id: string;
+                permission: {
+                    type: 'delete_command' | 'dangerous_operation';
+                    command: string;
+                    workingDir?: string;
+                    timestamp: number;
+                }
+            };
+            setPermissionConfirm({
+                isOpen: true,
+                id: confirmData.id,
+                permission: {
+                    type: confirmData.permission.type,
+                    command: confirmData.permission.command,
+                    workingDir: confirmData.permission.workingDir
+                }
+            });
+        });
+
         return () => {
             removeStreamListener?.();
             removeHistoryListener?.();
@@ -225,6 +263,7 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
             removeSlashErrorListener?.();
             removeSlashExecutingListener?.();
             removeDeleteConfirmListener?.();
+            removePermissionConfirmListener?.();
         };
     }, []);
 
@@ -551,6 +590,35 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
 
         // 关闭对话框
         setDeleteConfirm(prev => ({ ...prev, isOpen: false }));
+    };
+
+    // 处理权限确认
+    const handlePermissionConfirm = async () => {
+        const { id } = permissionConfirm;
+        console.log('[CoworkView] Sending permission confirmation:', { id, approved: true });
+
+        // 发送确认响应到主进程
+        window.ipcRenderer.send('agent:permission-confirmation', {
+            id,
+            approved: true
+        });
+
+        // 关闭对话框
+        setPermissionConfirm(prev => ({ ...prev, isOpen: false }));
+    };
+
+    const handlePermissionCancel = async () => {
+        const { id } = permissionConfirm;
+        console.log('[CoworkView] Sending permission cancellation:', { id, approved: false });
+
+        // 发送取消响应到主进程
+        window.ipcRenderer.send('agent:permission-confirmation', {
+            id,
+            approved: false
+        });
+
+        // 关闭对话框
+        setPermissionConfirm(prev => ({ ...prev, isOpen: false }));
     };
 
     // 处理命令面板命令选择
@@ -912,6 +980,35 @@ export function CoworkView({ history, onSendMessage, onAbort, isProcessing, onOp
                 onCancel={handleDeleteCancel}
                 confirmText="确认删除"
                 cancelText="取消删除"
+            />
+
+            {/* Permission Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={permissionConfirm.isOpen}
+                type="custom"
+                title="⚠️ 需要权限确认"
+                message={
+                    <div className="space-y-3">
+                        <p className="text-slate-700">AI 正在尝试执行以下操作：</p>
+                        <div className="bg-slate-100 rounded-lg p-3">
+                            <code className="text-sm text-red-600 break-all">
+                                {permissionConfirm.permission.command}
+                            </code>
+                        </div>
+                        {permissionConfirm.permission.workingDir && (
+                            <p className="text-sm text-slate-500">
+                                工作目录：{permissionConfirm.permission.workingDir}
+                            </p>
+                        )}
+                        <p className="text-sm text-orange-600 font-medium">
+                            此操作涉及文件系统修改，请确认是否允许执行
+                        </p>
+                    </div>
+                }
+                onConfirm={handlePermissionConfirm}
+                onCancel={handlePermissionCancel}
+                confirmText="允许执行"
+                cancelText="拒绝执行"
             />
 
             {/* Image Lightbox */}

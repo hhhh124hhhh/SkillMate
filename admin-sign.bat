@@ -1,0 +1,3 @@
+@echo off
+echo Opening Administrator PowerShell...
+powershell Start-Process powershell -Verb RunAs -ArgumentList '-NoExit','-Command','cd d:\wechat-flowwork; .\scripts\sign-app.ps1'

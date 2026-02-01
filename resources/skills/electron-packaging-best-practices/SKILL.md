@@ -907,4 +907,251 @@ du -sh out/* | sort -hr
 
 ---
 
+## 🔴 血泪教训：安全措施实施时机问题
+
+### ⚠️ 核心教训
+
+**最重要的经验**：
+> ❌ **过早实施安全措施会导致后续架构改动时系统完全无法运行**
+> ✅ **应该在架构稳定后再实施严格的安全检查**
+
+### 真实案例回顾
+
+#### 项目背景
+- **项目**: SkillMate (Electron + React + TypeScript)
+- **问题**: ConfigStore 初始化时序导致应用反复崩溃
+- **调试时间**: 数小时
+- **根本原因**: 过早实施了严格的初始化检查
+
+#### 问题演化过程
+
+**阶段 1: 早期开发 - 一切正常**
+```typescript
+// ✅ 早期版本（工作正常）
+class ConfigStore {
+  private store = new Store<AppConfig>({ name: 'config' })
+
+  getApiKey() {
+    return this.store.get('apiKey')  // 直接访问，没问题
+  }
+}
+```
+
+**阶段 2: 添加安全检查 - 埋下隐患**
+```typescript
+// ❌ 过早添加严格检查（问题开始）
+class ConfigStore {
+  private store: Store<AppConfig> | null = null
+
+  constructor() {
+    this.store = new Store<AppConfig>({ name: 'config' })
+  }
+
+  getApiKey() {
+    if (!this.store) {
+      throw new Error('ConfigStore not initialized')  // ⚠️ 严格检查
+    }
+    return this.store.get('apiKey')
+  }
+}
+```
+
+**阶段 3: 引入延迟初始化 - 系统崩溃**
+```typescript
+// ❌ 延迟初始化导致所有模块加载时崩溃
+class ConfigStore {
+  private store: Store<AppConfig> | null = null
+
+  init() {
+    this.store = new Store<AppConfig>({ name: 'config' })
+  }
+
+  getApiKey() {
+    this.ensureInitialized()  // 🔒 严格检查
+    return this.store!.get('apiKey')
+  }
+}
+
+// ❌ 其他模块在顶层创建实例
+export const permissionManager = new PermissionManager()  // ConfigStore 未初始化！
+export const notificationService = new NotificationService()  // ConfigStore 未初始化！
+```
+
+**崩溃结果**：
+```
+Error: Cannot read properties of null (reading 'get')
+  at PermissionManager.constructor()
+  at NotificationService.constructor()
+  at module load time
+```
+
+### 🎯 问题根因分析
+
+#### 为什么会崩溃？
+
+**模块加载顺序**：
+```
+1. main.ts 导入 PermissionManager
+   ↓
+2. PermissionManager 模块顶层执行 new PermissionManager()
+   ↓
+3. 构造函数调用 configStore.getAuthorizedFolders()
+   ↓
+4. getAuthorizedFolders() 调用 ensureInitialized()
+   ↓
+5. ❌ this.store 是 null（init() 还没调用）
+   ↓
+6. 应用启动失败
+```
+
+**时序问题**：
+- ConfigStore.init() 在 `app.whenReady()` 时调用
+- 但其他模块在 require 时就创建了实例
+- 此时 init() 还没执行
+
+### ✅ 正确的实施方式
+
+#### 方案 A: 延迟实例化（推荐）
+
+```typescript
+// ✅ 正确：延迟到真正需要时才创建实例
+class PermissionManager {
+  private authorizedFolders: Set<string> = new Set()
+
+  constructor() {
+    // ✅ 检查 ConfigStore 是否已初始化
+    if (configStore.isInitialized()) {
+      const folders = configStore.getAuthorizedFolders()
+      folders.forEach(f => this.authorizedFolders.add(f))
+    }
+    // ✅ 未初始化时使用空状态，不抛错
+  }
+
+  // ✅ 提供重新加载方法
+  reloadFromConfig() {
+    this.authorizedFolders.clear()
+    const folders = configStore.getAuthorizedFolders()
+    folders.forEach(f => this.authorizedFolders.add(f))
+  }
+}
+
+// ✅ 在 ConfigStore.init() 后调用
+// main.ts
+configStore.init()
+permissionManager.reloadFromConfig()
+```
+
+#### 方案 B: 惰性初始化（备选）
+
+```typescript
+// ✅ 使用 getter 懒加载
+let _permissionManager: PermissionManager | null = null
+
+export const permissionManager = {
+  get() {
+    if (!_permissionManager) {
+      _permissionManager = new PermissionManager()
+    }
+    return _permissionManager
+  }
+}
+```
+
+### 📋 经验总结
+
+#### ❌ 过早实施安全措施的问题
+
+1. **阻碍开发迭代**
+   - 每次架构改动都要处理初始化失败
+   - 调试时间成倍增加
+   - 开发效率大幅下降
+
+2. **增加复杂度**
+   - 需要维护初始化顺序
+   - 需要添加 reload 机制
+   - 需要处理循环依赖
+
+3. **难以调试**
+   - 模块加载时崩溃，错误信息不清晰
+   - 无法在开发时发现（直到运行时才崩溃）
+   - 堆栈跟踪指向底层代码，难以定位根因
+
+#### ✅ 正确的开发策略
+
+**阶段划分**：
+
+| 阶段 | 重点 | 安全措施 |
+|------|------|---------|
+| **MVP 开发** | 快速实现核心功能 | ❌ 不实施严格检查 |
+| **架构稳定** | 优化代码结构 | ✅ 添加基础验证 |
+| **生产就绪** | 提升稳定性 | ✅ 实施严格安全 |
+| **部署后** | 持续监控 | ✅ 添加审计日志 |
+
+**具体建议**：
+
+1. **开发阶段（0.1 - 0.5 版本）**
+   ```typescript
+   // ✅ 宽松的检查（允许空值）
+   getApiKey() {
+     return this.store?.get('apiKey') || ''
+   }
+   ```
+
+2. **稳定阶段（0.5 - 1.0 版本）**
+   ```typescript
+   // ✅ 添加警告但不阻断
+   getApiKey() {
+     if (!this.store) {
+       console.warn('ConfigStore not initialized')
+       return ''
+     }
+     return this.store.get('apiKey')
+   }
+   ```
+
+3. **生产阶段（1.0+ 版本）**
+   ```typescript
+   // ✅ 严格检查（此时架构已稳定）
+   getApiKey() {
+     this.ensureInitialized()
+     return this.store!.get('apiKey')
+   }
+   ```
+
+### 🎓 通用原则
+
+**何时实施严格安全检查**：
+
+✅ **适合早期实施**：
+- 输入验证（用户数据）
+- SQL 注入防护
+- XSS 防护
+- 权限检查（用户操作）
+
+❌ **不适合早期实施**：
+- 模块初始化检查
+- 依赖注入验证
+- 单例模式严格性
+- 配置加载完整性
+
+**判断标准**：
+- 是否会在每次代码改动时触发？
+- 是否会增加架构变动的成本？
+- 是否能在开发时提前发现问题？
+
+如果三个问题都是"是"，**不要过早实施**。
+
+### 📚 相关资源
+
+- **本文问题**: ConfigStore 初始化时序问题（2026-01-31）
+- **调试记录**: `.claude/errors.log`
+- **修复文件**: `electron/config/ConfigStore.ts`, `electron/agent/security/PermissionManager.ts`
+- **修复方法**: 添加 `isInitialized()` 检查 + `reloadFromConfig()` 机制
+
+---
+
+**总结**：安全措施很重要，但实施时机更重要。在架构稳定前，使用宽松的检查和清晰的警告，而不是严格的阻断。这样可以保持开发效率，同时不牺牲安全性（在最终版本前收紧即可）。
+
+---
+
 **总结**：安全打包的核心是"最小权限原则"——只打包必要的文件，排除所有敏感信息和开发产物。

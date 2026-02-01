@@ -65,3 +65,12 @@ electron/preload.cjs
 
 # 开源准备 - 临时开发文档
 .trae/documents/plan_*.md
+
+# 开源准备 - 临时文件和日志
+.claude/errors.log
+.claude/settings.local.json
+*.log
+
+# 临时测试文件（保留测试脚本）
+tests/configstore-test.*
+test-configstore-real.js

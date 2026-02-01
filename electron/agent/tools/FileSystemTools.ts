@@ -83,10 +83,9 @@ const DANGEROUS_CHARS_PATTERN = /[;&|`$()<>]/;
 
 // 危险命令黑名单（永远阻止）
 const BLOCKED_COMMANDS = [
-    // 删除命令
-    /\brm\s+(?:-rf?\s+)?[/*~]/i,
+    // 危险的删除命令（批量删除，不允许弹窗确认）
+    /\brm\s+-rf?\s+[/*~]/i,
     /\bdel\s+(?:\/[SQs]*)?\s+[/*~]/i,
-    /\brmdir\s+/i,
 
     // 管道和命令注入
     /\bcurl\b.*\|/i,
@@ -239,12 +238,33 @@ export class FileSystemTools {
             return `Error: Pipes and redirections are not allowed for security reasons.\nCommand: ${originalCommand}`;
         }
 
-        // 🔒 安全检查：白名单验证
-        const isAllowed = ALLOWED_COMMANDS.some(pattern => pattern.test(originalCommand));
-        if (!isAllowed) {
-            log.error(`[Security] ❌ Blocked command not in whitelist: ${originalCommand}`);
-            await auditLogger.log('security', 'command_blocked', { reason: 'not_whitelisted', command: originalCommand }, 'warning');
-            return `Error: Command not in whitelist. Allowed commands: Python, Node.js, Git, NPM, Yarn, Pip, file operations, and text processing tools.\nCommand: ${originalCommand}`;
+        // 🔒 安全检查：检测删除命令（需要用户确认）
+        const isDeleteCommand = /\b(rm|del|rmdir|remove)\b/i.test(originalCommand) &&
+                                !(/--help|--version/.test(originalCommand));
+        if (isDeleteCommand) {
+            log.warn(`[Security] ⚠️ Delete command detected: ${originalCommand}`);
+
+            // 请求用户确认（如果 AgentRuntime 可用）
+            if (agentRuntimeInstance && typeof agentRuntimeInstance.requestPermission === 'function') {
+                const confirmed = await agentRuntimeInstance.requestPermission({
+                    type: 'delete_command',
+                    command: originalCommand,
+                    workingDir
+                });
+
+                if (!confirmed) {
+                    log.warn(`[Security] ❌ Delete command rejected by user: ${originalCommand}`);
+                    await auditLogger.log('security', 'command_blocked', { reason: 'user_rejected', command: originalCommand }, 'warning');
+                    return `Error: Delete command requires user permission. Command: ${originalCommand}`;
+                }
+
+                log.log(`[Security] ✅ Delete command approved by user: ${originalCommand}`);
+            } else {
+                // 没有 AgentRuntime 实例，拒绝删除命令
+                log.error(`[Security] ❌ Delete command blocked (no permission handler): ${originalCommand}`);
+                await auditLogger.log('security', 'command_blocked', { reason: 'no_permission_handler', command: originalCommand }, 'error');
+                return `Error: Delete commands require user confirmation. Please use a client that supports permission dialogs.\nCommand: ${originalCommand}`;
+            }
         }
 
         // ✅ 新增：安全检查 - 危险字符检测（防止命令注入）
@@ -254,11 +274,13 @@ export class FileSystemTools {
             return `Error: Command contains dangerous characters (; & | \` $ ( ) < >) that are not allowed for security reasons.\nCommand: ${originalCommand}`;
         }
 
-        // 🔒 安全检查：路径授权验证
-        if (args.cwd && !permissionManager.isPathAuthorized(args.cwd)) {
-            log.error(`[Security] ❌ Unauthorized working directory: ${args.cwd}`);
-            await auditLogger.log('security', 'command_blocked', { reason: 'unauthorized_path', path: args.cwd, command: originalCommand }, 'error');
-            return `Error: Working directory not authorized: ${args.cwd}\nPlease select a folder first.`;
+        // 🔒 安全检查：路径授权验证（自动授权当前工作目录）
+        if (args.cwd) {
+            if (!permissionManager.isPathAuthorized(args.cwd)) {
+                // 自动授权工作目录（简化用户体验）
+                permissionManager.authorizeFolder(args.cwd);
+                log.log(`[Security] ✅ Auto-authorized working directory: ${args.cwd}`);
+            }
         }
 
         try {
@@ -437,9 +459,11 @@ export class FileSystemTools {
      */
     async deleteFile(args: { path: string }): Promise<string> {
         try {
-            // 1. 检查路径权限
-            if (!permissionManager.isPathAuthorized(args.path)) {
-                throw new Error(`Path not authorized: ${args.path}`);
+            // 1. 自动授权路径（简化用户体验）
+            const pathDir = path.dirname(args.path);
+            if (!permissionManager.isPathAuthorized(pathDir)) {
+                permissionManager.authorizeFolder(pathDir);
+                log.log(`[Security] ✅ Auto-authorized path for delete: ${pathDir}`);
             }
 
             // 2. 检查项目信任状态
@@ -488,9 +512,10 @@ export class FileSystemTools {
      */
     async deleteDirectory(args: { path: string }): Promise<string> {
         try {
-            // 1. 检查路径权限
+            // 1. 自动授权路径（简化用户体验）
             if (!permissionManager.isPathAuthorized(args.path)) {
-                throw new Error(`Path not authorized: ${args.path}`);
+                permissionManager.authorizeFolder(args.path);
+                log.log(`[Security] ✅ Auto-authorized directory for delete: ${args.path}`);
             }
 
             // 2. 统计将删除的文件数量

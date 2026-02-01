@@ -1121,7 +1121,102 @@ Instructions:
         }
     }
 
-    // ========== 删除确认机制 ==========
+    // ========== 权限确认机制 ==========
+
+    /**
+     * 待处理的权限确认请求
+     */
+    private pendingPermissionConfirmations = new Map<string, {
+        resolve: (approved: boolean) => void;
+        timeout: NodeJS.Timeout;
+    }>();
+
+    /**
+     * 请求权限确认（通用方法）
+     * @param permission 权限请求信息
+     * @returns 用户是否批准（30秒超时后默认拒绝）
+     */
+    public async requestPermission(permission: {
+        type: 'delete_command' | 'dangerous_operation';
+        command: string;
+        workingDir?: string;
+    }): Promise<boolean> {
+        const id = `permission-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+        log.log(`[AgentRuntime] Requesting permission for ${permission.type}: ${permission.command}`);
+
+        // 1. 创建超时 Promise（30 秒）
+        const timeoutPromise = new Promise<boolean>((resolve) => {
+            const timeout = setTimeout(() => {
+                this.pendingPermissionConfirmations.delete(id);
+                log.warn(`[AgentRuntime] Permission confirmation timeout for ${permission.command}`);
+                resolve(false); // 超时默认拒绝
+            }, 30000); // 30秒超时
+
+            this.pendingPermissionConfirmations.set(id, { resolve, timeout });
+        });
+
+        // 2. 发送权限确认请求到 UI
+        this.broadcast('agent:permission-confirm-request', {
+            id,
+            permission: {
+                type: permission.type,
+                command: permission.command,
+                workingDir: permission.workingDir,
+                timestamp: Date.now()
+            }
+        });
+
+        // 3. 等待用户响应或超时
+        return Promise.race([
+            new Promise<boolean>(resolve => {
+                const existing = this.pendingPermissionConfirmations.get(id);
+                if (existing) {
+                    // 替换超时的 resolve
+                    clearTimeout(existing.timeout);
+                    this.pendingPermissionConfirmations.set(id, {
+                        resolve,
+                        timeout: existing.timeout
+                    });
+                }
+            }),
+            timeoutPromise
+        ]);
+    }
+
+    /**
+     * 处理权限确认响应
+     * @param id 确认请求 ID
+     * @param approved 用户是否批准
+     */
+    public handlePermissionConfirmation(id: string, approved: boolean): void {
+        const confirmation = this.pendingPermissionConfirmations.get(id);
+        if (confirmation) {
+            clearTimeout(confirmation.timeout);
+            confirmation.resolve(approved);
+            this.pendingPermissionConfirmations.delete(id);
+
+            log.log(`[AgentRuntime] Permission confirmation ${approved ? 'approved' : 'rejected'} for ${id}`);
+        } else {
+            log.warn(`[AgentRuntime] Permission confirmation not found for ${id}`);
+        }
+    }
+
+    /**
+     * 清理所有待确认的权限请求（窗口关闭时调用，防止内存泄漏）
+     */
+    public cleanupPendingPermissionConfirmations(): void {
+        log.log(`[AgentRuntime] Cleaning up ${this.pendingPermissionConfirmations.size} pending permission confirmations`);
+
+        this.pendingPermissionConfirmations.forEach(({ timeout, resolve }) => {
+            clearTimeout(timeout);
+            resolve(false); // 拒绝所有待确认的请求
+        });
+
+        this.pendingPermissionConfirmations.clear();
+    }
+
+    // ========== 删除确认机制（兼容旧代码） ==========
 
     /**
      * 待处理的删除确认请求

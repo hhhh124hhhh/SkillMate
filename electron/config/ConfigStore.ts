@@ -87,12 +87,21 @@ const defaults: AppConfig = {
 };
 
 class ConfigStore {
-    private store: Store<AppConfig>;
+    private store: Store<AppConfig> | null = null;
+    private initialized: boolean = false;
 
-    constructor() {
+    /**
+     * 初始化 ConfigStore（必须在 app.setPath('userData') 之后调用）
+     */
+    init(): void {
+        if (this.initialized) {
+            log.log('[ConfigStore.init] Already initialized, skipping');
+            return;
+        }
+
+        log.log('[ConfigStore.init] Initializing ConfigStore...');
         this.store = new Store<AppConfig>({
             name: 'wechatflowwork-config',
-            projectName: 'SkillMate',
             defaults
         });
 
@@ -105,7 +114,7 @@ class ConfigStore {
         // 清理已废弃的 allowedPermissions 配置（如果存在）
         try {
             const storeData = this.store.store as any;
-            if (storeData && storeData.hasOwnProperty('allowedPermissions')) {
+            if (storeData && Object.prototype.hasOwnProperty.call(storeData, 'allowedPermissions')) {
                 delete storeData['allowedPermissions'];
                 log.log('[ConfigStore] Cleaned up deprecated allowedPermissions');
             }
@@ -113,8 +122,9 @@ class ConfigStore {
             // 忽略清理错误
         }
 
-        log.log('[ConfigStore] Initialized with path:', this.store.path);
-        log.log('[ConfigStore] Current config on init:', {
+        this.initialized = true;
+        log.log('[ConfigStore] ✓ Initialized with path:', this.store.path);
+        log.log('[ConfigStore] Current config:', {
             apiKey: this.store.get('apiKey') ? '***' + this.store.get('apiKey').slice(-4) : 'empty',
             apiUrl: this.store.get('apiUrl'),
             model: this.store.get('model'),
@@ -122,11 +132,22 @@ class ConfigStore {
         });
     }
 
+    /**
+     * 确保 ConfigStore 已初始化
+     */
+    private ensureInitialized(): void {
+        if (!this.initialized || !this.store) {
+            throw new Error('[ConfigStore] Not initialized! Call configStore.init() after app.setPath("userData")');
+        }
+    }
+
     get<K extends keyof AppConfig>(key: K): AppConfig[K] {
-        return this.store.get(key);
+        this.ensureInitialized();
+        return this.store!.get(key);
     }
 
     set<K extends keyof AppConfig>(key: K, value: AppConfig[K]): void {
+        this.ensureInitialized();
         try {
             // 特殊处理 authorizedFolders 的日志
             if (key === 'authorizedFolders') {
@@ -137,10 +158,10 @@ class ConfigStore {
             } else {
                 log.log(`[ConfigStore.set] Setting ${key}:`, value);
             }
-            this.store.set(key, value);
+            this.store!.set(key, value);
 
             // 验证保存
-            const saved = this.store.get(key);
+            const saved = this.store!.get(key);
             if (key === 'authorizedFolders') {
                 log.log(`[ConfigStore.set] Verification for authorizedFolders:`, {
                     savedCount: (saved as string[]).length,
@@ -160,8 +181,9 @@ class ConfigStore {
     }
 
     getAll(): AppConfig {
+        this.ensureInitialized();
         // electron-store v11: use .store to access all data
-        const data = this.store.store as AppConfig;
+        const data = this.store!.store as AppConfig;
         log.log('[ConfigStore.getAll] Returning config:', {
             apiKey: data.apiKey ? '***' + data.apiKey.slice(-4) : 'empty',
             apiUrl: data.apiUrl,
@@ -172,9 +194,17 @@ class ConfigStore {
         return data;
     }
 
+    /**
+     * 检查 ConfigStore 是否已初始化
+     */
+    isInitialized(): boolean {
+        return this.initialized;
+    }
+
     // 🔒 API Key（使用加密存储）
     async getApiKey(): Promise<string> {
-        const model = this.store.get('model');
+        this.ensureInitialized();
+        const model = this.store!.get('model');
         // If using Zhipu model, return Zhipu API key
         if (model && (model.includes('GLM') || model.includes('zhipu') || model.includes('ZHIPU'))) {
             return this.getZhipuApiKey();
@@ -192,12 +222,12 @@ class ConfigStore {
         }
 
         // Fallback: 从明文存储读取（迁移期兼容）
-        const plaintextKey = this.store.get('apiKey');
+        const plaintextKey = this.store!.get('apiKey');
         if (plaintextKey) {
             log.log('[ConfigStore.getApiKey] ⚠️ Using legacy plaintext storage, please migrate');
             // 自动迁移到加密存储
             await secureStorage.storeApiKey(plaintextKey);
-            this.store.set('apiKey', '');
+            this.store!.set('apiKey', '');
             log.log('[ConfigStore.getApiKey] ✅ Migrated to secure storage');
             return plaintextKey;
         }
@@ -207,6 +237,7 @@ class ConfigStore {
     }
 
     async setApiKey(key: string): Promise<void> {
+        this.ensureInitialized();
         log.log('[ConfigStore.setApiKey] 🔒 Saving apiKey to secure storage, length:', key.length);
 
         // 🔒 记录审计日志
@@ -216,7 +247,7 @@ class ConfigStore {
             {
                 hasKey: !!key,
                 keyLength: key.length,
-                provider: this.store.get('model')
+                provider: this.store!.get('model')
             },
             'info'
         );
@@ -225,18 +256,19 @@ class ConfigStore {
         await secureStorage.storeApiKey(key);
 
         // 🔒 清除明文存储
-        this.store.set('apiKey', '');
+        this.store!.set('apiKey', '');
 
         log.log('[ConfigStore.setApiKey] ✅ API key encrypted and stored');
     }
 
     // 🔒 Doubao API Key（使用加密存储）
     async getDoubaoApiKey(): Promise<string> {
+        this.ensureInitialized();
         // 🔒 优先从加密存储读取（暂时使用相同的存储机制）
         // TODO: 未来可扩展为支持多个密钥的独立加密
 
         // Fallback: 从明文存储读取
-        const plaintextKey = this.store.get('doubaoApiKey');
+        const plaintextKey = this.store!.get('doubaoApiKey');
         if (plaintextKey) {
             log.log('[ConfigStore.getDoubaoApiKey] Using plaintext storage');
             return plaintextKey;
@@ -247,99 +279,129 @@ class ConfigStore {
     }
 
     async setDoubaoApiKey(key: string): Promise<void> {
+        this.ensureInitialized();
         log.log('[ConfigStore.setDoubaoApiKey] 🔒 Saving doubaoApiKey');
 
         // 🔒 存储到加密存储（使用 storeApiKey 机制，带标识）
         // TODO: 未来可扩展为支持多个密钥的独立加密
-        this.store.set('doubaoApiKey', key);
+        this.store!.set('doubaoApiKey', key);
 
         log.log('[ConfigStore.setDoubaoApiKey] ✅ Doubao API key saved');
     }
 
     // 🔒 Zhipu API Key（使用加密存储）
     async getZhipuApiKey(): Promise<string> {
-        // 🔒 优先从加密存储读取（暂时使用相同的存储机制）
-        // TODO: 未来可扩展为支持多个密钥的独立加密
+        this.ensureInitialized();
 
-        // Fallback: 从明文存储读取
-        const plaintextKey = this.store.get('zhipuApiKey');
+        // ✅ 优先检查通用的 apiKey 字段（用户在设置面板填写的）
+        // 因为 UI 上只有一个 "API Key" 字段，用户会将智谱 Key 填在那里
+        try {
+            const secureKey = await secureStorage.getApiKey();
+            if (secureKey) {
+                log.log('[ConfigStore.getZhipuApiKey] ✅ Retrieved from secure storage (apiKey field)');
+                return secureKey;
+            }
+        } catch (error) {
+            log.warn('[ConfigStore.getZhipuApiKey] ⚠️ Failed to read from secure storage:', error);
+        }
+
+        // Fallback: 从明文 zhipuApiKey 字段读取
+        const plaintextKey = this.store!.get('zhipuApiKey');
         if (plaintextKey) {
-            log.log('[ConfigStore.getZhipuApiKey] Using plaintext storage');
+            log.log('[ConfigStore.getZhipuApiKey] Using plaintext zhipuApiKey field');
             return plaintextKey;
         }
 
         // Fallback: 环境变量
-        return process.env.ZHIPU_API_KEY || '';
+        const envKey = process.env.ZHIPU_API_KEY;
+        if (envKey) {
+            log.log('[ConfigStore.getZhipuApiKey] Using ZHIPU_API_KEY env var');
+            return envKey;
+        }
+
+        log.log('[ConfigStore.getZhipuApiKey] No Zhipu API key found');
+        return '';
     }
 
     async setZhipuApiKey(key: string): Promise<void> {
+        this.ensureInitialized();
         log.log('[ConfigStore.setZhipuApiKey] 🔒 Saving zhipuApiKey');
 
         // 🔒 存储到加密存储
         // TODO: 未来可扩展为支持多个密钥的独立加密
-        this.store.set('zhipuApiKey', key);
+        this.store!.set('zhipuApiKey', key);
 
         log.log('[ConfigStore.setZhipuApiKey] ✅ Zhipu API key saved');
     }
 
     // Model
     getModel(): string {
-        return this.store.get('model');
+        this.ensureInitialized();
+        return this.store!.get('model');
     }
 
     setModel(model: string): void {
-        this.store.set('model', model);
+        this.ensureInitialized();
+        this.store!.set('model', model);
     }
 
     // API URL
     getApiUrl(): string {
-        const model = this.store.get('model');
+        this.ensureInitialized();
+        const model = this.store!.get('model');
         // If using Zhipu model, use fixed Zhipu API URL
         if (model && (model.includes('GLM') || model.includes('zhipu') || model.includes('ZHIPU'))) {
             return 'https://open.bigmodel.cn/api/anthropic';
         }
         // Otherwise use configured API URL
-        return this.store.get('apiUrl');
+        return this.store!.get('apiUrl');
     }
 
     setApiUrl(url: string): void {
-        this.store.set('apiUrl', url);
+        this.ensureInitialized();
+        this.store!.set('apiUrl', url);
     }
 
     // Authorized Folders
     getAuthorizedFolders(): string[] {
-        return this.store.get('authorizedFolders') || [];
+        this.ensureInitialized();
+        return this.store!.get('authorizedFolders') || [];
     }
 
     addAuthorizedFolder(folder: string): void {
+        this.ensureInitialized();
         const folders = this.getAuthorizedFolders();
         if (!folders.includes(folder)) {
             folders.push(folder);
-            this.store.set('authorizedFolders', folders);
+            this.store!.set('authorizedFolders', folders);
         }
     }
 
     removeAuthorizedFolder(folder: string): void {
+        this.ensureInitialized();
         const folders = this.getAuthorizedFolders().filter(f => f !== folder);
-        this.store.set('authorizedFolders', folders);
+        this.store!.set('authorizedFolders', folders);
     }
 
     // Network Access
     getNetworkAccess(): boolean {
-        return this.store.get('networkAccess');
+        this.ensureInitialized();
+        return this.store!.get('networkAccess');
     }
 
     setNetworkAccess(enabled: boolean): void {
-        this.store.set('networkAccess', enabled);
+        this.ensureInitialized();
+        this.store!.set('networkAccess', enabled);
     }
 
     // First Launch Management
     getFirstLaunch(): boolean {
-        const value = this.store.get('firstLaunch');
+        this.ensureInitialized();
+        const value = this.store!.get('firstLaunch');
         // 如果 key 不存在，返回 true（首次启动）
         if (value === undefined) {
             // 显式设置默认值
-            this.store.set('firstLaunch', true);
+            this.store!.set('firstLaunch', true);
             log.log('[ConfigStore] getFirstLaunch: undefined, setting to true');
             return true;
         }
@@ -348,22 +410,25 @@ class ConfigStore {
     }
 
     setFirstLaunch(value: boolean): void {
-        this.store.set('firstLaunch', value);
+        this.ensureInitialized();
+        this.store!.set('firstLaunch', value);
     }
 
     // ========== 个人风格配置管理 ==========
 
     getUserStyleConfig(): UserStyleConfig | undefined {
-        return this.store.get('userStyleConfig');
+        this.ensureInitialized();
+        return this.store!.get('userStyleConfig');
     }
 
     setUserStyleConfig(config: UserStyleConfig): void {
+        this.ensureInitialized();
         log.log('[ConfigStore.setUserStyleConfig] Saving style config:', {
             articleCount: config.articles.length,
             learningCount: config.learningCount,
             lastUpdated: config.lastUpdated
         });
-        this.store.set('userStyleConfig', config);
+        this.store!.set('userStyleConfig', config);
     }
 
     addArticlePath(articlePath: string): void {
@@ -405,13 +470,14 @@ class ConfigStore {
     }
 
     incrementLearningCount(): void {
+        this.ensureInitialized();
         const config = this.getUserStyleConfig();
         if (!config) return;
 
         config.learningCount += 1;
         config.lastUpdated = new Date().toISOString();
 
-        this.store.set('userStyleConfig', config);
+        this.store!.set('userStyleConfig', config);
         log.log('[ConfigStore.incrementLearningCount] Learning count incremented:', config.learningCount);
     }
 
@@ -442,7 +508,8 @@ class ConfigStore {
      * 获取所有信任项目
      */
     getTrustedProjects(): TrustedProjectData[] {
-        const projects = this.store.get('trustedProjects') as TrustedProjectData[];
+        this.ensureInitialized();
+        const projects = this.store!.get('trustedProjects') as TrustedProjectData[];
         return projects || [];
     }
 
@@ -450,10 +517,11 @@ class ConfigStore {
      * 设置信任项目列表
      */
     setTrustedProjects(projects: TrustedProjectData[]): void {
+        this.ensureInitialized();
         log.log('[ConfigStore.setTrustedProjects] Saving trusted projects:', {
             count: projects.length
         });
-        this.store.set('trustedProjects', projects);
+        this.store!.set('trustedProjects', projects);
     }
 }
 

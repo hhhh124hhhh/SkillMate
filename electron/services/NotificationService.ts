@@ -17,7 +17,10 @@ export class NotificationService {
   private enabled: boolean;
 
   constructor() {
-    this.enabled = configStore.get('notifications') ?? true;
+    // 如果 ConfigStore 未初始化，使用默认值 true
+    this.enabled = configStore.isInitialized()
+      ? (configStore.get('notifications') ?? true)
+      : true;
   }
 
   /**
