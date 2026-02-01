@@ -591,6 +591,11 @@ Copyright © 2024 [SkillMate Team](https://github.com/hhhh124hhhh/SkillMate)
 - **Issues**: https://github.com/hhhh124hhhh/SkillMate/issues
 - **Discussions**: https://github.com/hhhh124hhhh/SkillMate/discussions
 
+<p align="center">
+  <img src="./public/wechat-qrcode.png" width="200" alt="微信二维码" /><br>
+  <i>扫描二维码，加入微信群</i>
+</p>
+
 ---
 
 ## ⭐ Star History
