@@ -42,6 +42,9 @@ python-runtime/
 .env.example
 .env.template
 
+# MCP 配置文件（本地配置，不跟踪）
+mcp.json
+
 # Temporary files
 tmpclaude-*/
 tmpclaude-*-cwd
