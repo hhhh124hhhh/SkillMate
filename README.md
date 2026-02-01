@@ -538,7 +538,7 @@ Copyright © 2024 [SkillMate Team](https://github.com/hhhh124hhhh/SkillMate)
 
 如果这个项目对你有帮助，请给它一个 Star ⭐
 
-[![Star History Chart](https://api.star-history.com/svg?repos=hhhh124hhhh/wechat-flowwork&type=Date)](https://star-history.com/#hhhh124hhhh/wechat-flowwork&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=hhhh124hhhh/SkillMate&type=Date)](https://star-history.com/#hhhh124hhhh/SkillMate&Date)
 
 ---
 
