@@ -320,6 +320,7 @@ MCP (Model Context Protocol) 允许集成外部工具和服务：
 - [MCP 集成](./docs/mcp-integration.md) - 配置 MCP 服务器
 - [开发指南](./docs/development.md) - 如何参与开发
 - [CLAUDE.md](./CLAUDE.md) - AI 辅助开发配置
+- [致谢与致敬](./CREDITS.md) - 开源项目致敬详情 ⭐
 
 ---
 
@@ -436,17 +437,85 @@ Copyright © 2024 [SkillMate Team](https://github.com/hhhh124hhhh/wechat-flowwor
 
 ---
 
-## 🙏 致谢
+## 🙏 致谢与致敬
 
-感谢以下开源项目：
+### 💖 项目灵感
 
-- [Anthropic](https://www.anthropic.com) - 提供 Claude AI 能力
-- [Model Context Protocol](https://modelcontextprotocol.io) - MCP 协议规范
-- [Electron](https://www.electronjs.org) - 桌面应用框架
+**SkillMate** 的诞生离不开开源社区的无私分享。
+
+本项目在学习、参考和借鉴了以下优秀开源项目的基础上进行开发：
+
+#### 📚 主要参考项目
+
+- **[Claude Code](https://claude.ai/code)** - Anthropic 官方的 AI 编程助手
+  - 启发了 AI Agent 与文件系统交互的设计思路
+  - 参考了权限管理和安全确认机制
+  - 借鉴了技能系统的设计理念
+
+- **[Continue](https://github.com/continuecoding/continue)** - AI 代码补全和助手
+  - 参考了多 AI 模型支持的架构
+  - 学习了上下文管理的实现方式
+
+- **[Cursor](https://cursor.sh/)** - AI 驱动的代码编辑器
+  - 启发了 AI 辅助开发的交互模式
+  - 参考了流式响应的展示方式
+
+#### 🏗️ 核心技术栈致谢
+
+本项目建立在以下优秀开源项目的肩膀上：
+
+**AI 和协议层**：
+- [Anthropic Claude API](https://www.anthropic.com) - 强大的大语言模型能力
+- [Model Context Protocol](https://modelcontextprotocol.io) - 标准化的工具集成协议
+- [@anthropic-ai/sdk](https://github.com/anthropics/anthropic-sdk-typescript) - TypeScript SDK
+
+**桌面应用框架**：
+- [Electron](https://www.electronjs.org) - 跨平台桌面应用框架
+- [Electron Forge](https://www.electronforge.io) - Electron 打包和构建工具
+- [electron-store](https://github.com/sindresorhus/electron-store) - 简单的配置存储
+- [electron-updater](https://github.com/electron-userland/electron-updater) - 自动更新机制
+
+**前端框架**：
+- [React](https://react.dev) - 用户界面库
+- [TypeScript](https://www.typescriptlang.org) - 类型安全的 JavaScript
 - [Vite](https://vitejs.dev) - 下一代前端构建工具
-- [React](https://react.dev) - UI 框架
-- [TypeScript](https://www.typescriptlang.org) - 类型安全
-- [Tailwind CSS](https://tailwindcss.com) - CSS 框架
+- [Tailwind CSS](https://tailwindcss.com) - 实用优先的 CSS 框架
+- [@tanstack/react-virtual](https://tanstack.com/virtual) - 虚拟滚动组件
+
+**开发工具**：
+- [ESLint](https://eslint.org) - 代码质量检查
+- [Prettier](https://prettier.io) - 代码格式化
+- [electron-log](https://github.com/megahertz/electron-log) - Electron 日志模块
+
+**社区资源**：
+- [everything-claude-code](https://github.com/affaan-m/everything-claude-code) - Anthropic 黑客松获胜配置
+  - 提供了完整的 Claude Code 最佳实践
+  - 参考了 agents、skills、hooks 等设计模式
+  - 借鉴了自动化工作流配置
+
+### 🌟 特别感谢
+
+- **Anthropic 团队** - 提供强大的 Claude AI 能力和完善的技术文档
+- **Model Context Protocol 社区** - 制定开放的工具集成标准
+- **Electron 社区** - 提供稳定的跨平台应用框架
+- **所有开源贡献者** - 用代码和知识构建更美好的世界
+
+### 📜 许可证感谢
+
+本项目遵循 **Apache License 2.0** 开源，感谢以下项目的启发：
+
+- 技术架构设计思路
+- 安全最佳实践
+- 用户体验优化
+- 开发者体验设计
+
+### 🤝 贡献致敬
+
+如果你是某个开源项目的作者，并且觉得本项目参考了您的设计但没有列出来，欢迎通过 [Issues](https://github.com/hhhh124hhhh/wechat-flowwork/issues) 告知我们，我们会立即添加致谢！
+
+---
+
+**开源的本质是分享和传承**。我们站在巨人的肩膀上，也希望我们的工作能够帮助到更多人。
 
 ---
 
