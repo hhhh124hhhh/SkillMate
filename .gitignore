@@ -34,10 +34,38 @@ python-runtime/
 
 # Environment files
 .env
+.env.example
+.env.template
 
 # Temporary files
 tmpclaude-*/
+tmpclaude-*-cwd
 nul
+
+# 临时测试和预览文件
+*-preview.html
+*-redesign.html
+*.pen
+mcp-*.pen
+mcp-*.html
+
+# 临时文档（保留程序文档）
+TEST-*.md
+TESTING-*.md
+PROJECT-*.md
+PENCIL-*.md
+OPEN_SOURCE_*.md
+
+# 签名和测试脚本
+admin-*.bat
+check-*.ps1
+cleanup-*.ps1
+dev-test.bat
+install-*.bat
+quick-test.bat
+re-sign.bat
+run-sign.bat
+switch-*.bat
 
 # Screenshots
 Quicker_*.png
