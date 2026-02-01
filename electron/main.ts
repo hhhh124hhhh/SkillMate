@@ -361,6 +361,38 @@ ipcMain.handle('session:current', () => {
   return id ? sessionStore.getSession(id) : null
 })
 
+// ========== 应用数据清除 IPC 处理器 ==========
+
+ipcMain.handle('app:clear-all-data', async () => {
+  try {
+    log.log('[app:clear-all-data] Starting data cleanup...')
+
+    // 1. 清除所有会话
+    const sessions = sessionStore.getSessions()
+    log.log(`[app:clear-all-data] Deleting ${sessions.length} sessions...`)
+    sessions.forEach(session => {
+      sessionStore.deleteSession(session.id)
+    })
+
+    // 2. 清除 Agent 历史
+    if (agent) {
+      agent.clearHistory()
+      log.log('[app:clear-all-data] ✓ Agent history cleared')
+    }
+
+    // 3. 重置配置（保留 API Key，清除其他）
+    log.log('[app:clear-all-data] Resetting configuration...')
+    configStore.set('authorizedFolders', [])
+    configStore.set('disabledSkills', [])
+
+    log.log('[app:clear-all-data] ✓ Data cleanup completed')
+    return { success: true }
+  } catch (error) {
+    log.error('[app:clear-all-data] ✗ Failed to clear data:', error)
+    return { success: false, error: (error as Error).message }
+  }
+})
+
 ipcMain.handle('agent:authorize-folder', (_, folderPath: string) => {
   const folders = configStore.getAll().authorizedFolders || []
   if (!folders.includes(folderPath)) {

@@ -210,6 +210,15 @@ export class AgentRuntime {
         this.notifyUpdate();
     }
 
+    // Clear all history and artifacts
+    public clearHistory() {
+        this.history = [];
+        this.artifacts = [];
+        this.modifiedInput = undefined;
+        log.log('[AgentRuntime] ✓ History cleared');
+        this.notifyUpdate();
+    }
+
     public async processUserMessage(input: string | { content: string, images: string[] }) {
         if (this.isProcessing) {
             throw new Error('Agent is already processing a message');

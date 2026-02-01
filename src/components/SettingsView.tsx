@@ -692,6 +692,36 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
                                         </div>
                                     </div>
 
+                                    {/* 数据管理 */}
+                                    <div className="bg-red-950/30 rounded-2xl p-6 border border-red-900/50">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="text-red-400 font-semibold">清除所有数据</p>
+                                                <p className="text-sm text-red-300/70 mt-1">删除所有对话历史和配置</p>
+                                            </div>
+                                            <button
+                                                onClick={async () => {
+                                                    if (confirm('确定要清除所有对话历史和配置吗？\n\n⚠️ 此操作不可恢复！\n\n• 所有对话历史将被删除\n• 授权文件夹将被清空\n• 技能设置将被重置\n• API Key 将被保留')) {
+                                                        const result = await window.ipcRenderer.invoke('app:clear-all-data') as { success: boolean; error?: string };
+                                                        if (result.success) {
+                                                            alert('✓ 所有数据已清除');
+                                                            // 刷新页面以应用更改
+                                                            window.location.reload();
+                                                        } else {
+                                                            alert('✗ 清除失败: ' + (result.error || '未知错误'));
+                                                        }
+                                                    }
+                                                }}
+                                                className="px-4 py-2 text-sm bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-medium"
+                                            >
+                                                清除数据
+                                            </button>
+                                        </div>
+                                        <p className="text-xs text-red-300/50 mt-3">
+                                            ⚠️ 注意：API Key 和其他关键配置将被保留
+                                        </p>
+                                    </div>
+
                                     <div className="pt-4 border-t border-slate-800">
                                         <button
                                             onClick={handleSave}

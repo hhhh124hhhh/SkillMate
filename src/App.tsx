@@ -28,6 +28,40 @@ function App() {
   // Check if this is the floating ball window
   const isFloatingBall = window.location.hash === '#/floating-ball' || window.location.hash === '#floating-ball';
 
+  // 🧹 清除浏览器缓存（确保干净启动）
+  useEffect(() => {
+    const clearBrowserStorages = async () => {
+      try {
+        // 清除 LocalStorage 和 SessionStorage
+        localStorage.clear();
+        sessionStorage.clear();
+
+        // 清除 IndexedDB
+        if (window.indexedDB) {
+          try {
+            const databases = await window.indexedDB.databases();
+            await Promise.all(
+              databases.map(db => {
+                if (db.name) {
+                  return window.indexedDB.deleteDatabase(db.name);
+                }
+              })
+            );
+          } catch (error) {
+            // 某些浏览器不支持 databases() 方法，静默失败
+            console.warn('[App] Could not list IndexedDB databases:', error);
+          }
+        }
+
+        console.log('[App] ✓ Cleared all browser storages');
+      } catch (error) {
+        console.error('[App] Failed to clear storages:', error);
+      }
+    };
+
+    clearBrowserStorages();
+  }, []);
+
   // 深色模式初始化 - 自动跟随系统主题
   useEffect(() => {
     // 检测系统主题偏好

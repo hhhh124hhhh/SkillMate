@@ -2,6 +2,9 @@
 
 欢迎来到 SkillMate！本指南将帮助你快速了解和使用这个 AI Agent 框架。
 
+**文档导航**：
+- [🏠 返回 README](../README.md) | [🚀 高级功能指南](./advanced-guide.md) | [📖 完整文档列表](../README.md#-文档)
+
 > **⚠️ 重要提示**: SkillMate 目前处于**开发阶段**，尚未提供预编译的安装包。本文档主要面向开发者，指导如何从源码运行项目。
 
 ---
@@ -277,3 +280,12 @@ SkillMate 是一个开源的 AI Agent 桌面应用框架，专为学习和研究
 <p align="center">
   <b>开始探索 AI Agent 的无限可能</b> 🚀
 </p>
+
+---
+
+**继续学习**：
+- [🏠 返回 README](../README.md) - 5分钟快速上手
+- [🚀 高级功能指南](./advanced-guide.md) - 技能开发、MCP配置等
+- [📖 完整文档列表](../README.md#-文档) - 所有文档
+
+---
