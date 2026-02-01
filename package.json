@@ -22,10 +22,12 @@
   "scripts": {
     "setup": "node install-dependencies.js",
     "start": "chcp 65001 && npx electron-forge start",
+    "fix-dev-icon": "scripts\\fix-dev-icon.bat",
     "package": "npx electron-forge package",
     "make": "npx electron-forge make",
     "setup-python": "node scripts/setup-python.js",
     "generate-icons": "node scripts/generate-icons.js",
+    "clear-icon-cache": "scripts\\clear-icon-cache.bat",
     "encrypt-skills": "cross-env NODE_ENV=production node scripts/encrypt-skills.js",
     "decrypt-skills": "cross-env NODE_ENV=development node scripts/encrypt-skills.js",
     "migrate-skills": "node scripts/migrate-skills.js migrate",

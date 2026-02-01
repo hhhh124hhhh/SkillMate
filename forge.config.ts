@@ -24,15 +24,15 @@ const config = {
       //   console.warn('  ⚠️  Python runtime setup failed, continuing...')
       // }
 
-      // 生成应用图标
-      // const { execSync } = await import('node:child_process')
-      // try {
-      //   console.log('  → Generating application icons...')
-      //   execSync('npm run generate-icons', { stdio: 'inherit' })
-      // } catch (error) {
-      //   console.warn('  ⚠️  Icon generation failed, continuing...')
-      // }
-      console.log('  → Skipped Python setup and icon generation (dev mode)')
+      // 生成应用图标（启用以确保图标一致性）
+      const { execSync } = await import('node:child_process')
+      try {
+        console.log('  → Generating application icons...')
+        execSync('npm run generate-icons', { stdio: 'inherit' })
+        console.log('  ✅ Icons generated successfully')
+      } catch (error) {
+        console.warn('  ⚠️  Icon generation failed, continuing...')
+      }
     },
 
     postPackage: async (forgeConfig: any) => {
@@ -95,6 +95,7 @@ const config = {
     asar: true,
     asarUnpack: [
       'resources/skills/**/*',
+      'build/**/*',  // ✅ 添加：确保图标文件被解包到 app.asar.unpacked
       // 'python-runtime/**/*',  // ⚠️ 暂时禁用：文件结构损坏，缺少 INSTALLER 文件
       'node_modules/sharp/**/*',
       'node_modules/@modelcontextprotocol/sdk/**/*'
