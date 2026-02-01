@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://github.com/hhhh124hhhh/SkillMate"><img src="https://img.shields.io/github/v/release/hhhh124hhhh/SkillMate?style=flat-square&color=orange" alt="Release"></a>
   <a href="https://github.com/hhhh124hhhh/SkillMate/actions"><img src="https://img.shields.io/github/actions/workflow/status/hhhh124hhhh/SkillMate/release.yml?style=flat-square" alt="Build"></a>
-  <a href="./LICENSE"><img src="https://img.shields.io/github/license/hhhh124hhhh/SkillMate?style=flat-square" alt="License"></a>
+  <a href="https://github.com/hhhh124hhhh/SkillMate/blob/main/LICENSE"><img src="https://img.shields.io/github/license/hhhh124hhhh/SkillMate?style=flat-square" alt="License"></a>
 </p>
 
 ---
