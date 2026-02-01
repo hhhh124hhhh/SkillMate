@@ -57,16 +57,31 @@ const config = {
         }
 
         // 🔧 手动复制 preload.cjs 到 app.asar.unpacked
-        const viteBuildDir = path.resolve(process.cwd(), '.vite', 'build')
-        const preloadSource = path.join(viteBuildDir, 'preload.cjs')
+        // 查找可能的 preload.cjs 位置
+        const possiblePaths = [
+          path.resolve(process.cwd(), '.vite', 'build', 'preload.cjs'),
+          path.resolve(process.cwd(), 'dist-electron', 'preload.cjs'),
+          path.resolve(process.cwd(), 'out', `${appName}-${platform}-${arch}`, 'resources', '.vite', 'build', 'preload.cjs')
+        ]
 
-        if (fs.existsSync(preloadSource)) {
-          const preloadDest = path.join(packagePath, 'app.asar.unpacked', 'preload.cjs')
-          fs.mkdirSync(path.dirname(preloadDest), { recursive: true })
+        let preloadSource: string | null = null
+        for (const testPath of possiblePaths) {
+          if (fs.existsSync(testPath)) {
+            preloadSource = testPath
+            console.log(`  🔍 Found preload.cjs at: ${testPath}`)
+            break
+          }
+        }
+
+        if (preloadSource) {
+          const unpackedDir = path.join(packagePath, 'app.asar.unpacked')
+          fs.mkdirSync(unpackedDir, { recursive: true })
+          const preloadDest = path.join(unpackedDir, 'preload.cjs')
           fs.copyFileSync(preloadSource, preloadDest)
           console.log('  ✅ Copied preload.cjs to app.asar.unpacked')
         } else {
-          console.warn('  ⚠️  preload.cjs not found in .vite/build')
+          console.warn('  ⚠️  preload.cjs not found in any expected location')
+          console.warn('     Searched:', possiblePaths.join(', '))
         }
       } catch (error) {
         console.warn('  ⚠️  Post-package tasks failed:', error)
