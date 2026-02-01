@@ -53,6 +53,8 @@ npm install --registry=https://registry.npmmirror.com
 
 ### 3. 启动开发服务器
 
+> ⚠️ **重要提示**: 在启动之前，请确保已经完成步骤 2（安装依赖）！
+
 ```bash
 npm start
 ```

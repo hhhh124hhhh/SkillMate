@@ -239,7 +239,11 @@ cd SkillMate
 
 # 2. 安装依赖
 npm install
+```
 
+> ⚠️ **重要**: 首次运行前必须先安装依赖！如果看到 `electron-forge` 命令未找到的错误，请运行 `npm install`。
+
+```bash
 # 3. 启动开发服务器
 npm start
 ```
