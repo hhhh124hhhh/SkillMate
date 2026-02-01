@@ -54,7 +54,7 @@ npm install --registry=https://registry.npmmirror.com
 ### 3. 启动开发服务器
 
 ```bash
-npm run dev
+npm start
 ```
 
 首次运行会自动：
@@ -182,7 +182,7 @@ npm run dev
 **A**: 检查 Vite 开发服务器是否正常运行：
 - 查看终端输出是否有错误
 - 尝试按 `Ctrl+R` 刷新窗口
-- 确保在项目根目录运行 `npm run dev` 且没有报错
+- 确保在项目根目录运行 `npm start` 且没有报错
 
 ### Q: API 请求失败？
 

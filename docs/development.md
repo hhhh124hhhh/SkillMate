@@ -34,14 +34,14 @@ npm install
 运行以下命令启动本地开发服务器：
 
 ```bash
-npm run dev
+npm start
 ```
 
 启动后，Electron 应用窗口会自动打开，你将在终端看到前端服务日志。
 
 ### 4. 开发工具
 
-- **主进程调试**: 终端输出（运行 `npm run dev` 的终端）
+- **主进程调试**: 终端输出（运行 `npm start` 的终端）
 - **渲染进程调试**: DevTools（按 `Ctrl+Shift+I` 或 `Cmd+Option+I`）
 - **React DevTools**: 在 Chrome/Edge 中安装扩展
 
@@ -66,7 +66,7 @@ SkillMate/
 
 ```bash
 # 开发
-npm run dev              # 启动开发服务器
+npm start                # 启动开发服务器
 
 # 构建和打包
 npm run build            # 完整构建（包含打包）
@@ -156,7 +156,7 @@ npm run build
 
 ### Q: 如何调试主进程？
 
-A: 主进程日志会输出到运行 `npm run dev` 的终端。你也可以使用 VS Code 的调试功能。
+A: 主进程日志会输出到运行 `npm start` 的终端。你也可以使用 VS Code 的调试功能。
 
 ### Q: 如何调试渲染进程？
 
@@ -164,7 +164,7 @@ A: 在应用窗口中按 `Ctrl+Shift+I` (Windows/Linux) 或 `Cmd+Option+I` (macO
 
 ### Q: 修改代码后不生效？
 
-A: 主进程（electron/）代码修改需要重启 `npm run dev`。渲染进程（src/）代码修改会自动热重载。
+A: 主进程（electron/）代码修改需要重启 `npm start`。渲染进程（src/）代码修改会自动热重载。
 
 ### Q: 构建失败怎么办？
 

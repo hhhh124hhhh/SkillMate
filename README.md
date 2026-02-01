@@ -241,7 +241,7 @@ cd SkillMate
 npm install
 
 # 3. 启动开发服务器
-npm run dev
+npm start
 ```
 
 应用会自动启动并打开窗口。
@@ -383,7 +383,7 @@ MCP (Model Context Protocol) 允许集成外部工具和服务：
 ### 常用命令
 
 ```bash
-npm run dev      # 启动开发服务器
+npm start         # 启动开发服务器
 npm run build    # 完整构建（Electron + Vite）
 npm run lint     # 代码检查
 ```
