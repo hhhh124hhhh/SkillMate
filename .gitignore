@@ -16,6 +16,9 @@ dist-ssr
 .vscode/*
 !.vscode/extensions.json
 .idea
+
+# 技能库目录（kills 为技能库，不跟踪）
+resources/kills/
 .DS_Store
 *.suo
 *.ntvs*
