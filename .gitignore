@@ -17,6 +17,9 @@ dist-ssr
 !.vscode/extensions.json
 .idea
 
+# 开发模式用户数据目录（包含对话历史、配置等，不跟踪）
+.vscode/electron-userdata/
+
 # 技能库目录（kills 为技能库，不跟踪）
 resources/kills/
 
