@@ -452,7 +452,7 @@ Copyright © 2024 [SkillMate Team](https://github.com/hhhh124hhhh/wechat-flowwor
   - 提供了 Electron + React + TypeScript 架构基础
   - 提供了 AI Agent 运行时系统设计
   - 提供了 MCP 协议集成框架和技能系统核心实现
-  - 改造方向：从通用 AI 辅助工具 → 公众号创作垂直应用
+  - 改造方向：保留通用架构，优化为学习和研究 AI Agent 的开源框架
 
 - **[Claude Code](https://claude.ai/code)** - Anthropic 官方的 AI 编程助手
   - 启发了 AI Agent 与文件系统交互的设计思路
