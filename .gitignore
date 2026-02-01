@@ -27,8 +27,18 @@ resources/kills/
 resources/skills/*/output/
 resources/skills/*/temp/
 
-# 开发辅助脚本目录（不跟踪）
-scripts/
+# 开发辅助脚本（选择性忽略）
+scripts/clear-icon-cache.bat
+scripts/fix-dev-icon.bat
+scripts/clean-cache.*
+scripts/diagnose.bat
+scripts/test-*.ts
+scripts/crypt-*.js
+scripts/migrate-*.js
+scripts/fix-icon.*
+scripts/regenerate-icons.*
+scripts/restart-app.*
+# 但保留关键构建脚本（如 generate-icons.js）
 *.suo
 *.ntvs*
 *.njsproj
