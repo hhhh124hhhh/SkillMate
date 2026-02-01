@@ -1,0 +1,16 @@
+# Git Attributes - Ensure sensitive files are never tracked
+# 即使文件被意外添加，也会被 Git 自动忽略
+
+# 强制忽略用户数据目录
+.vscode/electron-userdata/ export-ignore
+
+# 强制忽略配置文件
+.claude/settings.local.json export-ignore
+.claude-permissions.json export-ignore
+
+# 强制忽略 Python 缓存
+__pycache__/ export-ignore
+*.pyc export-ignore
+
+# 强制忽略 Node.js 锁文件（可选，根据需要）
+# package-lock.json export-ignore
