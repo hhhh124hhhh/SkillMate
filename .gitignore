@@ -59,16 +59,14 @@ image.png
 .trae/documents/plan_20260118_122104.md
 electron/preload.cjs
 
-# 开源准备 - Claude Code 配置
+# 开源准备 - Claude Code 配置（整个目录不跟踪）
+.claude/
 .claude-permissions.json
-.claude/settings.local.json
 
-# 开源准备 - 临时开发文档
-.trae/documents/plan_*.md
+# 开源准备 - GitHub 工作流（本地配置，不跟踪）
+.github/
 
 # 开源准备 - 临时文件和日志
-.claude/errors.log
-.claude/settings.local.json
 *.log
 
 # 临时测试文件（保留测试脚本）

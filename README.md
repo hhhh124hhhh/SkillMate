@@ -9,9 +9,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/hhhh124hhhh/wechat-flowwork"><img src="https://img.shields.io/github/v/release/hhhh124hhhh/wechat-flowwork?style=flat-square&color=orange" alt="Release"></a>
-  <a href="https://github.com/hhhh124hhhh/wechat-flowwork/actions"><img src="https://img.shields.io/github/actions/workflow/status/hhhh124hhhh/wechat-flowwork/release.yml?style=flat-square" alt="Build"></a>
-  <a href="./LICENSE"><img src="https://img.shields.io/github/license/hhhh124hhhh/wechat-flowwork?style=flat-square" alt="License"></a>
+  <a href="https://github.com/hhhh124hhhh/SkillMate"><img src="https://img.shields.io/github/v/release/hhhh124hhhh/SkillMate?style=flat-square&color=orange" alt="Release"></a>
+  <a href="https://github.com/hhhh124hhhh/SkillMate/actions"><img src="https://img.shields.io/github/actions/workflow/status/hhhh124hhhh/SkillMate/release.yml?style=flat-square" alt="Build"></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/github/license/hhhh124hhhh/SkillMate?style=flat-square" alt="License"></a>
 </p>
 
 ---
@@ -145,7 +145,7 @@ SkillMate 允许 AI 操作本地文件系统和终端。请注意：
 ### 目录结构
 
 ```
-wechat-flowwork/
+SkillMate/
 ├── electron/                    # Electron 主进程代码
 │   ├── main.ts                 # 主进程入口（窗口管理、IPC 注册）
 │   ├── agent/                  # AI Agent 系统
@@ -208,8 +208,8 @@ wechat-flowwork/
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/hhhh124hhhh/wechat-flowwork.git
-cd wechat-flowwork
+git clone https://github.com/hhhh124hhhh/SkillMate.git
+cd SkillMate
 
 # 2. 安装依赖
 npm install
@@ -433,7 +433,7 @@ npm run lint -- --fix
 
 Apache License 2.0 - 详见 [LICENSE](./LICENSE)
 
-Copyright © 2024 [SkillMate Team](https://github.com/hhhh124hhhh/wechat-flowwork)
+Copyright © 2024 [SkillMate Team](https://github.com/hhhh124hhhh/SkillMate)
 
 ---
 
@@ -518,7 +518,7 @@ Copyright © 2024 [SkillMate Team](https://github.com/hhhh124hhhh/wechat-flowwor
 
 ### 🤝 贡献致敬
 
-如果你是某个开源项目的作者，并且觉得本项目参考了您的设计但没有列出来，欢迎通过 [Issues](https://github.com/hhhh124hhhh/wechat-flowwork/issues) 告知我们，我们会立即添加致谢！
+如果你是某个开源项目的作者，并且觉得本项目参考了您的设计但没有列出来，欢迎通过 [Issues](https://github.com/hhhh124hhhh/SkillMate/issues) 告知我们，我们会立即添加致谢！
 
 ---
 
@@ -528,9 +528,9 @@ Copyright © 2024 [SkillMate Team](https://github.com/hhhh124hhhh/wechat-flowwor
 
 ## 📮 联系方式
 
-- **GitHub**: https://github.com/hhhh124hhhh/wechat-flowwork
-- **Issues**: https://github.com/hhhh124hhhh/wechat-flowwork/issues
-- **Discussions**: https://github.com/hhhh124hhhh/wechat-flowwork/discussions
+- **GitHub**: https://github.com/hhhh124hhhh/SkillMate
+- **Issues**: https://github.com/hhhh124hhhh/SkillMate/issues
+- **Discussions**: https://github.com/hhhh124hhhh/SkillMate/discussions
 
 ---
 
