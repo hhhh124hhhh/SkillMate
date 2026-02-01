@@ -602,6 +602,7 @@ Copyright © 2024 [SkillMate Team](https://github.com/hhhh124hhhh/SkillMate)
 
 如果这个项目对你有帮助，请给它一个 Star ⭐
 
+<!-- 项目刚发布，Star 数据将在首次获得 Star 后自动显示 -->
 [![Star History Chart](https://api.star-history.com/svg?repos=hhhh124hhhh/SkillMate&type=Date)](https://star-history.com/#hhhh124hhhh/SkillMate&Date)
 
 ---
