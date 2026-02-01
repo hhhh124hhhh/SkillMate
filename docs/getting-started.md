@@ -1,6 +1,8 @@
 # 快速开始指南
 
-欢迎来到 SkillMate！本指南将帮助你在 5 分钟内运行起这个 AI Agent 框架。
+欢迎来到 SkillMate！本指南将帮助你快速了解和使用这个 AI Agent 框架。
+
+> **⚠️ 重要提示**: SkillMate 目前处于**开发阶段**，尚未提供预编译的安装包。本文档主要面向开发者，指导如何从源码运行项目。
 
 ---
 
@@ -29,18 +31,16 @@ npm --version   # 应该 >= 9.0.0
 
 ---
 
-## 安装步骤
+## 从源码运行（开发者）
 
-### 方式一：从源码运行（开发者）
-
-#### 1. 克隆仓库
+### 1. 克隆仓库
 
 ```bash
-git clone https://github.com/yourname/aiagent-desktop.git
-cd aiagent-desktop
+git clone https://github.com/hhhh124hhhh/SkillMate.git
+cd SkillMate
 ```
 
-#### 2. 安装依赖
+### 2. 安装依赖
 
 ```bash
 npm install
@@ -51,7 +51,7 @@ npm install
 npm install --registry=https://registry.npmmirror.com
 ```
 
-#### 3. 启动开发服务器
+### 3. 启动开发服务器
 
 ```bash
 npm run dev
@@ -66,38 +66,6 @@ npm run dev
 
 ---
 
-### 方式二：下载安装包（普通用户）
-
-#### 1. 下载安装包
-
-访问 [Releases 页面](https://github.com/yourname/aiagent-desktop/releases)，下载对应平台的安装包：
-
-| 平台 | 文件名 |
-|------|--------|
-| Windows | `AI-Agent-Desktop-Windows-{version}-Setup.exe` |
-| macOS | `AI-Agent-Desktop-Mac-{version}-Installer.dmg` |
-| Linux | `AI-Agent-Desktop-Linux-{version}.AppImage` |
-
-#### 2. 安装应用
-
-**Windows**:
-1. 双击 `.exe` 文件
-2. 按照安装向导完成安装
-3. 启动应用（从桌面快捷方式或开始菜单）
-
-**macOS**:
-1. 双击 `.dmg` 文件
-2. 将 `SkillMate` 拖拽到 `Applications` 文件夹
-3. 从 Launchpad 启动应用
-
-**Linux** (AppImage):
-```bash
-chmod +x AI-Agent-Desktop-Linux-*.AppImage
-./AI-Agent-Desktop-Linux-*.AppImage
-```
-
----
-
 ## 首次配置
 
 ### 1. 打开应用设置
@@ -108,16 +76,16 @@ chmod +x AI-Agent-Desktop-Linux-*.AppImage
 
 在 **API 配置** 标签页中：
 
-1. **获取 Anthropic API Key**:
-   - 访问 [Anthropic Console](https://console.anthropic.com/)
+1. **获取智谱 AI API Key**:
+   - 访问 [智谱 AI 开放平台](https://open.bigmodel.cn/)
    - 注册或登录账号
    - 进入 API Keys 页面
-   - 点击 "Create Key" 创建新密钥
+   - 创建新的 API Key
 
 2. **输入 API Key**:
    - 将密钥粘贴到 "API Key" 输入框
-   - （可选）修改 API URL（如果你使用代理）
-   - （可选）选择模型（默认 `claude-sonnet-4-5-20250929`）
+   - （可选）修改 API URL（默认使用智谱 AI 端点）
+   - （可选）选择模型（默认使用 `glm-4-flash` 或 `glm-4.7`）
 
 3. **保存配置**:
    - 点击 "保存配置" 按钮
@@ -184,6 +152,8 @@ chmod +x AI-Agent-Desktop-Linux-*.AppImage
 
 ### 配置 MCP 服务器
 
+项目内置了 MCP 服务配置，开箱即用。如需添加自定义 MCP 服务器：
+
 1. 点击设置 → **MCP 配置**
 2. 点击 **"添加服务器"**
 3. 选择服务器类型（stdio 或 streamableHttp）
@@ -212,12 +182,12 @@ chmod +x AI-Agent-Desktop-Linux-*.AppImage
 **A**: 检查 Vite 开发服务器是否正常运行：
 - 查看终端输出是否有错误
 - 尝试按 `Ctrl+R` 刷新窗口
-- 如果使用源码运行，确保 `npm run dev` 没有报错
+- 确保在项目根目录运行 `npm run dev` 且没有报错
 
 ### Q: API 请求失败？
 
 **A**: 检查以下几点：
-1. API Key 是否正确配置
+1. 智谱 AI API Key 是否正确配置
 2. 网络是否正常（是否需要代理）
 3. 在设置中测试 API 连接
 4. 检查 API 余额是否充足
@@ -262,9 +232,27 @@ chmod +x AI-Agent-Desktop-Linux-*.AppImage
 
 遇到问题？这里有一些资源：
 
-- **GitHub Issues**: [提交问题](https://github.com/yourname/aiagent-desktop/issues)
+- **GitHub Issues**: [提交问题](https://github.com/hhhh124hhhh/SkillMate/issues)
 - **文档中心**: [完整文档列表](../README.md#-文档)
-- **社区讨论**: [Discord/微信群](https://github.com/yourname/aiagent-desktop#community)
+- **项目讨论**: [GitHub Discussions](https://github.com/hhhh124hhhh/SkillMate/discussions)
+
+---
+
+## 关于项目
+
+SkillMate 是一个开源的 AI Agent 桌面应用框架，专为学习和研究如何构建现代化的 AI Skill 助手而设计。
+
+**项目定位**:
+- 🎓 **学习和研究**: 通过实际代码学习 AI Agent 开发
+- 🔧 **可扩展**: 基于技能系统轻松扩展功能
+- 📚 **开源**: 基于 Apache License 2.0 开源
+
+**技术栈**:
+- Electron 30.0.1 - 桌面应用框架
+- React 18.2.0 - UI 框架
+- TypeScript 5.2.2 - 类型安全
+- 智谱 AI (GLM-4.7) - 大语言模型
+- Model Context Protocol - 工具集成协议
 
 ---
 

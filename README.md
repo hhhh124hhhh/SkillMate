@@ -131,7 +131,13 @@ SkillMate 允许 AI 操作本地文件系统和终端。请注意：
 - **桌面框架**: Electron 30.0.1
 - **前端**: React 18.2.0 + TypeScript 5.2.2 + Tailwind CSS
 - **构建工具**: Vite 5.1.6 + vite-plugin-electron
-- **AI SDK**: Anthropic AI SDK + Model Context Protocol SDK
+- **AI SDK**: 支持多种大模型（默认使用**智谱 AI GLM-4.7**）+ Model Context Protocol SDK
+
+**智谱 AI 优势**：
+- 💰 **性价比高**：GLM-4-Flash 完全免费，编程套餐 20元/月（Claude 的 1/7 价格）
+- ⚡ **速度快**：55+ Tokens/秒生成速度
+- 🎯 **代码能力强**：SWE-bench 得分 59.2%，专为编程优化
+- 🇨🇳 **中文友好**：国产大模型，对中文理解更深入
 
 ### 架构亮点
 
@@ -224,18 +230,46 @@ npm run dev
 
 1. **首次运行配置**
    - 打开应用后，点击右上角设置按钮
-   - 配置你的 Anthropic API Key
+   - 配置你的 API Key（推荐使用智谱 AI）
    - （推荐）配置授权文件夹（限制 AI 访问范围）
 
-2. **可选配置**
-   - 添加自定义技能
-   - 配置 MCP 服务器
-   - 调整快捷键设置
+2. **获取智谱 AI API Key**
 
-3. **获取 API Key**
-   - 访问 [Anthropic Console](https://console.anthropic.com/)
-   - 创建账户并获取 API Key
-   - 新用户有免费额度
+   SkillMate 推荐使用**智谱 AI GLM 编程套餐**，性价比极高：
+
+   - **💰 超值定价**：
+     - GLM-4-Flash：**完全免费**，永久调用
+     - GLM Coding Plan：月付 **20元起**（首月仅 **8.9元**），年付 **192元**
+     - API 按量付费：**5元/百万tokens**（约 Claude 的 1/4 价格）
+
+   - **🚀 性能优势**：
+     - 生成速度：**55+ Tokens/秒**
+     - SWE-bench Verified 得分：**59.2%**
+     - 价格仅为 Claude 的 1/7，用量提升 3 倍
+
+   - **🎯 支持的模型**：
+     - `glm-4-flash` - 免费模型（推荐入门使用）
+     - `glm-4.7` - 最新旗舰模型
+     - `deepseek-v3.2` - 高性能编程模型
+     - `kimi-k2-thinking` - 思维链模型
+
+   - **📱 获取方式**：
+     1. 访问 [智谱 AI 开放平台](https://open.bigmodel.cn/)
+     2. 注册/登录账号
+     3. 进入 [GLM Coding Plan](https://www.bigmodel.cn/glm-coding) 查看编程套餐
+     4. 创建 API Key
+
+3. **其他模型支持**
+
+   也可以使用其他兼容的模型，在设置面板中配置：
+   - **Claude API**：`https://api.anthropic.com`
+   - **OpenAI GPT**：`https://api.openai.com`
+   - **Gemini**：`https://generativelanguage.googleapis.com`
+
+4. **可选配置**
+   - 添加自定义技能
+   - 配置 MCP 服务器（项目已内置，开箱即用）
+   - 调整快捷键设置
 
 ### 开发构建
 
@@ -472,6 +506,10 @@ Copyright © 2024 [SkillMate Team](https://github.com/hhhh124hhhh/SkillMate)
 本项目建立在以下优秀开源项目的肩膀上：
 
 **AI 和协议层**：
+- [智谱 AI GLM](https://open.bigmodel.cn/) - **主要推荐的高性价比大语言模型**
+  - GLM-4-Flash 完全免费，编程套餐仅 20元/月
+  - 55+ Tokens/秒 生成速度，代码能力强
+  - SWE-bench 得分 59.2%，专为编程优化
 - [Anthropic Claude API](https://www.anthropic.com) - 强大的大语言模型能力
 - [Model Context Protocol](https://modelcontextprotocol.io) - 标准化的工具集成协议
 - [@anthropic-ai/sdk](https://github.com/anthropics/anthropic-sdk-typescript) - TypeScript SDK
@@ -502,6 +540,7 @@ Copyright © 2024 [SkillMate Team](https://github.com/hhhh124hhhh/SkillMate)
 
 ### 🌟 特别感谢
 
+- **智谱 AI 团队** - 提供高性价比的 GLM 大模型和完善的开发者支持
 - **Anthropic 团队** - 提供强大的 Claude AI 能力和完善的技术文档
 - **Model Context Protocol 社区** - 制定开放的工具集成标准
 - **Electron 社区** - 提供稳定的跨平台应用框架
