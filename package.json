@@ -21,7 +21,6 @@
   },
   "scripts": {
     "setup": "node install-dependencies.js",
-    "postinstall": "node install-dependencies.js",
     "start": "chcp 65001 && npx electron-forge start",
     "package": "npx electron-forge package",
     "make": "npx electron-forge make",
