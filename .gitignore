@@ -99,6 +99,12 @@ electron/preload.cjs
 # 开源准备 - GitHub 工作流（本地配置，不跟踪）
 .github/
 
+# 测试目录（不跟踪）
+tests/
+
+# Claude Code 配置文件（不跟踪）
+CLAUDE.md
+
 # 开源准备 - 临时文件和日志
 *.log
 
