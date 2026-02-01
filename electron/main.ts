@@ -2372,10 +2372,11 @@ function createMainWindow() {
       })
   })
 
-  // 🐛 开发模式下自动打开 DevTools
-  if (VITE_DEV_SERVER_URL) {
-    mainWin.webContents.openDevTools()
-  }
+  // 🐛 开发模式下自动打开 DevTools（已禁用，面向开发者发包）
+  // 如需调试，请使用快捷键 Ctrl+Shift+I (Windows/Linux) 或 Cmd+Option+I (Mac)
+  // if (VITE_DEV_SERVER_URL) {
+  //     mainWin.webContents.openDevTools()
+  // }
 
   if (VITE_DEV_SERVER_URL) {
     mainWin.loadURL(VITE_DEV_SERVER_URL)
