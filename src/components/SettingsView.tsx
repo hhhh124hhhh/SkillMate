@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Settings, FolderOpen, Server, Check, Plus, Code, Palette, Search, ChevronRight, House, Sliders, AlertTriangle } from 'lucide-react';
+import { X, Settings, FolderOpen, Server, Check, Plus, Code, Palette, Search, ChevronRight, House, Sliders } from 'lucide-react';
 import { SkillsEditor } from './SkillsEditor.js';
 import { MCPConfigEditor } from './MCPConfigEditor.js';
 import { QuickActionsEditor } from './QuickActionsEditor.js';
@@ -249,19 +249,21 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
         try {
             const result = await window.ipcRenderer.invoke('app:clear-all-data') as { success: boolean; error?: string };
             if (result.success) {
-                toast.success('✓ 所有数据已清除');
-                // 刷新页面以应用更改
+                toast.success('✓ 所有数据已清除，请重启应用');
+                setShowClearDataDialog(false);
+                // 关闭设置对话框
                 setTimeout(() => {
-                    window.location.reload();
-                }, 1000);
+                    onClose();
+                }, 1500);
             } else {
                 toast.error('✗ 清除失败: ' + (result.error || '未知错误'));
+                setShowClearDataDialog(false);
             }
         } catch (error) {
             console.error('清除数据失败:', error);
             toast.error('清除数据时出错: ' + (error as Error).message);
+            setShowClearDataDialog(false);
         }
-        setShowClearDataDialog(false);
     };
 
     // 过滤导航项
@@ -845,23 +847,7 @@ export function SettingsView({ onClose, initialTab = 'api' }: SettingsViewProps)
             <ConfirmDialog
                 isOpen={showClearDataDialog}
                 title="清除所有数据"
-                message={
-                    <div className="space-y-3">
-                        <p className="text-red-400 font-semibold">⚠️ 此操作不可恢复！</p>
-                        <div className="text-sm text-slate-300 space-y-1.5">
-                            <p>清除以下所有数据：</p>
-                            <ul className="ml-4 list-disc space-y-1 text-slate-400">
-                                <li>所有对话历史</li>
-                                <li>授权文件夹列表</li>
-                                <li>技能设置</li>
-                                <li>用户偏好设置</li>
-                            </ul>
-                            <p className="pt-2 text-green-400 font-medium">✓ API Key 和关键配置将被保留</p>
-                        </div>
-                    </div>
-                }
-                type="delete"
-                icon={<AlertTriangle className="w-6 h-6 text-red-500" />}
+                message="⚠️ 此操作不可恢复！\n\n将删除：\n• 所有对话历史\n• 授权文件夹列表\n• 技能设置\n• 用户偏好设置\n\n✓ API Key 和关键配置将被保留"
                 confirmText="确认清除"
                 cancelText="取消"
                 onConfirm={handleClearAllData}

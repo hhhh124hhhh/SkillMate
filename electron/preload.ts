@@ -85,6 +85,7 @@ const ALLOWED_CHANNELS = [
 
   // 应用事件
   'app:crash',                // 应用崩溃事件
+  'app:clear-all-data',       // 清除所有数据
 
   // 更新管理
   'update:check',
