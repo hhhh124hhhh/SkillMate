@@ -235,7 +235,7 @@ function App() {
         style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
       >
         <div className="flex items-center gap-2" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-          <img src="/logo_new.svg" alt="Logo" className="w-6 h-6 object-contain" />
+          <img src="/icon.png" alt="Logo" className="w-6 h-6 object-contain" />
           <span className="font-semibold text-slate-700 text-sm tracking-tight">SkillMate</span>
         </div>
 

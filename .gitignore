@@ -23,6 +23,10 @@ dist-ssr
 # 技能库目录（kills 为技能库，不跟踪）
 resources/kills/
 
+# 技能输出目录（运行时生成的输出文件，不跟踪）
+resources/skills/*/output/
+resources/skills/*/temp/
+
 # 开发辅助脚本目录（不跟踪）
 scripts/
 *.suo
