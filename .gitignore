@@ -57,6 +57,9 @@ nul
 mcp-*.pen
 mcp-*.html
 
+# 错误路径的文件（不跟踪
+srccomponents*
+
 # 临时文档（保留程序文档）
 TEST-*.md
 TESTING-*.md
