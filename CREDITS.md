@@ -6,6 +6,32 @@
 
 ## 📚 项目灵感来源
 
+### 🎯 原始项目来源
+
+#### [OpenCowork](https://github.com/opencowork/opencowork)
+**作者**: OpenCowork Team
+**许可证**: Apache License 2.0
+**重要声明**: **SkillMate 项目基于 OpenCowork 进行二次开发和改造**
+
+**核心贡献**:
+- ✅ Electron + React + TypeScript 架构基础
+- ✅ AI Agent 运行时系统设计
+- ✅ MCP (Model Context Protocol) 集成框架
+- ✅ 技能系统的核心实现
+- ✅ IPC 通信和权限管理机制
+- ✅ 会话管理和配置存储系统
+
+**改造重点**:
+- 🔄 从通用 AI 辅助工具改造为专注公众号创作的垂直应用
+- 🎨 内置 16 个公众号创作技能，实现开箱即用
+- 🚫 简化配置，移除用户手动配置 MCP 的需求
+- 🎯 固定 MCP 服务配置，提供更稳定的使用体验
+- 💡 优化 UI/UX，适配创作者工作流
+
+**致敬**: 感谢 OpenCowork 项目提供的坚实基础，使我们能够专注于公众号创作场景的深度优化。
+
+---
+
 ### 直接参考的项目
 
 #### 1. [Claude Code](https://claude.ai/code)

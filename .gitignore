@@ -82,3 +82,42 @@ out/
 
 # 临时测试报告
 *test-final-report.md
+
+# 测试文档和临时开发文档（保留程序文档）
+test-*.js
+test-*.ts
+test-*.png
+*_FIX.md
+*_SUMMARY.md
+*_GUIDE.md
+*_REPORT.md
+*_LOG.md
+*_PLAN.md
+*_AUDIT.md
+*_CHECKLIST.md
+*_READY.md
+*_REFERENCE.md
+*_NOTES.md
+
+# MCP 开发文档
+BAIDU_MCP_*.md
+BUILD_*.md
+MCP_*.md
+MCP-*.md
+
+# SkillMate 开发文档
+SKILLMATE_*.md
+GITHUB_*.md
+
+# 脚本文档
+ADMIN_*.md
+CLEANUP_*.md
+CHECK_*.md
+FIX_*.md
+PREPARE_*.md
+
+# 其他临时文档
+QUICK_*.md
+TEST_*.md
+DEV_*.md
+AUTO_*.md
