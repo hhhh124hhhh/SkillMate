@@ -23,15 +23,27 @@ cd SkillMate
 
 ### 2. 安装依赖
 
-使用 npm 安装项目依赖：
+**一键安装（推荐）**：
 
 ```bash
+npm run setup
+```
+
+这会自动安装所有依赖，包括 Node.js 依赖和 Python MCP 服务器。
+
+**手动安装**：
+
+```bash
+# 安装 Node.js 依赖
 npm install
+
+# 安装 Python MCP 服务器（可选，用于网页抓取）
+pip install mcp-server-fetch
 ```
 
 ### 3. 启动开发服务器
 
-> ⚠️ **重要提示**: 首次运行前必须先完成步骤 2（安装依赖）！如果遇到 `electron-forge` 命令未找到的错误，请运行 `npm install`。
+> ⚠️ **重要提示**: 首次运行前必须先完成步骤 2（安装依赖）！如果遇到 `electron-forge` 命令未找到的错误，请运行 `npm run setup`。
 
 运行以下命令启动本地开发服务器：
 

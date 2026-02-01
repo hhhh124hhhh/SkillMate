@@ -237,11 +237,17 @@ SkillMate/
 git clone https://github.com/hhhh124hhhh/SkillMate.git
 cd SkillMate
 
-# 2. 安装依赖
-npm install
+# 2. 一键安装所有依赖（推荐）
+npm run setup
 ```
 
-> ⚠️ **重要**: 首次运行前必须先安装依赖！如果看到 `electron-forge` 命令未找到的错误，请运行 `npm install`。
+> ✨ **一键安装** 会自动完成：
+> - ✅ 安装 Node.js 依赖
+> - ✅ 检测 Python 环境
+> - ✅ 安装 mcp-server-fetch（网页抓取功能）
+> - ✅ 验证安装结果
+
+> ⚠️ **重要**: 首次运行前必须先安装依赖！如果看到 `electron-forge` 命令未找到的错误，请运行 `npm run setup`。
 
 ```bash
 # 3. 启动开发服务器

@@ -42,8 +42,24 @@ cd SkillMate
 
 ### 2. 安装依赖
 
+**方式一：一键安装（推荐）**
+
+```bash
+npm run setup
+```
+
+这会自动安装所有必需的依赖，包括 Python MCP 服务器。
+
+**方式二：手动安装**
+
 ```bash
 npm install
+```
+
+然后手动安装 Python 依赖（可选，用于网页抓取功能）：
+
+```bash
+pip install mcp-server-fetch
 ```
 
 **提示**: 如果安装速度慢，可以使用国内镜像：
