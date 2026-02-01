@@ -50,6 +50,10 @@ tmpclaude-*/
 tmpclaude-*-cwd
 nul
 
+# Windows 临时目录
+%TEMP%*
+TEMP*
+
 # 临时测试和预览文件
 *-preview.html
 *-redesign.html
