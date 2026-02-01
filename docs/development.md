@@ -1,67 +1,207 @@
-# Development Guide
+# 开发指南
 
-Welcome to OpenCowork development! This guide will help you set up your local environment and contribute to the project.
+欢迎参与 SkillMate 的开发！这是一个开源的 AI Agent 框架，专为学习和研究如何构建现代化的 AI Skill 助手而设计。
 
-## Prerequisites
+## 前置要求
 
-Before you begin, please ensure your development environment meets the following requirements:
+在开始之前，请确保你的开发环境满足以下要求：
 
--   **Node.js**: v18 or higher (v20 LTS recommended)
--   **npm**: For package management
+- **Node.js**: v18 或更高版本（推荐 v20 LTS）
+- **npm**: 用于包管理
+- **Git**: 用于版本控制
 
-## Setup & Running
+## 开发环境设置
 
-### 1. Clone the Repository
+### 1. 克隆仓库
 
-First, clone the project code to your local machine:
+将项目代码克隆到本地：
 
 ```bash
-git clone https://github.com/Safphere/opencowork.git
-cd opencowork
+git clone https://github.com/hhhh124hhhh/SkillMate.git
+cd SkillMate
 ```
 
-### 2. Install Dependencies
+### 2. 安装依赖
 
-Install project dependencies using npm:
+使用 npm 安装项目依赖：
 
 ```bash
 npm install
 ```
 
-### 3. Start Development Server
+### 3. 启动开发服务器
 
-Run the following command to start the local development server:
+运行以下命令启动本地开发服务器：
 
 ```bash
 npm run dev
 ```
 
-Once started, the Electron application window should open automatically, and you will see the frontend service logs in your terminal.
+启动后，Electron 应用窗口会自动打开，你将在终端看到前端服务日志。
 
-## Build & Release
+### 4. 开发工具
 
-This project uses **GitHub Actions** for automated builds, which is our recommended way to release.
+- **主进程调试**: 终端输出（运行 `npm run dev` 的终端）
+- **渲染进程调试**: DevTools（按 `Ctrl+Shift+I` 或 `Cmd+Option+I`）
+- **React DevTools**: 在 Chrome/Edge 中安装扩展
 
-### Automated Build
+## 项目结构
 
-1.  Ensure your code is committed and pushed to the GitHub repository.
-2.  Create a Tag starting with `v` (e.g., `v1.0.0`) and push it to the remote:
+```
+SkillMate/
+├── electron/              # Electron 主进程代码
+│   ├── main.ts           # 主进程入口
+│   ├── agent/            # AI Agent 系统
+│   ├── config/           # 配置存储
+│   └── preload.ts        # 预加载脚本
+├── src/                  # React 渲染进程代码
+│   ├── components/       # React 组件
+│   └── main.tsx          # 渲染进程入口
+├── resources/skills/     # 内置技能库
+├── docs/                 # 项目文档
+└── public/               # 静态资源
+```
+
+## 常用命令
+
+```bash
+# 开发
+npm run dev              # 启动开发服务器
+
+# 构建和打包
+npm run build            # 完整构建（包含打包）
+npm run package          # 仅打包不构建
+
+# 代码检查
+npm run lint             # 运行 ESLint
+npm run typecheck        # TypeScript 类型检查
+
+# 其他
+npm run generate-icons   # 生成应用图标
+```
+
+## 构建和发布
+
+本项目使用 **GitHub Actions** 进行自动化构建，这是我们推荐的发布方式。
+
+### 自动构建
+
+1. 确保代码已提交并推送到 GitHub 仓库
+2. 创建一个以 `v` 开头的标签（例如 `v1.0.0`）并推送到远程：
     ```bash
     git tag v1.0.0
     git push origin v1.0.0
     ```
-3.  GitHub Actions will automatically trigger the build pipeline and generate installers for:
-    -   **Windows**: `.exe` (NSIS installer)
-    -   **macOS**: `.dmg` and `.zip`
-    -   **Linux**: `.AppImage`
-4.  Once completed, artifacts will be published to the project's [Releases](https://github.com/Safphere/opencowork/releases) page.
+3. GitHub Actions 会自动触发构建流水线，生成以下平台的安装包：
+    - **Windows**: `.exe` (NSIS 安装程序)
+    - **macOS**: `.dmg` 和 `.zip`
+    - **Linux**: `.AppImage`
+4. 构建完成后，安装包会发布到项目的 [Releases](https://github.com/hhhh124hhhh/SkillMate/releases) 页面
 
-### Manual Build
+### 本地构建
 
-If you need to generate distribution installers locally, run:
+如果你需要在本地生成安装包，运行：
 
 ```bash
 npm run build
 ```
 
-Build artifacts will be output to the `release` directory.
+构建产物将输出到 `release` 目录。
+
+## 代码风格
+
+本项目遵循以下代码规范：
+
+- **TypeScript**: 严格模式，所有文件必须通过类型检查
+- **ESLint**: 遵循 Airbnb 风格指南
+- **Prettier**: 自动格式化代码
+- **命名规范**:
+  - 组件：PascalCase (例如 `MyComponent.tsx`)
+  - 函数：camelCase (例如 `getUserData`)
+  - 常量：UPPER_SNAKE_CASE (例如 `API_BASE_URL`)
+
+## 提交代码
+
+1. 创建功能分支：
+    ```bash
+    git checkout -b feature/your-feature-name
+    ```
+
+2. 提交更改：
+    ```bash
+    git add .
+    git commit -m "feat: 添加你的功能描述"
+    ```
+
+3. 推送到远程：
+    ```bash
+    git push origin feature/your-feature-name
+    ```
+
+4. 创建 Pull Request
+
+## 学习路径
+
+如果你是第一次接触这个项目，建议按以下顺序学习：
+
+1. **阅读架构文档**: [architecture.md](./architecture.md)
+2. **理解核心流程**:
+   - `electron/main.ts` - 主进程入口
+   - `electron/agent/AgentRuntime.ts` - AI 运行时
+   - `src/App.tsx` - React 应用入口
+3. **尝试添加技能**: [skill-development.md](./skill-development.md)
+4. **学习 MCP 集成**: [mcp-integration.md](./mcp-integration.md)
+
+## 常见问题
+
+### Q: 如何调试主进程？
+
+A: 主进程日志会输出到运行 `npm run dev` 的终端。你也可以使用 VS Code 的调试功能。
+
+### Q: 如何调试渲染进程？
+
+A: 在应用窗口中按 `Ctrl+Shift+I` (Windows/Linux) 或 `Cmd+Option+I` (macOS) 打开 DevTools。
+
+### Q: 修改代码后不生效？
+
+A: 主进程（electron/）代码修改需要重启 `npm run dev`。渲染进程（src/）代码修改会自动热重载。
+
+### Q: 构建失败怎么办？
+
+A: 检查以下几点：
+1. Node.js 版本是否满足要求
+2. 依赖是否正确安装（删除 `node_modules` 重新安装）
+3. 是否有 TypeScript 错误（运行 `npm run typecheck`）
+
+## 贡献指南
+
+我们欢迎所有形式的贡献：
+
+- 🐛 **Bug 修复**: 发现并修复问题
+- ✨ **新功能**: 添加新特性或技能
+- 📚 **文档改进**: 完善文档和示例
+- 🎨 **UI 优化**: 改进用户界面
+- 🔧 **性能优化**: 提升应用性能
+
+### 提交前检查
+
+- [ ] 代码通过 `npm run typecheck`
+- [ ] 代码通过 `npm run lint`
+- [ ] 添加了必要的注释
+- [ ] 更新了相关文档
+- [ ] 测试了你的更改
+
+## 资源链接
+
+- **项目仓库**: https://github.com/hhhh124hhhh/SkillMate
+- **问题反馈**: https://github.com/hhhh124hhhh/SkillMate/issues
+- **讨论区**: https://github.com/hhhh124hhhh/SkillMate/discussions
+- **原始项目**: [OpenCowork](https://github.com/opencowork/opencowork) - 本项目基于此改造
+
+---
+
+**相关文档**:
+- [架构设计](./architecture.md)
+- [快速开始](./getting-started.md)
+- [技能开发](./skill-development.md)
+- [配置指南](./configuration.md)
