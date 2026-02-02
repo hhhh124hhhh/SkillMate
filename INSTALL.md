@@ -69,6 +69,8 @@ pip install mcp-server-fetch
 
 **错误处理**:
 - 如果 `electron-forge` 命令未找到 → 运行 `npm install`
+- 如果 Electron 下载失败 (ECONNREFUSED) → 设置 ELECTRON_MIRROR 环境变量
+- 如果文件锁定 (EBUSY) → 使用 PowerShell 强制删除 node_modules
 - 如果网络超时 → 使用国内镜像或清理缓存
 - 如果权限错误 → 检查文件权限
 
@@ -133,7 +135,76 @@ npm install --registry=https://registry.npmmirror.com
 
 # 方案 3: 切换 Node.js 版本
 nvm use 20
+
+# 注意: 如果使用 Node.js v22，虽然有 EBADENGINE 警告，但通常可以正常工作
+# 如果遇到兼容性问题，建议切换到 v20.x
 ```
+
+---
+
+### 问题 2.5: Electron 下载失败
+
+**错误**: `RequestError: connect ECONNREFUSED 127.0.0.1:443`
+
+**原因**:
+- Electron 尝试通过本地代理下载失败
+- 代理服务器未运行或配置错误
+- 中国大陆用户网络环境限制
+
+**解决方案**:
+```bash
+# 方法 1: 设置 Electron 镜像源（推荐，适用于中国大陆）
+export ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/
+export ELECTRON_CUSTOM_DIR="{{ version }}"
+npm install --registry=https://registry.npmmirror.com
+
+# 方法 2: Windows PowerShell
+$env:ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"
+$env:ELECTRON_CUSTOM_DIR="{{ version }}"
+npm install --registry=https://registry.npmmirror.com
+```
+
+**说明**:
+- 中国大陆用户强烈建议使用 Electron 镜像源
+- 如果使用代理，请确保代理服务器正常运行
+- 清除代理设置：`unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY`
+
+**实战案例 (2026-02-02)**:
+- 用户环境: Windows + Node.js v22.21.0 + npm 11.7.0
+- 错误: `ECONNREFUSED 127.0.0.1:443`
+- 解决: 设置 ELECTRON_MIRROR 后安装成功 (1400 packages in 7m)
+
+---
+
+### 问题 2.8: 文件锁定 (EBUSY)
+
+**错误**: `EBUSY: resource busy or locked`
+
+**原因**:
+- node_modules 文件夹被其他进程占用
+- 可能是 IDE、杀毒软件或之前的 npm 进程
+
+**解决方案**:
+```bash
+# Windows PowerShell
+Remove-Item -Path 'node_modules' -Recurse -Force -ErrorAction SilentlyContinue
+
+# macOS/Linux
+rm -rf node_modules
+
+# 等待 3-5 秒后重新安装
+npm install --registry=https://registry.npmmirror.com
+```
+
+**预防**:
+- 安装前关闭 IDE 或文件浏览器
+- 避免在安装过程中访问 node_modules
+- 不要在安装过程中中断进程
+
+**实战案例 (2026-02-02)**:
+- 错误: `EBUSY: resource busy or locked, rename 'node_modules\fetcher-mcp'`
+- 原因: 之前的 npm 进程未完全释放文件
+- 解决: PowerShell 强制删除后重新安装
 
 ---
 
@@ -165,6 +236,18 @@ taskkill /PID <进程ID> /F
 # macOS/Linux
 lsof -ti:5173 | xargs kill -9
 ```
+
+---
+
+## 🛠️ 故障排除命令参考
+
+| 问题类型 | 检测方法 | 解决命令 |
+|---------|---------|---------|
+| Electron 下载失败 | `grep "ECONNREFUSED" npm-debug.log` | `export ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/` |
+| 文件锁定 EBUSY | 检查 node_modules 是否可访问 | `powershell -Command "Remove-Item -Path 'node_modules' -Recurse -Force"` |
+| 依赖冲突 | `npm ls` 查看依赖树 | `rm -rf node_modules package-lock.json && npm install` |
+| 缓存问题 | 查看错误日志中的缓存错误 | `npm cache clean --force` |
+| Node.js 版本 | `node --version` 检查是否 v20.x | `nvm use 20` 或继续使用 v22（可能有警告） |
 
 ---
 
@@ -256,6 +339,7 @@ Agent 应确认以下所有项：
 | Windows | `install.bat` | `npm start` |
 | macOS/Linux | `npm run setup` | `npm start` |
 | 手动安装 | `npm install` | `npm start` |
+| 使用镜像 | `npm install --registry=https://registry.npmmirror.com` | `npm start` |
 
 ---
 
@@ -268,6 +352,7 @@ Agent 应确认以下所有项：
 2. **网络问题**
    - 中国大陆用户建议使用国内镜像
    - 遇到超时可重试
+   - Electron 下载失败需要设置 ELECTRON_MIRROR
 
 3. **Python 环境**
    - Python 是可选的（仅网页抓取功能需要）
@@ -277,7 +362,13 @@ Agent 应确认以下所有项：
    - 安装完成后是开发模式
    - 生产构建需要运行 `npm run build`
 
+5. **文件锁定预防**
+   - 安装前关闭 IDE 和文件浏览器
+   - 避免在安装过程中访问项目目录
+   - 不要中断安装进程
+
 ---
 
-**最后更新**: 2026-02-01
+**最后更新**: 2026-02-02
 **适用版本**: SkillMate v2.0.0+
+**实战验证**: Windows + Node.js v22.21.0 测试通过
